@@ -279,6 +279,10 @@ function setupNavigation() {
       btn.classList.add("active");
       const target = `tab-${btn.dataset.tab}`;
       document.getElementById(target)?.classList.add("active");
+
+      // Smooth scroll to top when switching tabs
+      window.scrollTo({ top: 0, behavior: "smooth" });
+
       if (btn.dataset.tab === "soikeo") {
         setTimeout(renderSoiKeo, 50);
       } else if (btn.dataset.tab === "simulator") {
@@ -295,6 +299,65 @@ function setupNavigation() {
     dom.soundToggle.textContent = state.soundEnabled ? "🔊" : "🔇";
     dom.soundToggle.style.opacity = state.soundEnabled ? "1" : "0.5";
   });
+
+  setupStickyAndDockedNavigation();
+}
+
+function setupStickyAndDockedNavigation() {
+  const topNav = document.getElementById("topNav");
+  const mainNavTabs = document.getElementById("mainNavTabs");
+  const navTabsWrapper = document.getElementById("navTabsWrapper");
+  const appContainer = document.querySelector(".app-container");
+  if (!topNav || !mainNavTabs) return;
+
+  let ticking = false;
+
+  function onScroll() {
+    if (!ticking) {
+      window.requestAnimationFrame(() => {
+        const scrollY = window.scrollY || window.pageYOffset || 0;
+        const isMobile = window.innerWidth <= 768;
+
+        if (isMobile) {
+          // Mobile mode: dock tabs to bottom when scrolled down past header
+          if (scrollY > 50) {
+            mainNavTabs.classList.add("is-docked-bottom");
+            appContainer?.classList.add("has-docked-nav");
+            if (navTabsWrapper) {
+              navTabsWrapper.style.minHeight = `${mainNavTabs.offsetHeight || 44}px`;
+            }
+          } else {
+            mainNavTabs.classList.remove("is-docked-bottom");
+            appContainer?.classList.remove("has-docked-nav");
+            if (navTabsWrapper) {
+              navTabsWrapper.style.minHeight = "";
+            }
+          }
+          topNav.classList.remove("is-sticky-desktop");
+        } else {
+          // Desktop mode: stick to top when scrolled down
+          mainNavTabs.classList.remove("is-docked-bottom");
+          appContainer?.classList.remove("has-docked-nav");
+          if (navTabsWrapper) {
+            navTabsWrapper.style.minHeight = "";
+          }
+
+          if (scrollY > 20) {
+            topNav.classList.add("is-sticky-desktop");
+          } else {
+            topNav.classList.remove("is-sticky-desktop");
+          }
+        }
+
+        ticking = false;
+      });
+      ticking = true;
+    }
+  }
+
+  window.addEventListener("scroll", onScroll, { passive: true });
+  window.addEventListener("resize", onScroll, { passive: true });
+  onScroll();
 }
 
 function renderInitialReels() {

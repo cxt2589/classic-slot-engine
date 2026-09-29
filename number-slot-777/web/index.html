@@ -12,7 +12,7 @@
 <body>
   <div class="app-container">
     <!-- Top Header -->
-    <header class="top-nav">
+    <header class="top-nav" id="topNav">
       <div class="brand">
         <span class="brand-icon">🎰</span>
         <div class="brand-text">
@@ -21,13 +21,35 @@
         </div>
       </div>
 
-      <nav class="nav-tabs">
-        <button class="tab-btn active" data-tab="game">🎮 Chơi & Đặt Cược</button>
-        <button class="tab-btn" data-tab="soikeo">📈 Bảng Soi Kèo</button>
-        <button class="tab-btn" data-tab="simulator">📊 Math Simulator</button>
-        <button class="tab-btn" data-tab="rules">📜 Bảng Hệ Số Thưởng</button>
-        <button class="tab-btn" data-tab="architecture">🏗️ Kiến Trúc & API</button>
-      </nav>
+      <div class="nav-tabs-wrapper" id="navTabsWrapper">
+        <nav class="nav-tabs" id="mainNavTabs">
+          <button class="tab-btn active" data-tab="game">
+            <span class="tab-icon">🎮</span>
+            <span class="tab-label">Chơi & Đặt Cược</span>
+            <span class="tab-label-short">Chơi Cược</span>
+          </button>
+          <button class="tab-btn" data-tab="soikeo">
+            <span class="tab-icon">📈</span>
+            <span class="tab-label">Bảng Soi Kèo</span>
+            <span class="tab-label-short">Soi Kèo</span>
+          </button>
+          <button class="tab-btn" data-tab="simulator">
+            <span class="tab-icon">📊</span>
+            <span class="tab-label">Math Simulator</span>
+            <span class="tab-label-short">Mô Phỏng</span>
+          </button>
+          <button class="tab-btn" data-tab="rules">
+            <span class="tab-icon">📜</span>
+            <span class="tab-label">Bảng Hệ Số Thưởng</span>
+            <span class="tab-label-short">Trả Thưởng</span>
+          </button>
+          <button class="tab-btn" data-tab="architecture">
+            <span class="tab-icon">🏗️</span>
+            <span class="tab-label">Kiến Trúc & API</span>
+            <span class="tab-label-short">API Docs</span>
+          </button>
+        </nav>
+      </div>
 
       <div class="header-actions">
         <div class="stat-badge">
