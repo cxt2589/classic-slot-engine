@@ -443,6 +443,13 @@ function setupActions() {
   });
 
   dom.btnRunSim.addEventListener("click", runSimulation);
+
+  if (dom.winBanner) {
+    dom.winBanner.addEventListener("click", () => {
+      dom.winBanner.classList.remove("show");
+      dom.winBanner.style.display = "none";
+    });
+  }
 }
 
 async function triggerSpin() {
@@ -465,7 +472,14 @@ async function triggerSpin() {
 
   state.isSpinning = true;
   dom.btnSpin.disabled = true;
-  dom.winBanner.classList.remove("show");
+  if (state.winBannerTimer) {
+    clearTimeout(state.winBannerTimer);
+    state.winBannerTimer = null;
+  }
+  if (dom.winBanner) {
+    dom.winBanner.classList.remove("show");
+    dom.winBanner.style.display = "none";
+  }
   dom.winPillsList.innerHTML = "";
   dom.resHand.textContent = "ĐANG QUAY CUỘN...";
 
@@ -611,14 +625,23 @@ function handleResults(center_row, analysis, payout) {
       dom.winPillsList.appendChild(pill);
     });
 
-    const totalBet = payout.total_bet;
-    if (totalWon >= totalBet * 10) {
-      dom.winBannerTitle.textContent = "JACKPOT / BIG WIN!";
+    const totalBet = payout.total_bet || 10;
+    if (totalWon >= totalBet * 5 && totalWon > 0 && dom.winBanner) {
+      dom.winBannerTitle.textContent = totalWon >= totalBet * 20 ? "JACKPOT / EPIC WIN!" : "BIG WIN!";
       dom.winBannerAmount.textContent = `+${totalWon.toFixed(2)}`;
       dom.winBannerDesc.textContent = `${analysis.hand_title_vi} • Lãi ròng: +${payout.net_profit.toFixed(2)}`;
+      dom.winBanner.style.display = "block";
       dom.winBanner.classList.add("show");
       soundEngine.playBigWin();
-    } else {
+
+      if (state.winBannerTimer) clearTimeout(state.winBannerTimer);
+      state.winBannerTimer = setTimeout(() => {
+        if (dom.winBanner) {
+          dom.winBanner.classList.remove("show");
+          dom.winBanner.style.display = "none";
+        }
+      }, 3000);
+    } else if (totalWon > 0) {
       soundEngine.playWin();
     }
   }
