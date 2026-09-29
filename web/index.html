@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Retro 777 Deluxe - Classic 5x3 Slot Engine</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Orbitron:wght@600;800;900&family=Rajdhani:wght@600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Top Navigation Bar -->
+    <header class="top-nav">
+      <div class="brand">
+        <span class="brand-icon">🎰</span>
+        <div class="brand-text">
+          <h1>RETRO 777 <span class="highlight">DELUXE</span></h1>
+          <span class="subtext">5x3 Classic Slot Math & Game Engine</span>
+        </div>
+      </div>
+
+      <nav class="nav-tabs">
+        <button class="tab-btn active" data-tab="game">🎮 Chơi Thử Game</button>
+        <button class="tab-btn" data-tab="simulator">📊 Math Simulator</button>
+        <button class="tab-btn" data-tab="paytable">📜 Bảng Trả Thưởng</button>
+        <button class="tab-btn" data-tab="architecture">🏗️ Kiến Trúc & API</button>
+      </nav>
+
+      <div class="header-stats">
+        <div class="stat-badge">
+          <span class="lbl">RTP Mục Tiêu</span>
+          <span class="val glow-cyan">96.0%</span>
+        </div>
+        <button id="soundToggle" class="icon-btn" title="Bật/Tắt Âm Thanh">🔊</button>
+      </div>
+    </header>
+
+    <!-- TAB 1: GAME CLIENT -->
+    <main id="tab-game" class="tab-content active">
+      <div class="cabinet-wrapper">
+        <!-- Arcade Marquee / Header -->
+        <div class="cabinet-marquee">
+          <div class="marquee-lights left"></div>
+          <div class="jackpot-display">
+            <span class="jackpot-title">GRAND JACKPOT</span>
+            <span class="jackpot-amount" id="jackpotCounter">100,000.00</span>
+          </div>
+          <div class="marquee-lights right"></div>
+        </div>
+
+        <!-- Free Spins Banner Overlay (Shown during feature) -->
+        <div id="freeSpinsBanner" class="free-spins-banner hidden">
+          <div class="fs-badge">🔥 VÒNG QUAY MIỄN PHÍ 🔥</div>
+          <div class="fs-info">
+            <span>Còn lại: <strong id="fsRemainingCount">10</strong> lượt</span>
+            <span class="fs-mult">Hệ số nhân: <strong>3X MỌI THẮNG</strong></span>
+            <span>Tổng thưởng Free Spins: <strong id="fsTotalWon">0.00</strong></span>
+          </div>
+        </div>
+
+        <!-- Slot Reel Grid Container -->
+        <div class="slot-screen-frame">
+          <!-- Payline Overlay SVG for drawing winning lines -->
+          <svg id="paylineSvg" class="payline-svg"></svg>
+
+          <!-- 5 Reels -->
+          <div class="reels-container" id="reelsContainer">
+            <div class="reel-column" data-reel="0">
+              <div class="reel-strip" id="reel-0"></div>
+            </div>
+            <div class="reel-column" data-reel="1">
+              <div class="reel-strip" id="reel-1"></div>
+            </div>
+            <div class="reel-column" data-reel="2">
+              <div class="reel-strip" id="reel-2"></div>
+            </div>
+            <div class="reel-column" data-reel="3">
+              <div class="reel-strip" id="reel-3"></div>
+            </div>
+            <div class="reel-column" data-reel="4">
+              <div class="reel-strip" id="reel-4"></div>
+            </div>
+          </div>
+
+          <!-- Win Banner Popup -->
+          <div id="winBanner" class="win-banner hidden">
+            <div class="win-banner-title" id="winBannerTitle">BIG WIN!</div>
+            <div class="win-banner-amount" id="winBannerAmount">+0.00</div>
+          </div>
+        </div>
+
+        <!-- Status & Win Message Box -->
+        <div class="cabinet-status-strip">
+          <div class="status-msg" id="statusMessage">CHÚC BẠN MAY MẮN! HÃY BẤM QUAY.</div>
+        </div>
+
+        <!-- Dashboard Meters (Balance, Total Bet, Win) -->
+        <div class="cabinet-meters">
+          <div class="meter-box">
+            <span class="meter-lbl">SỐ DƯ (BALANCE)</span>
+            <div class="meter-val" id="meterBalance">10,000.00</div>
+          </div>
+          <div class="meter-box">
+            <span class="meter-lbl">TỔNG CƯỢC (TOTAL BET)</span>
+            <div class="meter-val" id="meterTotalBet">20.00</div>
+          </div>
+          <div class="meter-box win-meter">
+            <span class="meter-lbl">TIỀN THẮNG (WIN)</span>
+            <div class="meter-val glow-gold" id="meterWin">0.00</div>
+          </div>
+        </div>
+
+        <!-- Cabinet Control Panel -->
+        <div class="cabinet-controls">
+          <!-- Bet Per Line Selector -->
+          <div class="control-group">
+            <label>CƯỢC / DÒNG</label>
+            <div class="stepper">
+              <button class="step-btn" id="btnBetMinus">−</button>
+              <span class="step-val" id="valBetPerLine">1.0</span>
+              <button class="step-btn" id="btnBetPlus">+</button>
+            </div>
+          </div>
+
+          <!-- Lines Selector -->
+          <div class="control-group">
+            <label>SỐ DÒNG (LINES)</label>
+            <div class="stepper">
+              <button class="step-btn" id="btnLinesMinus">−</button>
+              <span class="step-val" id="valNumLines">20</span>
+              <button class="step-btn" id="btnLinesPlus">+</button>
+            </div>
+          </div>
+
+          <!-- Max Bet Button -->
+          <button class="action-btn secondary-btn" id="btnMaxBet">CƯỢC MAX</button>
+
+          <!-- Auto Spin Button -->
+          <button class="action-btn secondary-btn" id="btnAutoSpin">AUTO (OFF)</button>
+
+          <!-- Turbo Mode Toggle -->
+          <button class="action-btn toggle-btn" id="btnTurbo">⚡ TURBO: TẮT</button>
+
+          <!-- Big Red Spin Button -->
+          <button class="spin-button" id="btnSpin">
+            <span class="spin-text">QUAY</span>
+            <span class="spin-sub">SPIN</span>
+          </button>
+        </div>
+
+        <!-- Win Breakdown List -->
+        <div class="win-breakdown" id="winBreakdown">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+    </main>
+
+    <!-- TAB 2: MATH SIMULATOR -->
+    <main id="tab-simulator" class="tab-content">
+      <div class="sim-panel">
+        <div class="panel-header">
+          <h2>MÔ PHỎNG XÁC SUẤT TOÁN HỌC (MONTE CARLO SIMULATOR)</h2>
+          <p>Kiểm định và chứng thực các chỉ số RTP (Return To Player), Tần suất trúng thưởng (Hit Frequency) và Độ biến động (Volatility) theo tiêu chuẩn quốc tế GLI-19.</p>
+        </div>
+
+        <div class="sim-controls-card">
+          <div class="sim-input-grid">
+            <div class="input-item">
+              <label>Số Vòng Quay Mô Phỏng:</label>
+              <select id="simSpinsSelect" class="sim-select">
+                <option value="1000">1,000 spins (Nhanh - 0.1s)</option>
+                <option value="10000" selected>10,000 spins (Chuẩn - 0.3s)</option>
+                <option value="50000">50,000 spins (Chính xác - 1.5s)</option>
+                <option value="100000">100,000 spins (Kiểm định GLI - 3.0s)</option>
+              </select>
+            </div>
+
+            <div class="input-item">
+              <label>Mức Cược / Dòng:</label>
+              <input type="number" id="simBetPerLine" class="sim-input" value="1.0" min="0.1" max="100.0" step="0.5">
+            </div>
+
+            <div class="input-item">
+              <label>Số Dòng Kích Hoạt:</label>
+              <input type="number" id="simNumLines" class="sim-input" value="20" min="1" max="20">
+            </div>
+
+            <div class="input-item btn-item">
+              <button id="btnRunSim" class="sim-run-btn">🚀 CHẠY MÔ PHỎNG NGAY</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="simLoading" class="sim-loading hidden">
+          <div class="spinner"></div>
+          <span>Đang thực thi mô phỏng hàng chục nghìn vòng quay...</span>
+        </div>
+
+        <div id="simResults" class="sim-results">
+          <div class="metrics-grid">
+            <div class="metric-card highlight-card">
+              <span class="m-lbl">TỔNG RTP THỰC NGHIỆM</span>
+              <span class="m-val glow-cyan" id="metricTotalRtp">95.19%</span>
+              <span class="m-sub">Target chuẩn: 95.0% - 97.0%</span>
+            </div>
+
+            <div class="metric-card">
+              <span class="m-lbl">RTP Game Thường (Base)</span>
+              <span class="m-val" id="metricBaseRtp">54.60%</span>
+              <span class="m-sub">Tỷ trọng: ~57% tổng thưởng</span>
+            </div>
+
+            <div class="metric-card">
+              <span class="m-lbl">RTP Vòng Quay Miễn Phí (Free)</span>
+              <span class="m-val" id="metricFreeRtp">40.59%</span>
+              <span class="m-sub">Tính năng kích hoạt x3 Win</span>
+            </div>
+
+            <div class="metric-card">
+              <span class="m-lbl">Tần Suất Trúng (Hit Frequency)</span>
+              <span class="m-val glow-gold" id="metricHitFreq">48.94%</span>
+              <span class="m-sub">~1 lần trúng mỗi 2.0 vòng quay</span>
+            </div>
+
+            <div class="metric-card">
+              <span class="m-lbl">Tần Suất Free Spins</span>
+              <span class="m-val" id="metricFsRatio">1 in 138</span>
+              <span class="m-sub">Kích hoạt trung bình 138 spins</span>
+            </div>
+
+            <div class="metric-card">
+              <span class="m-lbl">Độ Biến Động (Volatility Index)</span>
+              <span class="m-val" id="metricVolatility">Trung Bình (6.52)</span>
+              <span class="m-sub">Standard Deviation</span>
+            </div>
+
+            <div class="metric-card">
+              <span class="m-lbl">Thắng Lớn Nhất (Max Win)</span>
+              <span class="m-val glow-red" id="metricMaxWin">422.65x</span>
+              <span class="m-sub">Hệ số so với tổng cược</span>
+            </div>
+
+            <div class="metric-card">
+              <span class="m-lbl">Tốc Độ Xử Lý Math Core</span>
+              <span class="m-val" id="metricSpeed">~32,000 / sec</span>
+              <span class="m-sub">Spins mỗi giây</span>
+            </div>
+          </div>
+
+          <div class="sim-details-grid">
+            <div class="detail-box">
+              <h3>Phân Bố Hệ Số Thưởng (Payout Distribution)</h3>
+              <div id="distributionBars" class="dist-bars">
+                <!-- Dynamically rendered -->
+              </div>
+            </div>
+
+            <div class="detail-box">
+              <h3>Đóng Góp RTP Của Từng Biểu Tượng</h3>
+              <div id="symbolContributions" class="contrib-list">
+                <!-- Dynamically rendered -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- TAB 3: PAYTABLE & RULES -->
+    <main id="tab-paytable" class="tab-content">
+      <div class="paytable-panel">
+        <div class="panel-header">
+          <h2>BẢNG TRẢ THƯỞNG & LUẬT CHƠI RETRO 777</h2>
+          <p>Mọi dòng trả thưởng đều tính từ trái qua phải (Left-to-Right) bắt đầu từ cuộn thứ 1.</p>
+        </div>
+
+        <div class="features-overview">
+          <div class="feature-card special-wild">
+            <div class="f-icon">👑</div>
+            <div class="f-desc">
+              <h4>BIỂU TƯỢNG VƯƠNG MIỆN WILD</h4>
+              <p>Thay thế cho tất cả các biểu tượng (ngoại trừ Scatter) để tạo ra tổ hợp thắng cao nhất trên mỗi dòng. Đạt 5 Wild trên 1 dòng mang lại giải thưởng lớn nhất: <strong>2,000x</strong> cược dòng!</p>
+            </div>
+          </div>
+
+          <div class="feature-card special-scatter">
+            <div class="f-icon">⭐</div>
+            <div class="f-desc">
+              <h4>NGÔI SAO SCATTER & VÒNG QUAY MIỄN PHÍ</h4>
+              <p>Biểu tượng Scatter trả thưởng ở bất kỳ vị trí nào trên cuộn (không cần nằm trên dòng cược) và tính theo <strong>Tổng Cược</strong>:</p>
+              <ul>
+                <li><strong>3 Scatter:</strong> Thưởng 4x Tổng Cược + 10 Vòng Quay Miễn Phí</li>
+                <li><strong>4 Scatter:</strong> Thưởng 20x Tổng Cược + 15 Vòng Quay Miễn Phí</li>
+                <li><strong>5 Scatter:</strong> Thưởng 100x Tổng Cược + 20 Vòng Quay Miễn Phí</li>
+              </ul>
+              <p class="fs-note">Trong Free Spins: Mọi chiến thắng theo dòng đều được <strong>X3 GIÁ TRỊ</strong>!</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="symbols-grid" id="paytableSymbolsGrid">
+          <!-- Dynamically populated from API -->
+        </div>
+
+        <div class="paylines-schematic">
+          <h3>SƠ ĐỒ 20 DÒNG TRẢ THƯỞNG (PAYLINES)</h3>
+          <div class="paylines-grid" id="paylinesGrid">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- TAB 4: ARCHITECTURE & API -->
+    <main id="tab-architecture" class="tab-content">
+      <div class="arch-panel">
+        <div class="panel-header">
+          <h2>KIẾN TRÚC HỆ THỐNG SLOT CHUYÊN NGHIỆP</h2>
+          <p>Mô hình chuẩn casino: Tách biệt hoàn toàn giữa Frontend (Hiển thị) và Backend (Math Core, RNG, Ví tiền, Quyền lực tính thưởng).</p>
+        </div>
+
+        <div class="arch-cards-grid">
+          <div class="arch-card">
+            <span class="card-num">01</span>
+            <h3>1. Module Math Core & RNG</h3>
+            <p><strong>Không gian ngẫu nhiên công bằng:</strong> Sử dụng Dải cuộn ảo (Virtual Reel Strips) với 70 vị trí chuẩn. Bộ sinh số ngẫu nhiên mật mã (CSPRNG) đảm bảo tính độc lập giữa các vòng quay.</p>
+            <ul>
+              <li><code>engine/reels.py</code>: Cấu hình dải cuộn Base Game & Free Spins</li>
+              <li><code>engine/evaluator.py</code>: Quét paylines, thay thế Wild, tính Scatter</li>
+              <li><code>engine/rng.py</code>: Giao diện RNG đạt chuẩn GLI-19</li>
+            </ul>
+          </div>
+
+          <div class="arch-card">
+            <span class="card-num">02</span>
+            <h3>2. Backend REST API</h3>
+            <p><strong>Quản lý phiên chơi & chống gian lận:</strong> Client gửi cược, server sinh kết quả ngẫu nhiên, trừ tiền cược và ghi nhận lịch sử giao dịch. Client không bao giờ tự tính điểm thưởng.</p>
+            <ul>
+              <li><code>POST /api/spin</code>: Thực hiện 1 lượt quay</li>
+              <li><code>GET /api/session</code>: Truy vấn số dư và lịch sử</li>
+              <li><code>GET /api/paytable</code>: Đồng bộ bảng trả thưởng cho Client</li>
+              <li><code>POST /api/simulate</code>: Chạy stress test & kiểm định RTP</li>
+            </ul>
+          </div>
+
+          <div class="arch-card">
+            <span class="card-num">03</span>
+            <h3>3. Tích Hợp Client Đa Nền Tảng</h3>
+            <p>Math Core và Backend API này hoàn toàn độc lập, sẵn sàng kết nối trực tiếp với:</p>
+            <ul>
+              <li><strong>HTML5 Canvas / PixiJS:</strong> Game trên trình duyệt web, mobile web</li>
+              <li><strong>Unity / Godot / Cocos:</strong> Xuất bản ứng dụng iOS, Android, Desktop</li>
+              <li><strong>Telegram Mini App:</strong> Đóng gói thành bot game slot cực nhanh</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="api-doc-box">
+          <h3>Ví dụ Request & Response API: <code>POST /api/spin</code></h3>
+          <div class="code-preview">
+<pre><code>// 1. Request từ Client gửi lên Server
+{
+  "bet_per_line": 1.0,
+  "num_lines": 20
+}
+
+// 2. Server phản hồi kết quả kiểm chứng (RNG + Payouts)
+{
+  "status": "success",
+  "data": {
+    "session": {
+      "balance": 9980.0,
+      "in_free_spins": false,
+      "free_spins_remaining": 0
+    },
+    "spin_result": {
+      "stops": [14, 28, 42, 7, 59],
+      "grid": [
+        ["BELL", "WILD", "SEVEN", "ORANGE", "CHERRY"],
+        ["SEVEN", "SEVEN", "SEVEN", "DIAMOND", "BELL"],
+        ["PLUM", "CHERRY", "BAR_1", "WATERMELON", "GRAPE"]
+      ],
+      "total_bet": 20.0,
+      "total_win": 80.0,
+      "line_wins": [
+        {
+          "line_index": 0,
+          "symbol": "SEVEN",
+          "count": 3,
+          "multiplier": 80.0,
+          "win_amount": 80.0,
+          "positions": [[1,0], [1,1], [1,2]]
+        }
+      ],
+      "free_spins_won": 0
+    }
+  }
+}</code></pre>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <span>Classic 5x3 Retro Slot Machine &copy; 2026. Chuẩn thiết kế toán học iGaming GLI-19.</span>
+      <div class="footer-links">
+        <a href="/docs" target="_blank">📚 Swagger API Docs</a>
+        <button id="btnResetBalance" class="link-btn">🔄 Reset Số Dư (10,000)</button>
+      </div>
+    </footer>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
