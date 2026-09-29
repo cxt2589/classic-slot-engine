@@ -277,19 +277,19 @@ body {
 .dim-overlay-top {
   top: 0;
   height: 118px;
-  background: linear-gradient(180deg, rgba(3, 5, 10, 0.88) 0%, rgba(3, 5, 10, 0.78) 75%, rgba(3, 5, 10, 0.6) 100%);
-  backdrop-filter: blur(2.5px);
-  -webkit-backdrop-filter: blur(2.5px);
-  border-bottom: 1.5px solid rgba(255, 215, 0, 0.15);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(18, 24, 42, 0.28) 60%, rgba(10, 15, 28, 0.15) 100%);
+  backdrop-filter: blur(1.5px);
+  -webkit-backdrop-filter: blur(1.5px);
+  border-bottom: 1px solid rgba(255, 215, 0, 0.22);
 }
 
 .dim-overlay-bottom {
   top: 228px;
   bottom: 0;
-  background: linear-gradient(0deg, rgba(3, 5, 10, 0.88) 0%, rgba(3, 5, 10, 0.78) 75%, rgba(3, 5, 10, 0.6) 100%);
-  backdrop-filter: blur(2.5px);
-  -webkit-backdrop-filter: blur(2.5px);
-  border-top: 1.5px solid rgba(255, 215, 0, 0.15);
+  background: linear-gradient(0deg, rgba(255, 255, 255, 0.08) 0%, rgba(18, 24, 42, 0.28) 60%, rgba(10, 15, 28, 0.15) 100%);
+  backdrop-filter: blur(1.5px);
+  -webkit-backdrop-filter: blur(1.5px);
+  border-top: 1px solid rgba(255, 215, 0, 0.22);
 }
 
 .center-line-marker {
@@ -371,12 +371,12 @@ body {
   position: relative;
 }
 
-/* Outside center line: dimmed and slightly scaled down */
+/* Outside center line: soft and translucent, numbers fully visible */
 .row-top, .row-bottom {
-  opacity: 0.32;
-  transform: scale(0.88);
-  filter: grayscale(40%) contrast(80%);
-  transition: opacity 0.3s, transform 0.3s, filter 0.3s;
+  opacity: 0.70;
+  transform: scale(0.92);
+  filter: brightness(0.92);
+  transition: opacity 0.3s, transform 0.3s;
 }
 
 /* Inside Center Line: full prominent display */
@@ -568,18 +568,38 @@ body {
   background: #1a1e2f;
   border: 1px solid #2c334d;
   color: #cbd5e0;
-  padding: 8px 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  min-height: 40px;
+  max-height: 40px;
+  padding: 0 10px;
+  font-family: var(--font-display);
   font-size: 0.72rem;
-  font-weight: bold;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  line-height: 1;
   border-radius: 6px;
   cursor: pointer;
-  transition: 0.2s;
+  transition: all 0.2s ease;
   flex: 1;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+#btnTurbo {
+  height: 40px;
+  min-height: 40px;
+  max-height: 40px;
+  line-height: 1;
+  vertical-align: middle;
 }
 
 .sec-btn:hover {
   background: #282f48;
   color: #fff;
+  border-color: rgba(255, 215, 0, 0.4);
 }
 
 .sec-btn.active {
