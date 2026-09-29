@@ -4,46 +4,11 @@
  */
 
 const NUMBER_REEL_STRIPS = [
-  [
-    7, 2, 9, 4, 1, 8, 3, 5, 6,
-    8, 1, 6, 3, 9, 2, 7, 4, 5,
-    3, 7, 5, 2, 8, 1, 9, 6, 4,
-    9, 4, 2, 7, 6, 8, 1, 3, 5,
-    5, 8, 3, 1, 4, 9, 6, 7, 2,
-    6, 1, 7, 5, 2, 3, 8, 4, 9
-  ],
-  [
-    5, 6, 8, 1, 6, 3, 9, 2, 7,
-    4, 5, 3, 7, 5, 2, 8, 1, 9,
-    6, 4, 9, 4, 2, 7, 6, 8, 1,
-    3, 5, 5, 8, 3, 1, 4, 9, 6,
-    7, 2, 6, 1, 7, 5, 2, 3, 8,
-    4, 9, 7, 2, 9, 4, 1, 8, 3
-  ],
-  [
-    8, 1, 9, 6, 4, 9, 4, 2, 7,
-    6, 8, 1, 3, 5, 5, 8, 3, 1,
-    4, 9, 6, 7, 2, 6, 1, 7, 5,
-    2, 3, 8, 4, 9, 7, 2, 9, 4,
-    1, 8, 3, 5, 6, 8, 1, 6, 3,
-    9, 2, 7, 4, 5, 3, 7, 5, 2
-  ],
-  [
-    9, 6, 7, 2, 6, 1, 7, 5, 2,
-    3, 8, 4, 9, 7, 2, 9, 4, 1,
-    8, 3, 5, 6, 8, 1, 6, 3, 9,
-    2, 7, 4, 5, 3, 7, 5, 2, 8,
-    1, 9, 6, 4, 9, 4, 2, 7, 6,
-    8, 1, 3, 5, 5, 8, 3, 1, 4
-  ],
-  [
-    7, 4, 5, 3, 7, 5, 2, 8, 1,
-    9, 6, 4, 9, 4, 2, 7, 6, 8,
-    1, 3, 5, 5, 8, 3, 1, 4, 9,
-    6, 7, 2, 6, 1, 7, 5, 2, 3,
-    8, 4, 9, 7, 2, 9, 4, 1, 8,
-    3, 5, 6, 8, 1, 6, 3, 9, 2
-  ]
+  [1, 2, 3, 4, 5, 6, 7, 8, 9],
+  [1, 2, 3, 4, 5, 6, 7, 8, 9],
+  [1, 2, 3, 4, 5, 6, 7, 8, 9],
+  [1, 2, 3, 4, 5, 6, 7, 8, 9],
+  [1, 2, 3, 4, 5, 6, 7, 8, 9]
 ];
 
 const BET_PAYOUTS = {
@@ -123,13 +88,7 @@ function analyzeCenterRow(numbers) {
 
 function generateSampleSpin(spinNum) {
   const stops = NUMBER_REEL_STRIPS.map(strip => getRandomStop(strip.length));
-  const center_row = [
-    NUMBER_REEL_STRIPS[0][(stops[0] + 1) % NUMBER_REEL_STRIPS[0].length],
-    NUMBER_REEL_STRIPS[1][(stops[1] + 1) % NUMBER_REEL_STRIPS[1].length],
-    NUMBER_REEL_STRIPS[2][(stops[2] + 1) % NUMBER_REEL_STRIPS[2].length],
-    NUMBER_REEL_STRIPS[3][(stops[3] + 1) % NUMBER_REEL_STRIPS[3].length],
-    NUMBER_REEL_STRIPS[4][(stops[4] + 1) % NUMBER_REEL_STRIPS[4].length],
-  ];
+  const center_row = stops.map((stop, c) => NUMBER_REEL_STRIPS[c][stop]);
   const analysis = analyzeCenterRow(center_row);
   return {
     spin: spinNum,
@@ -630,15 +589,16 @@ export default {
       session.total_wagered += totalBet;
       session.total_spins++;
 
-      // Stops and Grid
+      // Stops and Grid: stops (0..8) represent center row numbers
       const stops = NUMBER_REEL_STRIPS.map(strip => getRandomStop(strip.length));
       const grid = [[], [], []];
       for (let c = 0; c < 5; c++) {
         const strip = NUMBER_REEL_STRIPS[c];
         const len = strip.length;
-        grid[0][c] = strip[stops[c] % len];
-        grid[1][c] = strip[(stops[c] + 1) % len]; // Center row
-        grid[2][c] = strip[(stops[c] + 2) % len];
+        const stop = stops[c] % len;
+        grid[0][c] = strip[(stop - 1 + len) % len]; // Top row (Center - 1 cyclically)
+        grid[1][c] = strip[stop];                    // Center row (Row 1)
+        grid[2][c] = strip[(stop + 1) % len];        // Bottom row (Center + 1 cyclically)
       }
 
       const center_row = grid[1];

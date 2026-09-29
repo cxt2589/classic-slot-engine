@@ -299,9 +299,9 @@ function setupNavigation() {
 
 function renderInitialReels() {
   const initialGrid = [
-    [3, 8, 1, 6, 2],
+    [6, 6, 6, 7, 8],
     [7, 7, 7, 8, 9], // Center line row 1
-    [4, 5, 2, 9, 3]
+    [8, 8, 8, 9, 1]
   ];
   state.currentGrid = initialGrid;
   for (let c = 0; c < 5; c++) {
@@ -636,7 +636,7 @@ async function triggerSpin() {
       [4, 5, 2, 9, 3]
     ];
 
-    // Build independent cascading roll for all 5 reels
+    // Build independent cascading roll for all 5 reels with strict 1-9 sequential rotations
     const reelPromises = [];
 
     for (let c = 0; c < 5; c++) {
@@ -647,16 +647,23 @@ async function triggerSpin() {
         const targetNums = [grid[0][c], grid[1][c], grid[2][c]];
         const prevNums = [prevGrid[0][c], prevGrid[1][c], prevGrid[2][c]];
 
-        // Staggered intermediate roll count for authentic progressive reel stops
-        const numIntermediates = state.isTurbo ? (10 + c * 3) : (18 + c * 6);
-        const totalItems = 3 + numIntermediates + 3;
+        const targetTop = targetNums[0];
+        const prevTop = prevNums[0];
 
-        // Assembly: [target[0], target[1], target[2], ...randoms..., prev[0], prev[1], prev[2]]
-        const stripNums = [targetNums[0], targetNums[1], targetNums[2]];
-        for (let i = 0; i < numIntermediates; i++) {
-          stripNums.push((Math.random() * 9 | 0) + 1);
+        // Delta to reach prevTop from targetTop along the 1-9 cyclic sequence
+        let delta = (prevTop - targetTop) % 9;
+        if (delta < 0) delta += 9;
+
+        // Number of full 9-number revolutions (staggered for reels 0..4)
+        const fullLoops = state.isTurbo ? (2 + c) : (3 + c * 2);
+        const kMinus2 = delta + fullLoops * 9;
+        const totalItems = kMinus2 + 3;
+
+        // Generate strip: every single number is strictly ((targetTop - 1 + i) % 9) + 1
+        const stripNums = [];
+        for (let i = 0; i < totalItems; i++) {
+          stripNums.push(((targetTop - 1 + i) % 9) + 1);
         }
-        stripNums.push(prevNums[0], prevNums[1], prevNums[2]);
 
         // Render nodes
         strip.innerHTML = "";
@@ -680,7 +687,7 @@ async function triggerSpin() {
         });
 
         // Compute duration with staggered interval
-        const duration = state.isTurbo ? (0.32 + c * 0.10) : (0.75 + c * 0.22);
+        const duration = state.isTurbo ? (0.35 + c * 0.12) : (0.80 + c * 0.25);
 
         // Force browser layout repaint
         void strip.offsetHeight;

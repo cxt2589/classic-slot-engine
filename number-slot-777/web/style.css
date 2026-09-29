@@ -328,9 +328,15 @@ body {
   user-select: none;
 }
 
-/* Reel rolling motion blur */
+/* Reel rolling motion: crisp hardware acceleration, uniform scale during spin */
 .strip.strip-rolling {
-  filter: blur(1.2px);
+  will-change: transform;
+  transform: translate3d(0, 0, 0);
+}
+
+.strip.strip-rolling .num-cell-slot {
+  opacity: 0.95;
+  transform: scale(1.0) !important;
 }
 
 /* WIN BANNER POPUP */
