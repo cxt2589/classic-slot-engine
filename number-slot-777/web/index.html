@@ -123,16 +123,45 @@
             <p>Chọn mệnh giá chip và bấm vào các cửa bạn muốn dự đoán cho 5 số ở hàng giữa:</p>
           </div>
 
-          <!-- Chip Selector -->
+          <!-- Chip Selector & Betting Modes -->
           <div class="chip-selector-strip">
-            <span class="chip-lbl">CHỌN CHIP:</span>
-            <div class="chips-list">
-              <button class="bet-chip active" data-val="10">10</button>
-              <button class="bet-chip" data-val="20">20</button>
-              <button class="bet-chip" data-val="50">50</button>
-              <button class="bet-chip" data-val="100">100</button>
-              <button class="bet-chip" data-val="500">500</button>
-              <button class="bet-chip" data-val="1000">1K</button>
+            <div class="chip-select-left">
+              <span class="chip-lbl">CHỌN CHIP:</span>
+              <div class="chips-list">
+                <button class="bet-chip active" data-val="10">10</button>
+                <button class="bet-chip" data-val="20">20</button>
+                <button class="bet-chip" data-val="50">50</button>
+                <button class="bet-chip" data-val="100">100</button>
+                <button class="bet-chip" data-val="500">500</button>
+                <button class="bet-chip" data-val="1000">1K</button>
+              </div>
+            </div>
+
+            <!-- Action Mode: Add / Subtract / Clear Specific -->
+            <div class="chip-mode-group">
+              <span class="chip-lbl">THAO TÁC CƯỢC:</span>
+              <div class="bet-modes-list">
+                <button class="bet-mode-btn active" id="btnModeAdd" data-mode="add" title="Bấm vào ô cược để CỘNG thêm tiền">➕ ĐẶT THÊM</button>
+                <button class="bet-mode-btn" id="btnModeSub" data-mode="sub" title="Bấm vào ô cược để TRỪ bớt mệnh giá chip đang chọn">➖ GIẢM CƯỢC</button>
+                <button class="bet-mode-btn danger" id="btnModeDel" data-mode="del" title="Bấm vào ô cược để XÓA SẠCH tiền ô đó về 0">🗑️ XÓA Ô NÀY</button>
+              </div>
+            </div>
+
+            <!-- Quick Board Actions: Undo, Clear All, Double -->
+            <div class="board-quick-actions">
+              <button class="board-action-btn" id="btnUndoBet" title="Hoàn tác thao tác cược gần nhất">↩️ HOÀN TÁC</button>
+              <button class="board-action-btn" id="btnBoardClearAll" title="Xóa tất cả cược trên bàn về 0">🗑️ HỦY TẤT CẢ</button>
+              <button class="board-action-btn" id="btnBoardDouble" title="Nhân đôi toàn bộ cược">✖2 NHÂN ĐÔI</button>
+            </div>
+          </div>
+
+          <div class="board-user-guide">
+            <div class="bug-title">💡 <strong>4 Cách giảm hoặc xóa cược linh hoạt:</strong></div>
+            <div class="bug-items">
+              <span>• <strong>Chuột phải (PC):</strong> Click chuột phải trực tiếp vào ô cược để <em>TRỪ BỚT</em> tiền nhanh.</span>
+              <span>• <strong>Nút [➖ GIẢM CƯỢC]:</strong> Chuyển sang chế độ này rồi bấm vào ô để trừ chip (tiện cho điện thoại).</span>
+              <span>• <strong>Dấu [✕] trên chip:</strong> Bấm vào dấu ✕ trên huy hiệu chip của ô đó để xóa sạch ô đó.</span>
+              <span>• <strong>Nút [↩️ HOÀN TÁC]:</strong> Bấm để quay lại ngay bước cược trước đó nếu đặt nhầm.</span>
             </div>
           </div>
 

@@ -531,18 +531,27 @@ body {
 .chip-selector-strip {
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
   background: #0d0f18;
   border: 1px solid #232738;
   border-radius: 8px;
-  padding: 8px 14px;
-  margin-bottom: 16px;
+  padding: 10px 14px;
+  margin-bottom: 8px;
+}
+
+.chip-select-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .chip-lbl {
-  font-size: 0.75rem;
-  font-weight: 700;
+  font-size: 0.72rem;
+  font-weight: 800;
   color: #718096;
+  white-space: nowrap;
 }
 
 .chips-list {
@@ -575,6 +584,113 @@ body {
   background: var(--gold-gradient);
   color: #000;
   transform: scale(1.1);
+}
+
+.chip-mode-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bet-modes-list {
+  display: flex;
+  gap: 6px;
+}
+
+.bet-mode-btn {
+  background: rgba(255, 255, 255, 0.05);
+  color: #a0aec0;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: var(--font-display);
+}
+
+.bet-mode-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.bet-mode-btn.active[data-mode="add"] {
+  background: rgba(0, 230, 118, 0.2);
+  border-color: #00e676;
+  color: #00e676;
+  box-shadow: 0 0 10px rgba(0, 230, 118, 0.35);
+}
+
+.bet-mode-btn.active[data-mode="sub"] {
+  background: rgba(255, 145, 0, 0.25);
+  border-color: #ff9100;
+  color: #ffb74d;
+  box-shadow: 0 0 10px rgba(255, 145, 0, 0.4);
+}
+
+.bet-mode-btn.active[data-mode="del"] {
+  background: rgba(255, 23, 68, 0.25);
+  border-color: #ff1744;
+  color: #ff5252;
+  box-shadow: 0 0 10px rgba(255, 23, 68, 0.4);
+}
+
+.board-quick-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.board-action-btn {
+  background: rgba(255, 215, 0, 0.08);
+  color: var(--gold-primary);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  border-radius: 6px;
+  padding: 5px 9px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: var(--font-display);
+  white-space: nowrap;
+}
+
+.board-action-btn:hover {
+  background: var(--gold-gradient);
+  color: #000;
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.4);
+}
+
+.board-user-guide {
+  background: rgba(7, 10, 18, 0.7);
+  border: 1px dashed rgba(255, 215, 0, 0.25);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 14px;
+  font-size: 0.72rem;
+  color: #cbd5e0;
+  line-height: 1.45;
+}
+
+.bug-title {
+  color: #ffd700;
+  margin-bottom: 4px;
+}
+
+.bug-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+}
+
+.bug-items strong {
+  color: #fff;
+}
+
+.bug-items em {
+  color: #ff9100;
+  font-style: normal;
+  font-weight: 700;
 }
 
 /* BET GRID CELLS */
@@ -649,8 +765,8 @@ body {
 
 .chip-placed {
   position: absolute;
-  top: -6px;
-  right: -6px;
+  top: -8px;
+  right: -8px;
   background: var(--gold-gradient);
   color: #000;
   font-family: var(--font-numbers);
@@ -658,9 +774,35 @@ body {
   font-weight: 900;
   border-radius: 12px;
   padding: 1px 6px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.8);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.9);
   border: 1px solid #fff;
   z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.chip-remove-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 13px;
+  height: 13px;
+  background: rgba(0, 0, 0, 0.45);
+  color: #ff5252;
+  border-radius: 50%;
+  font-size: 0.55rem;
+  font-weight: 900;
+  cursor: pointer;
+  margin-left: 2px;
+  line-height: 1;
+  transition: all 0.15s;
+}
+
+.chip-remove-btn:hover {
+  background: #ff1744;
+  color: #fff;
+  transform: scale(1.25);
 }
 
 .special-cell {

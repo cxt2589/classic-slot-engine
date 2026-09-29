@@ -8,6 +8,8 @@ const state = {
   rulesData: null,
   selectedChip: 10,
   placedBets: {}, // { [betKey]: amount }
+  betInteractionMode: "add", // "add" | "sub" | "del"
+  betHistoryStack: [],
   isSpinning: false,
   isAutoSpin: false,
   isTurbo: false,
@@ -157,6 +159,12 @@ const dom = {
   // Chips & Betting Cells
   betChips: document.querySelectorAll(".bet-chip"),
   betCells: document.querySelectorAll(".bet-cell"),
+  btnModeAdd: document.getElementById("btnModeAdd"),
+  btnModeSub: document.getElementById("btnModeSub"),
+  btnModeDel: document.getElementById("btnModeDel"),
+  btnUndoBet: document.getElementById("btnUndoBet"),
+  btnBoardClearAll: document.getElementById("btnBoardClearAll"),
+  btnBoardDouble: document.getElementById("btnBoardDouble"),
 
   // Mini Soi Kèo Bar (if present)
   miniBeadsContainer: document.getElementById("miniBeadsContainer"),
@@ -343,6 +351,11 @@ function updateMeters(lastWin = 0) {
   }
 }
 
+function pushBetHistory() {
+  state.betHistoryStack.push(JSON.stringify(state.placedBets));
+  if (state.betHistoryStack.length > 30) state.betHistoryStack.shift();
+}
+
 function setupBettingBoard() {
   // Chip selection
   dom.betChips.forEach(chip => {
@@ -355,13 +368,116 @@ function setupBettingBoard() {
     });
   });
 
-  // Betting cells click
-  dom.betCells.forEach(cell => {
-    cell.addEventListener("click", () => {
+  // Action Mode Buttons: ➕ ĐẶT THÊM, ➖ GIẢM CƯỢC, 🗑️ XÓA Ô NÀY
+  const modeBtns = [dom.btnModeAdd, dom.btnModeSub, dom.btnModeDel].filter(Boolean);
+  modeBtns.forEach(btn => {
+    btn.addEventListener("click", () => {
       soundEngine.init();
       soundEngine.playChip();
+      modeBtns.forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      state.betInteractionMode = btn.dataset.mode || "add";
+    });
+  });
+
+  // Quick Board Actions: Undo, Clear All, Double
+  if (dom.btnUndoBet) {
+    dom.btnUndoBet.addEventListener("click", () => {
+      if (state.betHistoryStack.length > 0) {
+        soundEngine.init();
+        soundEngine.playChip();
+        state.placedBets = JSON.parse(state.betHistoryStack.pop());
+        renderPlacedChips();
+        updateMeters();
+      }
+    });
+  }
+
+  if (dom.btnBoardClearAll) {
+    dom.btnBoardClearAll.addEventListener("click", () => {
+      if (Object.keys(state.placedBets).length > 0) {
+        pushBetHistory();
+        soundEngine.init();
+        soundEngine.playChip();
+        state.placedBets = {};
+        renderPlacedChips();
+        updateMeters();
+      }
+    });
+  }
+
+  if (dom.btnBoardDouble) {
+    dom.btnBoardDouble.addEventListener("click", () => {
+      if (Object.keys(state.placedBets).length > 0) {
+        pushBetHistory();
+        soundEngine.init();
+        soundEngine.playChip();
+        for (const k in state.placedBets) {
+          state.placedBets[k] *= 2;
+        }
+        renderPlacedChips();
+        updateMeters();
+      }
+    });
+  }
+
+  // Betting cells click (Left Click)
+  dom.betCells.forEach(cell => {
+    cell.addEventListener("click", (e) => {
       const betKey = cell.dataset.bet;
-      state.placedBets[betKey] = (state.placedBets[betKey] || 0) + state.selectedChip;
+
+      // If user clicked directly on the chip-remove-btn '✕'
+      if (e.target && e.target.classList.contains("chip-remove-btn")) {
+        e.stopPropagation();
+        pushBetHistory();
+        soundEngine.init();
+        soundEngine.playChip();
+        delete state.placedBets[betKey];
+        renderPlacedChips();
+        updateMeters();
+        return;
+      }
+
+      pushBetHistory();
+      soundEngine.init();
+      soundEngine.playChip();
+
+      if (state.betInteractionMode === "add") {
+        state.placedBets[betKey] = (state.placedBets[betKey] || 0) + state.selectedChip;
+      } else if (state.betInteractionMode === "sub") {
+        const cur = state.placedBets[betKey] || 0;
+        const next = cur - state.selectedChip;
+        if (next <= 0) {
+          delete state.placedBets[betKey];
+        } else {
+          state.placedBets[betKey] = next;
+        }
+      } else if (state.betInteractionMode === "del") {
+        delete state.placedBets[betKey];
+      }
+
+      renderPlacedChips();
+      updateMeters();
+    });
+
+    // Right-Click (ContextMenu) on bet cell to quickly decrease bet!
+    cell.addEventListener("contextmenu", (e) => {
+      e.preventDefault(); // Prevent native browser right-click menu
+      const betKey = cell.dataset.bet;
+      if (!state.placedBets[betKey]) return;
+
+      pushBetHistory();
+      soundEngine.init();
+      soundEngine.playChip();
+
+      const cur = state.placedBets[betKey] || 0;
+      const next = cur - state.selectedChip;
+      if (next <= 0) {
+        delete state.placedBets[betKey];
+      } else {
+        state.placedBets[betKey] = next;
+      }
+
       renderPlacedChips();
       updateMeters();
     });
@@ -377,32 +493,44 @@ function renderPlacedChips() {
       cell.classList.add("has-bet");
       if (chipBadge) {
         chipBadge.classList.remove("hidden");
-        chipBadge.textContent = amt >= 1000 ? `${(amt/1000).toFixed(1)}K` : amt;
+        chipBadge.innerHTML = `
+          <span>${amt >= 1000 ? `${(amt/1000).toFixed(1)}K` : amt}</span>
+          <span class="chip-remove-btn" title="Xóa cược ô này">✕</span>
+        `;
       }
     } else {
       cell.classList.remove("has-bet");
-      if (chipBadge) chipBadge.classList.add("hidden");
+      if (chipBadge) {
+        chipBadge.classList.add("hidden");
+        chipBadge.innerHTML = "0";
+      }
     }
   });
 }
 
 function setupActions() {
   dom.btnClearBets.addEventListener("click", () => {
-    soundEngine.init();
-    soundEngine.playChip();
-    state.placedBets = {};
-    renderPlacedChips();
-    updateMeters();
+    if (Object.keys(state.placedBets).length > 0) {
+      pushBetHistory();
+      soundEngine.init();
+      soundEngine.playChip();
+      state.placedBets = {};
+      renderPlacedChips();
+      updateMeters();
+    }
   });
 
   dom.btnDoubleBets.addEventListener("click", () => {
-    soundEngine.init();
-    soundEngine.playChip();
-    for (const k in state.placedBets) {
-      state.placedBets[k] *= 2;
+    if (Object.keys(state.placedBets).length > 0) {
+      pushBetHistory();
+      soundEngine.init();
+      soundEngine.playChip();
+      for (const k in state.placedBets) {
+        state.placedBets[k] *= 2;
+      }
+      renderPlacedChips();
+      updateMeters();
     }
-    renderPlacedChips();
-    updateMeters();
   });
 
   dom.btnTurbo.addEventListener("click", () => {
@@ -1446,6 +1574,7 @@ function renderHotColdNumbers(data) {
 
     const btn = card.querySelector(".num-freq-btn");
     btn.addEventListener("click", () => {
+      pushBetHistory();
       soundEngine.init();
       soundEngine.playChip();
       const betKey = `SO_${d}`;
