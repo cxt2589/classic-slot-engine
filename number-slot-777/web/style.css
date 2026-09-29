@@ -264,9 +264,37 @@ body {
   box-shadow: inset 0 0 25px rgba(0,0,0,0.9);
 }
 
+/* Frosted Dim Mask for rows outside Center Payline */
+.payline-dim-overlay {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  pointer-events: none;
+  z-index: 4;
+  transition: all 0.3s ease;
+}
+
+.dim-overlay-top {
+  top: 0;
+  height: 118px;
+  background: linear-gradient(180deg, rgba(3, 5, 10, 0.88) 0%, rgba(3, 5, 10, 0.78) 75%, rgba(3, 5, 10, 0.6) 100%);
+  backdrop-filter: blur(2.5px);
+  -webkit-backdrop-filter: blur(2.5px);
+  border-bottom: 1.5px solid rgba(255, 215, 0, 0.15);
+}
+
+.dim-overlay-bottom {
+  top: 228px;
+  bottom: 0;
+  background: linear-gradient(0deg, rgba(3, 5, 10, 0.88) 0%, rgba(3, 5, 10, 0.78) 75%, rgba(3, 5, 10, 0.6) 100%);
+  backdrop-filter: blur(2.5px);
+  -webkit-backdrop-filter: blur(2.5px);
+  border-top: 1.5px solid rgba(255, 215, 0, 0.15);
+}
+
 .center-line-marker {
   position: absolute;
-  top: 110px; /* Aligned with Row 1 */
+  top: 118px; /* Aligned with Row 1 */
   left: 0;
   width: 100%;
   height: 110px;
@@ -274,8 +302,8 @@ body {
   z-index: 5;
   border-top: 2px solid var(--gold-primary);
   border-bottom: 2px solid var(--gold-primary);
-  background: rgba(255, 215, 0, 0.06);
-  box-shadow: 0 0 20px rgba(255, 215, 0, 0.25);
+  background: rgba(255, 215, 0, 0.04);
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.25), inset 0 0 15px rgba(255, 215, 0, 0.1);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -296,9 +324,10 @@ body {
 .marker-text {
   font-family: var(--font-display);
   font-size: 0.62rem;
+  font-weight: 800;
   letter-spacing: 1.5px;
-  color: rgba(255, 215, 0, 0.7);
-  background: rgba(0, 0, 0, 0.6);
+  color: rgba(255, 215, 0, 0.85);
+  background: rgba(0, 0, 0, 0.65);
   padding: 2px 8px;
   border-radius: 10px;
 }
@@ -339,21 +368,93 @@ body {
   justify-content: center;
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
   user-select: none;
+  position: relative;
 }
 
-/* Outside center line: slightly dimmed */
+/* Outside center line: dimmed and slightly scaled down */
 .row-top, .row-bottom {
-  opacity: 0.45;
-  transform: scale(0.9);
-  transition: opacity 0.2s, transform 0.2s;
+  opacity: 0.32;
+  transform: scale(0.88);
+  filter: grayscale(40%) contrast(80%);
+  transition: opacity 0.3s, transform 0.3s, filter 0.3s;
 }
 
 /* Inside Center Line: full prominent display */
 .row-center {
   opacity: 1;
   transform: scale(1.06);
-  z-index: 2;
-  transition: opacity 0.2s, transform 0.2s;
+  z-index: 5;
+  filter: none;
+  transition: opacity 0.3s, transform 0.3s;
+}
+
+/* WINNING HIGHLIGHT ON CENTER PAYLINE */
+.num-cell-slot.row-center.cell-win-highlight {
+  animation: winCellPulse 0.85s infinite alternate ease-in-out !important;
+  z-index: 10 !important;
+  position: relative;
+  border-radius: 8px;
+}
+
+.num-cell-slot.row-center.cell-win-highlight .slot-number-text {
+  animation: winNumberGlow 0.85s infinite alternate ease-in-out !important;
+  transform: scale(1.2) !important;
+  display: inline-block;
+}
+
+.cell-win-badge {
+  position: absolute;
+  top: 4px;
+  background: linear-gradient(135deg, #ffd700 0%, #ff8f00 100%);
+  color: #000;
+  font-family: var(--font-display);
+  font-size: 0.6rem;
+  font-weight: 900;
+  padding: 2px 7px;
+  border-radius: 6px;
+  letter-spacing: 0.5px;
+  box-shadow: 0 0 12px #ffd700, 0 0 4px #fff;
+  border: 1px solid #fff;
+  animation: badgePulse 0.85s infinite alternate ease-in-out;
+  z-index: 15;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+@keyframes winCellPulse {
+  0% {
+    background: rgba(255, 215, 0, 0.12);
+    box-shadow: inset 0 0 14px rgba(255, 215, 0, 0.5), 0 0 16px rgba(255, 215, 0, 0.5);
+    border: 2px solid rgba(255, 215, 0, 0.7);
+  }
+  100% {
+    background: rgba(255, 215, 0, 0.35);
+    box-shadow: inset 0 0 28px rgba(255, 215, 0, 0.95), 0 0 35px rgba(255, 215, 0, 0.95);
+    border: 2.5px solid #ffffff;
+  }
+}
+
+@keyframes winNumberGlow {
+  0% {
+    transform: scale(1.15);
+    filter: drop-shadow(0 0 8px var(--gold-primary));
+  }
+  100% {
+    transform: scale(1.26);
+    filter: drop-shadow(0 0 16px #ffffff) drop-shadow(0 0 32px var(--gold-primary)) drop-shadow(0 0 48px rgba(255, 215, 0, 0.95));
+  }
+}
+
+@keyframes badgePulse {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(1.08) translateY(-2px);
+    opacity: 1;
+    box-shadow: 0 0 16px #ffd700, 0 0 8px #fff;
+  }
 }
 
 .slot-number-text {

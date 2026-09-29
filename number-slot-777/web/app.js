@@ -690,6 +690,7 @@ async function triggerSpin() {
     dom.winBanner.classList.remove("show");
     dom.winBanner.style.display = "none";
   }
+  clearWinningHighlights();
   dom.winPillsList.innerHTML = "";
   dom.resHand.textContent = "ĐANG QUAY CUỘN...";
 
@@ -884,6 +885,75 @@ function handleResults(center_row, analysis, payout) {
   state.historyData.unshift(newEntry);
   if (state.historyData.length > 100) state.historyData.pop();
   renderSoiKeo();
+
+  // Trigger blinking glow highlight for winning center payline numbers
+  highlightWinningCenterNumbers(center_row, analysis, payout);
+}
+
+function clearWinningHighlights() {
+  document.querySelectorAll(".cell-win-highlight").forEach(el => {
+    el.classList.remove("cell-win-highlight");
+    el.querySelector(".cell-win-badge")?.remove();
+  });
+}
+
+function highlightWinningCenterNumbers(center_row, analysis, payout) {
+  clearWinningHighlights();
+  if (!payout || payout.total_won <= 0) return;
+
+  const winningCols = new Set();
+  const placedBets = state.placedBets || {};
+
+  // 1. Single Number Bets: SO_1 .. SO_9
+  for (let d = 1; d <= 9; d++) {
+    const betKey = `SO_${d}`;
+    if (placedBets[betKey] && placedBets[betKey] > 0) {
+      center_row.forEach((num, colIdx) => {
+        if (num === d) winningCols.add(colIdx);
+      });
+    }
+  }
+
+  // 2. Poker Hands / Repeating Numbers (Pair, Two Pair, Three of a Kind, Quads, Quints, Full House)
+  if (analysis && analysis.counts) {
+    const isPokerWin = payout.winning_items && payout.winning_items.some(w =>
+      w.key === "BASE_SPIN" || (w.key && w.key.startsWith("POKER_"))
+    );
+    if (isPokerWin) {
+      center_row.forEach((num, colIdx) => {
+        if (analysis.counts[num] >= 2) winningCols.add(colIdx);
+      });
+    }
+  }
+
+  // 3. Straight (Sảnh) or Flush (Thùng)
+  const isSanhWin = payout.winning_items && payout.winning_items.some(w => w.key && w.key.startsWith("SANH"));
+  const isThungWin = payout.winning_items && payout.winning_items.some(w => w.key && w.key.startsWith("THUNG"));
+  if ((analysis.is_sanh && isSanhWin) || (analysis.is_thung && isThungWin)) {
+    for (let c = 0; c < 5; c++) winningCols.add(c);
+  }
+
+  // 4. If won on other bets (e.g. Tai/Xiu, Chan/Le, etc.) and no individual numbers isolated yet:
+  if (winningCols.size === 0) {
+    for (let c = 0; c < 5; c++) winningCols.add(c);
+  }
+
+  // Apply blinking glow effect and TRÚNG badge to winning center cells
+  winningCols.forEach(colIdx => {
+    const strip = document.getElementById(`reel-${colIdx}`);
+    if (strip) {
+      const centerCell = strip.querySelector(".row-center");
+      if (centerCell) {
+        centerCell.classList.add("cell-win-highlight");
+        if (!centerCell.querySelector(".cell-win-badge")) {
+          const badge = document.createElement("span");
+          badge.className = "cell-win-badge";
+          badge.textContent = "✨ TRÚNG";
+          centerCell.appendChild(badge);
+        }
+      }
+    }
+  });
 }
 
 async function runSimulation() {
