@@ -11,7 +11,7 @@
   --neon-green: #00e676;
   --spin-gradient: linear-gradient(180deg, #ff3d00 0%, #d50000 60%, #8e0000 100%);
   --gold-gradient: linear-gradient(135deg, #fff2a3 0%, #ffd700 50%, #b8860b 100%);
-  --font-display: 'Montserrat', 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-display: 'Be Vietnam Pro', 'Montserrat', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-body: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-numbers: 'Orbitron', 'Montserrat', monospace, sans-serif;
   --font-code: 'Consolas', 'Courier New', monospace;
@@ -286,29 +286,37 @@ body {
 .strip {
   display: flex;
   flex-direction: column;
-  transition: transform 0.3s cubic-bezier(0.1, 0.9, 0.2, 1);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  will-change: transform;
 }
 
 .num-cell-slot {
   height: 110px;
+  min-height: 110px;
+  max-height: 110px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-  transition: all 0.2s ease;
+  user-select: none;
 }
 
 /* Outside center line: slightly dimmed */
 .row-top, .row-bottom {
-  opacity: 0.4;
-  transform: scale(0.88);
+  opacity: 0.45;
+  transform: scale(0.9);
+  transition: opacity 0.2s, transform 0.2s;
 }
 
 /* Inside Center Line: full prominent display */
 .row-center {
   opacity: 1;
-  transform: scale(1.05);
+  transform: scale(1.06);
   z-index: 2;
+  transition: opacity 0.2s, transform 0.2s;
 }
 
 .slot-number-text {
@@ -320,16 +328,9 @@ body {
   user-select: none;
 }
 
-/* Spinning blur */
-.reel-spinning .slot-number-text {
-  filter: blur(5px);
-  animation: numShake 0.08s infinite;
-}
-
-@keyframes numShake {
-  0% { transform: translateY(-5px); }
-  50% { transform: translateY(5px); }
-  100% { transform: translateY(-5px); }
+/* Reel rolling motion blur */
+.strip.strip-rolling {
+  filter: blur(1.2px);
 }
 
 /* WIN BANNER POPUP */
@@ -841,11 +842,11 @@ body {
   background: var(--gold-gradient);
   border: none;
   color: #000;
-  font-family: var(--font-display);
-  font-weight: 900;
-  font-size: 0.85rem;
+  font-family: 'Be Vietnam Pro', -apple-system, sans-serif;
+  font-weight: 800;
+  font-size: 0.88rem;
   letter-spacing: 0.5px;
-  padding: 12px 22px;
+  padding: 12px 24px;
   border-radius: 8px;
   cursor: pointer;
   display: flex;
@@ -854,6 +855,12 @@ body {
   box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   margin-top: 16px;
+}
+
+.sim-pro-btn .btn-text {
+  font-family: 'Be Vietnam Pro', -apple-system, sans-serif;
+  font-weight: 800;
+  letter-spacing: 0.5px;
 }
 
 .sim-pro-btn:hover {

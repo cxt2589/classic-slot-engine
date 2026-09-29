@@ -18,6 +18,7 @@ const state = {
   historyData: [],
   simCategoryFilter: "ALL",
   lastSimData: null,
+  currentGrid: null,
 };
 
 // Web Audio API Synthesizer
@@ -27,6 +28,24 @@ const soundEngine = {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
       if (AudioCtx) state.audioCtx = new AudioCtx();
     }
+  },
+
+  playSpin() {
+    if (!state.soundEnabled || !state.audioCtx) return;
+    try {
+      const osc = state.audioCtx.createOscillator();
+      const gain = state.audioCtx.createGain();
+      osc.type = "sawtooth";
+      osc.frequency.setValueAtTime(80, state.audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(140, state.audioCtx.currentTime + 0.12);
+      osc.frequency.exponentialRampToValueAtTime(60, state.audioCtx.currentTime + 0.35);
+      gain.gain.setValueAtTime(0.08, state.audioCtx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.001, state.audioCtx.currentTime + 0.35);
+      osc.connect(gain);
+      gain.connect(state.audioCtx.destination);
+      osc.start();
+      osc.stop(state.audioCtx.currentTime + 0.35);
+    } catch (e) {}
   },
 
   playChip() {
@@ -276,23 +295,26 @@ function renderInitialReels() {
     [7, 7, 7, 8, 9], // Center line row 1
     [4, 5, 2, 9, 3]
   ];
-  updateReelsDisplay(initialGrid);
+  state.currentGrid = initialGrid;
+  for (let c = 0; c < 5; c++) {
+    renderReelStatic(c, [initialGrid[0][c], initialGrid[1][c], initialGrid[2][c]]);
+  }
 }
 
-function updateReelsDisplay(grid) {
-  for (let c = 0; c < 5; c++) {
-    const strip = document.getElementById(`reel-${c}`);
-    strip.innerHTML = "";
-    for (let r = 0; r < 3; r++) {
-      const num = grid[r][c];
-      const color = NUMBER_COLORS[num] || "#fff";
-      const cell = document.createElement("div");
-      cell.className = `num-cell-slot ${r === 0 ? "row-top" : r === 1 ? "row-center" : "row-bottom"}`;
-      cell.innerHTML = `
-        <span class="slot-number-text" style="color:${color}">${num}</span>
-      `;
-      strip.appendChild(cell);
-    }
+function renderReelStatic(colIdx, nums3) {
+  const strip = document.getElementById(`reel-${colIdx}`);
+  if (!strip) return;
+  strip.style.transition = "none";
+  strip.style.transform = "translateY(0px)";
+  strip.classList.remove("strip-rolling");
+  strip.innerHTML = "";
+  for (let r = 0; r < 3; r++) {
+    const num = nums3[r];
+    const color = NUMBER_COLORS[num] || "#fff";
+    const cell = document.createElement("div");
+    cell.className = `num-cell-slot ${r === 0 ? "row-top" : (r === 1 ? "row-center" : "row-bottom")}`;
+    cell.innerHTML = `<span class="slot-number-text" style="color:${color}">${num}</span>`;
+    strip.appendChild(cell);
   }
 }
 
@@ -447,9 +469,8 @@ async function triggerSpin() {
   dom.winPillsList.innerHTML = "";
   dom.resHand.textContent = "ĐANG QUAY CUỘN...";
 
-  for (let c = 0; c < 5; c++) {
-    document.getElementById(`reel-${c}`).classList.add("reel-spinning");
-  }
+  soundEngine.init();
+  soundEngine.playSpin();
 
   try {
     const res = await fetch("/api/spin", {
@@ -466,31 +487,94 @@ async function triggerSpin() {
     const { session, grid, center_row, analysis, payout } = json.data;
     state.session = session;
 
-    // Staggered reel stop animation
-    const delay = state.isTurbo ? 50 : 250;
-    for (let c = 0; c < 5; c++) {
-      await new Promise(r => setTimeout(r, c === 0 ? (state.isTurbo ? 80 : 350) : delay));
-      const strip = document.getElementById(`reel-${c}`);
-      strip.classList.remove("reel-spinning");
+    // Previous 3 rows grid
+    const prevGrid = state.currentGrid || [
+      [3, 8, 1, 6, 2],
+      [7, 7, 7, 8, 9],
+      [4, 5, 2, 9, 3]
+    ];
 
-      // Update column
-      for (let r = 0; r < 3; r++) {
-        const num = grid[r][c];
-        const color = NUMBER_COLORS[num] || "#fff";
-        const cell = strip.children[r];
-        if (cell) {
-          cell.innerHTML = `<span class="slot-number-text" style="color:${color}">${num}</span>`;
+    // Build independent cascading roll for all 5 reels
+    const reelPromises = [];
+
+    for (let c = 0; c < 5; c++) {
+      const p = new Promise(resolve => {
+        const strip = document.getElementById(`reel-${c}`);
+        if (!strip) return resolve();
+
+        const targetNums = [grid[0][c], grid[1][c], grid[2][c]];
+        const prevNums = [prevGrid[0][c], prevGrid[1][c], prevGrid[2][c]];
+
+        // Staggered intermediate roll count for authentic progressive reel stops
+        const numIntermediates = state.isTurbo ? (10 + c * 3) : (18 + c * 6);
+        const totalItems = 3 + numIntermediates + 3;
+
+        // Assembly: [target[0], target[1], target[2], ...randoms..., prev[0], prev[1], prev[2]]
+        const stripNums = [targetNums[0], targetNums[1], targetNums[2]];
+        for (let i = 0; i < numIntermediates; i++) {
+          stripNums.push((Math.random() * 9 | 0) + 1);
         }
-      }
-      soundEngine.playReelStop();
+        stripNums.push(prevNums[0], prevNums[1], prevNums[2]);
+
+        // Render nodes
+        strip.innerHTML = "";
+        strip.style.transition = "none";
+        const initialOffset = -((totalItems - 3) * 110);
+        strip.style.transform = `translateY(${initialOffset}px)`;
+
+        stripNums.forEach((num, idx) => {
+          const color = NUMBER_COLORS[num] || "#fff";
+          const cell = document.createElement("div");
+
+          let rowClass = "row-top";
+          if (idx === 1) rowClass = "row-center";
+          else if (idx === 2) rowClass = "row-bottom";
+          else if (idx === totalItems - 2) rowClass = "row-center";
+          else if (idx === totalItems - 1) rowClass = "row-bottom";
+
+          cell.className = `num-cell-slot ${rowClass}`;
+          cell.innerHTML = `<span class="slot-number-text" style="color:${color}">${num}</span>`;
+          strip.appendChild(cell);
+        });
+
+        // Compute duration with staggered interval
+        const duration = state.isTurbo ? (0.32 + c * 0.10) : (0.75 + c * 0.22);
+
+        // Force browser layout repaint
+        void strip.offsetHeight;
+
+        strip.classList.add("strip-rolling");
+        strip.style.transition = `transform ${duration}s cubic-bezier(0.12, 0.95, 0.25, 1.08)`;
+        strip.style.transform = "translateY(0px)";
+
+        setTimeout(() => {
+          strip.classList.remove("strip-rolling");
+          soundEngine.playReelStop();
+          renderReelStatic(c, targetNums);
+          resolve();
+        }, duration * 1000);
+      });
+
+      reelPromises.push(p);
     }
+
+    await Promise.all(reelPromises);
+
+    // Save final grid as currentGrid for the next spin
+    state.currentGrid = grid;
 
     // Process & Display results
     handleResults(center_row, analysis, payout);
+
   } catch (err) {
-    console.error(err);
+    console.error("Spin error:", err);
     for (let c = 0; c < 5; c++) {
-      document.getElementById(`reel-${c}`).classList.remove("reel-spinning");
+      const strip = document.getElementById(`reel-${c}`);
+      if (strip) {
+        strip.classList.remove("strip-rolling");
+        strip.style.transition = "none";
+        strip.style.transform = "translateY(0px)";
+      }
     }
   } finally {
     state.isSpinning = false;
