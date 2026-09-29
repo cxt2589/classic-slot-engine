@@ -1125,10 +1125,12 @@ function renderBeadPlate(data) {
   containers.forEach(c => c.innerHTML = "");
 
   const chrono = [...data].reverse();
+  const totalItems = chrono.length;
   const mode = state.soikeoMode;
 
   containers.forEach(container => {
-    chrono.forEach(item => {
+    chrono.forEach((item, idx) => {
+      const isLatest = (idx === totalItems - 1);
       const cell = document.createElement("div");
       let cls = "tai";
       let char = "T";
@@ -1142,12 +1144,13 @@ function renderBeadPlate(data) {
         else { cls = "le"; char = "L"; }
       }
 
-      cell.className = `bead-cell ${cls}`;
+      cell.className = `bead-cell ${cls} ${isLatest ? "is-latest-bead" : ""}`;
       cell.innerHTML = `
         <span class="bead-char">${char}</span>
         <span class="bead-num">${item.sum}</span>
+        ${isLatest ? '<span class="bead-latest-tag">MỚI</span>' : ''}
       `;
-      cell.title = `Phiên #${item.spin}\nDãy: [ ${item.center_row.join(" - ")} ]\nTổng: ${item.sum} (${item.is_tai ? "Tài" : (item.is_xiu ? "Xỉu" : "Hòa 25")})\n${item.best_hand}`;
+      cell.title = `${isLatest ? "⚡ [VÁN MỚI NHẤT]\n" : ""}Phiên #${item.spin}\nDãy: [ ${item.center_row.join(" - ")} ]\nTổng: ${item.sum} (${item.is_tai ? "Tài" : (item.is_xiu ? "Xỉu" : "Hòa 25")})\n${item.best_hand}`;
       container.appendChild(cell);
     });
 
@@ -1217,21 +1220,45 @@ function renderBigRoad(data) {
     columns.push(currentCol);
   }
 
+  const lastColIndex = columns.length - 1;
+  const lastDotIndex = columns.length > 0 ? columns[lastColIndex].length - 1 : -1;
+
   containers.forEach(container => {
-    columns.forEach(col => {
+    columns.forEach((col, cIdx) => {
+      const isLastCol = (cIdx === lastColIndex);
       const colDiv = document.createElement("div");
-      colDiv.className = "big-road-col";
-      col.forEach(dot => {
+      colDiv.className = `big-road-col ${isLastCol ? "is-latest-col" : ""}`;
+
+      // If streak >= 3, add streak indicator badge at the top
+      if (col.length >= 3) {
+        const streakTag = document.createElement("span");
+        streakTag.className = "big-road-streak-tag";
+        streakTag.textContent = `${col.length}x`;
+        streakTag.title = `Chuỗi bệt ${col.length} phiên liên tiếp`;
+        colDiv.appendChild(streakTag);
+      }
+
+      col.forEach((dot, dIdx) => {
+        const isLatest = isLastCol && (dIdx === lastDotIndex);
         const dotDiv = document.createElement("div");
-        dotDiv.className = `big-road-dot ${dot.outcome} ${dot.hasTie ? "tie-mark" : ""}`;
-        dotDiv.textContent = dot.char;
-        dotDiv.title = `Phiên #${dot.spin}: Tổng ${dot.sum} (${dot.outcome.toUpperCase()})${dot.hasTie ? " • Kèm Hòa 25" : ""}`;
+        dotDiv.className = `big-road-dot ${dot.outcome} ${dot.hasTie ? "tie-mark" : ""} ${isLatest ? "is-latest-dot" : ""}`;
+        dotDiv.innerHTML = `
+          <span>${dot.char}</span>
+          ${isLatest ? '<span class="big-road-latest-tag">⚡ MỚI</span>' : ''}
+        `;
+        dotDiv.title = `${isLatest ? "⚡ [VÁN MỚI NHẤT] " : ""}Phiên #${dot.spin}: Tổng ${dot.sum} (${dot.outcome.toUpperCase()})${dot.hasTie ? " • Kèm Hòa 25" : ""}`;
         colDiv.appendChild(dotDiv);
       });
+
+      // Standard 6-slot Baccarat matrix alignment: append empty slot circles
+      for (let s = col.length; s < 6; s++) {
+        const slotDiv = document.createElement("div");
+        slotDiv.className = "big-road-slot";
+        colDiv.appendChild(slotDiv);
+      }
+
       container.appendChild(colDiv);
     });
-
-    container.scrollLeft = container.scrollWidth;
   });
 
   if (columns.length > 0) {

@@ -358,6 +358,11 @@
                 <span class="gls-tag hoa">H = Hòa (25)</span>
               </div>
             </div>
+            <div class="gls-flow-mini">
+              <span class="gfm-label">◀ Cũ hơn</span>
+              <span class="gfm-track">Thời gian: Trái ➔ Phải (Trên xuống Dưới)</span>
+              <span class="gfm-latest">⚡ MỚI NHẤT (Viền Vàng) ▶</span>
+            </div>
             <div class="gls-matrix-wrapper" id="liveBeadContainer">
               <!-- 6-row high-contrast large beads -->
             </div>
@@ -368,6 +373,11 @@
             <div class="gls-card-top">
               <span class="gls-road-title">🛣️ ĐƯỜNG CẦU BỆT & CẦU NHẢY (BIG ROAD)</span>
               <span class="gls-road-status" id="liveRoadStatus">Cầu Bệt Đang Chạy</span>
+            </div>
+            <div class="gls-flow-mini">
+              <span class="gfm-label">◀ Cũ hơn</span>
+              <span class="gfm-track">Thời gian: Trái ➔ Phải (Dọc=Bệt, Cột mới=Nhảy)</span>
+              <span class="gfm-latest">⚡ MỚI NHẤT (Phát Sáng) ▶</span>
             </div>
             <div class="gls-big-road-wrapper" id="liveBigRoadContainer">
               <!-- Big Road streak columns -->
@@ -509,6 +519,19 @@
                 <span class="vip-tag-hoa">H = HÒA</span>
               </div>
             </div>
+            <div class="road-flow-guide">
+              <div class="rfg-track">
+                <span class="rfg-pill old">◀ CŨ HƠN (Ván trước)</span>
+                <div class="rfg-dir-indicator">
+                  <span class="rfg-dir-text">CHIỀU THỜI GIAN: TỪ TRÁI SANG PHẢI</span>
+                  <span class="rfg-dir-arrows">➔ ➔ ➔</span>
+                </div>
+                <span class="rfg-pill latest-badge"><span class="rfg-dot-ping"></span>⚡ VÁN MỚI NHẤT (Viền Vàng Nhấp Nháy) ▶</span>
+              </div>
+              <div class="rfg-subnote">
+                <span>📌 <strong>Quy tắc thứ tự:</strong> Đi tuần tự từng cột từ <strong>Trên xuống Dưới</strong> (6 ô/cột), hết 6 ô chuyển sang cột bên Phải. Hạt có viền hào quang vàng phát sáng là ván vừa quay xong.</span>
+              </div>
+            </div>
             <div class="vip-matrix-board" id="beadPlateContainer">
               <!-- Dynamically populated 6-row beads with solid vivid colors -->
             </div>
@@ -521,10 +544,23 @@
                 <span class="rch-icon">🛣️</span>
                 <div>
                   <h4>ĐƯỜNG CẦU BỆT & CẦU NHẢY (BIG ROAD)</h4>
-                  <p class="rch-desc">Dãy cầu dọc: Cầu Bệt • Đổi cột: Cầu Nhảy 1-1</p>
+                  <p class="rch-desc">Dãy cầu dọc: Cầu Bệt • Đổi cột: Cầu Nhảy 1-1 • Tự động phân tầng ma trận (Toàn bộ kết quả hiển thị trực tiếp, không cần cuộn ngang)</p>
                 </div>
               </div>
               <div class="rch-status-pill" id="bigRoadStatus">Cầu Bệt Đang Chạy</div>
+            </div>
+            <div class="road-flow-guide">
+              <div class="rfg-track">
+                <span class="rfg-pill old">◀ CŨ HƠN (Ván trước)</span>
+                <div class="rfg-dir-indicator">
+                  <span class="rfg-dir-text">CHIỀU THỜI GIAN: TỪ TRÁI SANG PHẢI</span>
+                  <span class="rfg-dir-arrows">➔ ➔ ➔</span>
+                </div>
+                <span class="rfg-pill latest-badge"><span class="rfg-dot-ping"></span>⚡ VÁN MỚI NHẤT (Vòng Tròn Phát Sáng) ▶</span>
+              </div>
+              <div class="rfg-subnote">
+                <span>📌 <strong>Quy tắc thứ tự:</strong> Cùng kết quả xếp <strong>Dọc xuống</strong> (Cầu Bệt) • Đổi kết quả nhảy sang <strong>Cột mới bên Phải</strong> (Cầu Nhảy). Vòng tròn có hào quang vàng nhấp nháy kèm tia sét là ván vừa quay xong.</span>
+              </div>
             </div>
             <div class="vip-bigroad-board" id="bigRoadContainer">
               <!-- Dynamically populated Big Road columns -->
