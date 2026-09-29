@@ -1,0 +1,12 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Cloudflare
+.wrangler/
+.mf/
+
+# OS
+.DS_Store
+Thumbs.db

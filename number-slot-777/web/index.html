@@ -1,0 +1,1070 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lucky Numbers 777 - Classic 5x3 Number Slot</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,700&family=Montserrat:ital,wght@0,600;0,700;0,800;0,900;1,700&family=Orbitron:wght@600;700;800;900&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Top Header -->
+    <header class="top-nav">
+      <div class="brand">
+        <span class="brand-icon">🎰</span>
+        <div class="brand-text">
+          <h1>LUCKY NUMBERS <span class="highlight">777</span></h1>
+          <span class="subtext">Classic 5x3 Slot • Single Center Payline • Number Betting</span>
+        </div>
+      </div>
+
+      <nav class="nav-tabs">
+        <button class="tab-btn active" data-tab="game">🎮 Chơi & Đặt Cược</button>
+        <button class="tab-btn" data-tab="soikeo">📈 Bảng Soi Kèo</button>
+        <button class="tab-btn" data-tab="simulator">📊 Math Simulator</button>
+        <button class="tab-btn" data-tab="rules">📜 Bảng Hệ Số Thưởng</button>
+        <button class="tab-btn" data-tab="architecture">🏗️ Kiến Trúc & API</button>
+      </nav>
+
+      <div class="header-actions">
+        <div class="stat-badge">
+          <span class="lbl">Dòng Thưởng</span>
+          <span class="val glow-gold">CHỈ HÀNG GIỮA (ROW 1)</span>
+        </div>
+        <button id="soundToggle" class="icon-btn" title="Bật/Tắt Âm Thanh">🔊</button>
+      </div>
+    </header>
+
+    <!-- TAB 1: GAMEPLAY -->
+    <main id="tab-game" class="tab-content active">
+      <div class="game-layout">
+        <!-- LEFT: Slot Machine Cabinet -->
+        <div class="slot-cabinet">
+          <!-- Marquee / Result Banner -->
+          <div class="cabinet-marquee">
+            <div class="marquee-sub">KẾT QUẢ DÃY SỐ HÀNG GIỮA</div>
+            <div class="marquee-live-result" id="marqueeResult">
+              <span class="res-tag" id="resSum">Tổng: --</span>
+              <span class="res-tag glow-gold" id="resTaiXiu">--</span>
+              <span class="res-tag glow-cyan" id="resChanLe">--</span>
+              <span class="res-hand" id="resHand">HÃY ĐẶT CƯỢC & BẤM QUAY</span>
+            </div>
+          </div>
+
+          <!-- Reel Grid Screen with Active Center Line Indicator -->
+          <div class="reel-screen-wrapper">
+            <!-- Center Line Laser Beam Banner -->
+            <div class="center-line-marker">
+              <div class="marker-arrow left">▶</div>
+              <span class="marker-text">DÒNG TRẢ THƯỞNG DUY NHẤT (CENTER PAYLINE)</span>
+              <div class="marker-arrow right">◀</div>
+            </div>
+
+            <!-- 5 Reels -->
+            <div class="reels-container" id="reelsContainer">
+              <div class="reel-col" data-col="0"><div class="strip" id="reel-0"></div></div>
+              <div class="reel-col" data-col="1"><div class="strip" id="reel-1"></div></div>
+              <div class="reel-col" data-col="2"><div class="strip" id="reel-2"></div></div>
+              <div class="reel-col" data-col="3"><div class="strip" id="reel-3"></div></div>
+              <div class="reel-col" data-col="4"><div class="strip" id="reel-4"></div></div>
+            </div>
+
+            <!-- Win Banner Popup -->
+            <div id="winBanner" class="win-banner hidden">
+              <div class="win-banner-title" id="winBannerTitle">BIG WIN!</div>
+              <div class="win-banner-amount" id="winBannerAmount">+0.00</div>
+              <div class="win-banner-desc" id="winBannerDesc"></div>
+            </div>
+          </div>
+
+          <!-- Meters (Balance, Total Bet, Win) -->
+          <div class="cabinet-meters">
+            <div class="meter-box">
+              <span class="meter-lbl">SỐ DƯ (BALANCE)</span>
+              <div class="meter-val" id="meterBalance">10,000.00</div>
+            </div>
+            <div class="meter-box">
+              <span class="meter-lbl">TỔNG CƯỢC VÒNG</span>
+              <div class="meter-val glow-cyan" id="meterTotalBet">0.00</div>
+            </div>
+            <div class="meter-box">
+              <span class="meter-lbl">TIỀN THẮNG (WIN)</span>
+              <div class="meter-val glow-gold" id="meterWin">0.00</div>
+            </div>
+          </div>
+
+          <!-- Spin Action Controls -->
+          <div class="cabinet-action-bar">
+            <button class="sec-btn" id="btnClearBets">❌ HỦY CƯỢC</button>
+            <button class="sec-btn" id="btnDoubleBets">✖2 NHÂN ĐÔI</button>
+            <button class="sec-btn" id="btnTurbo">⚡ TURBO: TẮT</button>
+            <button class="sec-btn" id="btnAuto">🔄 AUTO (OFF)</button>
+
+            <button class="spin-btn" id="btnSpin">
+              <span class="spin-main">QUAY</span>
+              <span class="spin-sub">SPIN</span>
+            </button>
+          </div>
+
+          <!-- Winning Items Detail Breakdown -->
+          <div class="win-pills-list" id="winPillsList">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+        <!-- RIGHT: Interactive Betting Table -->
+        <div class="betting-board">
+          <div class="board-header">
+            <h3>BÀN ĐẶT CƯỢC DỰ ĐOÁN DÃY SỐ HÀNG GIỮA</h3>
+            <p>Chọn mệnh giá chip và bấm vào các cửa bạn muốn dự đoán cho 5 số ở hàng giữa:</p>
+          </div>
+
+          <!-- Chip Selector -->
+          <div class="chip-selector-strip">
+            <span class="chip-lbl">CHỌN CHIP:</span>
+            <div class="chips-list">
+              <button class="bet-chip active" data-val="10">10</button>
+              <button class="bet-chip" data-val="20">20</button>
+              <button class="bet-chip" data-val="50">50</button>
+              <button class="bet-chip" data-val="100">100</button>
+              <button class="bet-chip" data-val="500">500</button>
+              <button class="bet-chip" data-val="1000">1K</button>
+            </div>
+          </div>
+
+          <!-- Betting Grid -->
+          <div class="bet-grid">
+            <!-- Row A: Tài / Xỉu / Hòa 25 -->
+            <div class="bet-section-title">1. TỔNG ĐIỂM (5 - 45)</div>
+            <div class="bet-row three-cols">
+              <div class="bet-cell" data-bet="XIU">
+                <span class="bet-name">XỈU (5 - 24)</span>
+                <span class="bet-odds">x2.05</span>
+                <div class="chip-placed hidden" id="chip-XIU">0</div>
+              </div>
+              <div class="bet-cell special-cell" data-bet="HOA_25">
+                <span class="bet-name">HÒA 25 ĐIỂM</span>
+                <span class="bet-odds">x14.5</span>
+                <div class="chip-placed hidden" id="chip-HOA_25">0</div>
+              </div>
+              <div class="bet-cell" data-bet="TAI">
+                <span class="bet-name">TÀI (26 - 45)</span>
+                <span class="bet-odds">x2.05</span>
+                <div class="chip-placed hidden" id="chip-TAI">0</div>
+              </div>
+            </div>
+
+            <!-- Row B: Chẵn / Lẻ -->
+            <div class="bet-section-title">2. TÍNH CHẴN / LẺ CỦA TỔNG</div>
+            <div class="bet-row two-cols">
+              <div class="bet-cell" data-bet="CHAN">
+                <span class="bet-name">TỔNG CHẴN</span>
+                <span class="bet-odds">x1.92</span>
+                <div class="chip-placed hidden" id="chip-CHAN">0</div>
+              </div>
+              <div class="bet-cell" data-bet="LE">
+                <span class="bet-name">TỔNG LẺ</span>
+                <span class="bet-odds">x1.92</span>
+                <div class="chip-placed hidden" id="chip-LE">0</div>
+              </div>
+            </div>
+
+            <!-- Row C: Thùng (All Even / All Odd) -->
+            <div class="bet-section-title">3. THÙNG (TOÀN CHẴN HOẶC TOÀN LẺ)</div>
+            <div class="bet-row three-cols">
+              <div class="bet-cell" data-bet="THUNG">
+                <span class="bet-name">THÙNG CHUNG</span>
+                <span class="bet-odds">x13.5</span>
+                <div class="chip-placed hidden" id="chip-THUNG">0</div>
+              </div>
+              <div class="bet-cell" data-bet="THUNG_CHAN">
+                <span class="bet-name">THÙNG CHẴN (2-4-6-8)</span>
+                <span class="bet-odds">x54.0</span>
+                <div class="chip-placed hidden" id="chip-THUNG_CHAN">0</div>
+              </div>
+              <div class="bet-cell" data-bet="THUNG_LE">
+                <span class="bet-name">THÙNG LẺ (1-3-5-7-9)</span>
+                <span class="bet-odds">x18.0</span>
+                <div class="chip-placed hidden" id="chip-THUNG_LE">0</div>
+              </div>
+            </div>
+
+            <!-- Row D: Sảnh (Consecutive Numbers) -->
+            <div class="bet-section-title">4. SẢNH (5 SỐ LIÊN TIẾP)</div>
+            <div class="bet-row two-cols">
+              <div class="bet-cell" data-bet="SANH">
+                <span class="bet-name">SẢNH BẤT KỲ</span>
+                <span class="bet-odds">x96.0</span>
+                <div class="chip-placed hidden" id="chip-SANH">0</div>
+              </div>
+              <div class="bet-cell jackpot-cell" data-bet="SANH_CHUAN">
+                <span class="bet-name">👑 SẢNH CHUẨN (1-2-3-4-5)</span>
+                <span class="bet-odds">x5,000.0</span>
+                <div class="chip-placed hidden" id="chip-SANH_CHUAN">0</div>
+              </div>
+            </div>
+
+            <!-- Row E: Poker Combinations -->
+            <div class="bet-section-title">5. TỔ HỢP SỐ POKER</div>
+            <div class="bet-row six-cols">
+              <div class="bet-cell jackpot-cell" data-bet="NGU_QUY">
+                <span class="bet-name">NGŨ QUÝ</span>
+                <span class="bet-odds">x5000</span>
+                <div class="chip-placed hidden" id="chip-NGU_QUY">0</div>
+              </div>
+              <div class="bet-cell" data-bet="TU_QUY">
+                <span class="bet-name">TỨ QUÝ</span>
+                <span class="bet-odds">x140</span>
+                <div class="chip-placed hidden" id="chip-TU_QUY">0</div>
+              </div>
+              <div class="bet-cell" data-bet="CU_LU">
+                <span class="bet-name">CÙ LŨ</span>
+                <span class="bet-odds">x90</span>
+                <div class="chip-placed hidden" id="chip-CU_LU">0</div>
+              </div>
+              <div class="bet-cell" data-bet="SAM_CO">
+                <span class="bet-name">SÁM CÔ</span>
+                <span class="bet-odds">x13</span>
+                <div class="chip-placed hidden" id="chip-SAM_CO">0</div>
+              </div>
+              <div class="bet-cell" data-bet="HAI_DOI">
+                <span class="bet-name">HAI ĐÔI</span>
+                <span class="bet-odds">x8.5</span>
+                <div class="chip-placed hidden" id="chip-HAI_DOI">0</div>
+              </div>
+              <div class="bet-cell" data-bet="MOT_DOI">
+                <span class="bet-name">MỘT ĐÔI</span>
+                <span class="bet-odds">x1.95</span>
+                <div class="chip-placed hidden" id="chip-MOT_DOI">0</div>
+              </div>
+            </div>
+
+            <!-- Row F: Single Number 1..9 -->
+            <div class="bet-section-title">6. CƯỢC CON SỐ YÊU THÍCH (1 - 9 SẼ XUẤT HIỆN Ở HÀNG GIỮA)</div>
+            <div class="bet-row nine-cols">
+              <div class="bet-cell num-cell" data-bet="SO_1" style="border-color:#00E5FF">
+                <span class="big-num" style="color:#00E5FF">1</span>
+                <span class="num-sub">x1.7..100x</span>
+                <div class="chip-placed hidden" id="chip-SO_1">0</div>
+              </div>
+              <div class="bet-cell num-cell" data-bet="SO_2" style="border-color:#76FF03">
+                <span class="big-num" style="color:#76FF03">2</span>
+                <span class="num-sub">x1.7..100x</span>
+                <div class="chip-placed hidden" id="chip-SO_2">0</div>
+              </div>
+              <div class="bet-cell num-cell" data-bet="SO_3" style="border-color:#FF9100">
+                <span class="big-num" style="color:#FF9100">3</span>
+                <span class="num-sub">x1.7..100x</span>
+                <div class="chip-placed hidden" id="chip-SO_3">0</div>
+              </div>
+              <div class="bet-cell num-cell" data-bet="SO_4" style="border-color:#2979FF">
+                <span class="big-num" style="color:#2979FF">4</span>
+                <span class="num-sub">x1.7..100x</span>
+                <div class="chip-placed hidden" id="chip-SO_4">0</div>
+              </div>
+              <div class="bet-cell num-cell" data-bet="SO_5" style="border-color:#D500F9">
+                <span class="big-num" style="color:#D500F9">5</span>
+                <span class="num-sub">x1.7..100x</span>
+                <div class="chip-placed hidden" id="chip-SO_5">0</div>
+              </div>
+              <div class="bet-cell num-cell" data-bet="SO_6" style="border-color:#FFD600">
+                <span class="big-num" style="color:#FFD600">6</span>
+                <span class="num-sub">x1.7..100x</span>
+                <div class="chip-placed hidden" id="chip-SO_6">0</div>
+              </div>
+              <div class="bet-cell num-cell" data-bet="SO_7" style="border-color:#FF1744">
+                <span class="big-num" style="color:#FF1744">7</span>
+                <span class="num-sub">x1.7..100x</span>
+                <div class="chip-placed hidden" id="chip-SO_7">0</div>
+              </div>
+              <div class="bet-cell num-cell" data-bet="SO_8" style="border-color:#00E676">
+                <span class="big-num" style="color:#00E676">8</span>
+                <span class="num-sub">x1.7..100x</span>
+                <div class="chip-placed hidden" id="chip-SO_8">0</div>
+              </div>
+              <div class="bet-cell num-cell" data-bet="SO_9" style="border-color:#FF3D00">
+                <span class="big-num" style="color:#FF3D00">9</span>
+                <span class="num-sub">x1.7..100x</span>
+                <div class="chip-placed hidden" id="chip-SO_9">0</div>
+              </div>
+            </div>
+
+            <!-- Row G: Base Spin Bet -->
+            <div class="bet-section-title">7. CƯỢC QUAY SLOT TỰ ĐỘNG (BASE SLOT SPIN)</div>
+            <div class="bet-row one-col">
+              <div class="bet-cell base-spin-cell" data-bet="BASE_SPIN">
+                <span class="bet-name">🎰 CƯỢC QUAY TỰ ĐỘNG (Ăn thưởng theo tổ hợp bài cao nhất đạt được)</span>
+                <span class="bet-odds">Lên tới x300.0</span>
+                <div class="chip-placed hidden" id="chip-BASE_SPIN">0</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DIRECT LIVE CASINO ROADMAP PANEL AT BOTTOM OF GAMEPLAY -->
+      <div class="game-live-soikeo-panel">
+        <div class="gls-header">
+          <div class="gls-title-group">
+            <span class="gls-badge-live">● TRỰC TIẾP</span>
+            <h3 class="gls-title">BẢNG SOI CẦU HÀNG GIỮA (LIVE ROADMAP)</h3>
+            <div class="gls-streak-badge" id="liveStreakBadge">🔴 BỆT TÀI: 3 CÂY</div>
+          </div>
+
+          <!-- Prominent Scoreboard Stats -->
+          <div class="gls-kpi-bar">
+            <div class="gls-kpi-pill tai">
+              <span class="gls-dot"></span>
+              <span class="gls-name">TÀI:</span>
+              <strong id="livePctTai">52%</strong>
+              <span class="gls-cnt">(<span id="liveCntTai">26</span>)</span>
+            </div>
+            <div class="gls-kpi-pill hoa">
+              <span class="gls-dot"></span>
+              <span class="gls-name">HÒA 25:</span>
+              <strong id="livePctHoa">4%</strong>
+              <span class="gls-cnt">(<span id="liveCntHoa">2</span>)</span>
+            </div>
+            <div class="gls-kpi-pill xiu">
+              <span class="gls-dot"></span>
+              <span class="gls-name">XỈU:</span>
+              <strong id="livePctXiu">44%</strong>
+              <span class="gls-cnt">(<span id="liveCntXiu">22</span>)</span>
+            </div>
+          </div>
+
+          <!-- Mode Switch & Expand -->
+          <div class="gls-controls">
+            <div class="gls-toggle-group">
+              <button class="gls-toggle-btn active" id="btnLiveModeTaiXiu">🔴 TÀI / XỈU</button>
+              <button class="gls-toggle-btn" id="btnLiveModeChanLe">🟣 CHẴN / LẺ</button>
+            </div>
+            <button class="gls-expand-btn" id="btnOpenFullSoiKeo">📊 PHÂN TÍCH CHUYÊN SÂU ➔</button>
+          </div>
+        </div>
+
+        <div class="gls-boards-grid">
+          <!-- Road 1: Bảng Hạt Giọt Nước -->
+          <div class="gls-road-card">
+            <div class="gls-card-top">
+              <span class="gls-road-title">💧 BẢNG HẠT GIỌT NƯỚC (BEAD ROAD)</span>
+              <div class="gls-road-tags" id="liveBeadTags">
+                <span class="gls-tag tai">T = Tài (26-45)</span>
+                <span class="gls-tag xiu">X = Xỉu (5-24)</span>
+                <span class="gls-tag hoa">H = Hòa (25)</span>
+              </div>
+            </div>
+            <div class="gls-matrix-wrapper" id="liveBeadContainer">
+              <!-- 6-row high-contrast large beads -->
+            </div>
+          </div>
+
+          <!-- Road 2: Đường Cầu Bệt -->
+          <div class="gls-road-card">
+            <div class="gls-card-top">
+              <span class="gls-road-title">🛣️ ĐƯỜNG CẦU BỆT & CẦU NHẢY (BIG ROAD)</span>
+              <span class="gls-road-status" id="liveRoadStatus">Cầu Bệt Đang Chạy</span>
+            </div>
+            <div class="gls-big-road-wrapper" id="liveBigRoadContainer">
+              <!-- Big Road streak columns -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- TAB: BẢNG SOI KÈO & PHÂN TÍCH XU HƯỚNG VIP -->
+    <main id="tab-soikeo" class="tab-content">
+      <div class="soikeo-panel-vip">
+        <!-- Top VIP Header & Control Bar -->
+        <div class="vip-header-card">
+          <div class="vip-title-area">
+            <div class="vip-badge-row">
+              <span class="live-dot-glow"></span>
+              <span class="vip-tag-gold">VIP CASINO MONITOR</span>
+              <span class="vip-subtitle">DÃY SỐ HÀNG GIỮA (CENTER PAYLINE)</span>
+            </div>
+            <h2>BẢNG SOI CẦU XU HƯỚNG & THỐNG KÊ ĐẲNG CẤP</h2>
+          </div>
+
+          <div class="vip-controls-area">
+            <div class="vip-btn-group">
+              <span class="vip-group-label">LOẠI CẦU:</span>
+              <button class="vip-pill-btn active" id="btnFilterTaiXiu" data-mode="taixiu">🔴 CẦU TÀI / XỈU</button>
+              <button class="vip-pill-btn" id="btnFilterChanLe" data-mode="chanle">🟣 CẦU CHẴN / LẺ</button>
+            </div>
+            <div class="vip-btn-group">
+              <span class="vip-group-label">SỐ PHIÊN:</span>
+              <button class="vip-limit-btn active limit-btn" data-limit="30">30 PHIÊN</button>
+              <button class="vip-limit-btn limit-btn" data-limit="50">50 PHIÊN</button>
+              <button class="vip-limit-btn limit-btn" data-limit="100">100 PHIÊN</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3 Giant High-Contrast Scoreboard Cards (Tài - Hòa - Xỉu) -->
+        <div class="vip-scoreboard-trio">
+          <!-- Pillar TÀI -->
+          <div class="score-pillar pillar-tai">
+            <div class="pillar-glow"></div>
+            <div class="pillar-head">
+              <span class="pillar-title">🔴 TÀI (26 - 45)</span>
+              <span class="pillar-odds">x2.05</span>
+            </div>
+            <div class="pillar-main">
+              <div class="pillar-pct" id="lblPctTai">52.0%</div>
+              <div class="pillar-count"><span id="lblCntTai">26</span> Lần Về</div>
+            </div>
+            <div class="pillar-sub">Điểm trung bình các phiên Tài</div>
+          </div>
+
+          <!-- Pillar HÒA -->
+          <div class="score-pillar pillar-hoa">
+            <div class="pillar-glow"></div>
+            <div class="pillar-head">
+              <span class="pillar-title">🟡 HÒA 25 ĐIỂM</span>
+              <span class="pillar-odds">x14.5</span>
+            </div>
+            <div class="pillar-main">
+              <div class="pillar-pct" id="lblPctHoa">4.0%</div>
+              <div class="pillar-count"><span id="lblCntHoa">2</span> Lần Về</div>
+            </div>
+            <div class="pillar-sub">Mốc cân bằng tuyệt đối</div>
+          </div>
+
+          <!-- Pillar XỈU -->
+          <div class="score-pillar pillar-xiu">
+            <div class="pillar-glow"></div>
+            <div class="pillar-head">
+              <span class="pillar-title">🔵 XỈU (5 - 24)</span>
+              <span class="pillar-odds">x2.05</span>
+            </div>
+            <div class="pillar-main">
+              <div class="pillar-pct" id="lblPctXiu">44.0%</div>
+              <div class="pillar-count"><span id="lblCntXiu">22</span> Lần Về</div>
+            </div>
+            <div class="pillar-sub">Điểm trung bình các phiên Xỉu</div>
+          </div>
+        </div>
+
+        <!-- Horizontal Multi-Color Ratio Gauge & Current Streak Strip -->
+        <div class="vip-ratio-strip-card">
+          <div class="ratio-flex-row">
+            <div class="ratio-bar-large">
+              <div class="rbar-seg seg-tai" id="barSegTai" style="width: 52%">
+                <span class="seg-label" id="barTxtTai">TÀI 52%</span>
+              </div>
+              <div class="rbar-seg seg-hoa" id="barSegHoa" style="width: 4%">
+                <span class="seg-label" id="barTxtHoa">HÒA</span>
+              </div>
+              <div class="rbar-seg seg-xiu" id="barSegXiu" style="width: 44%">
+                <span class="seg-label" id="barTxtXiu">XỈU 44%</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="streak-banner-row">
+            <div class="streak-item-box active-streak">
+              <span class="s-icon">🔥</span>
+              <span class="s-lbl">CẦU HIỆN TẠI:</span>
+              <strong class="s-val" id="currentStreakBadge">🔴 BỆT TÀI (3 CÂY)</strong>
+            </div>
+            <div class="streak-item-box">
+              <span class="s-icon">🏆</span>
+              <span class="s-lbl">KỶ LỤC BỆT DÀI NHẤT:</span>
+              <strong class="s-val glow-gold" id="maxStreakVal">6 Cây</strong>
+            </div>
+            <div class="streak-item-box">
+              <span class="s-icon">⚖️</span>
+              <span class="s-lbl">CHẴN / LẺ:</span>
+              <strong class="s-val"><span id="lblPctChan">48%</span> C | <span id="lblPctLe">52%</span> L</strong>
+            </div>
+            <div class="streak-item-box">
+              <span class="s-icon">👑</span>
+              <span class="s-lbl">BỘ ĐẶC BIỆT:</span>
+              <strong class="s-val">Thùng: <span id="cntThung" class="glow-cyan">2</span> • Sảnh: <span id="cntSanh" class="glow-gold">1</span> • Quý: <span id="cntPoker" class="glow-green">3</span></strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- The 2 Core Road Maps: Bead Plate & Big Road -->
+        <div class="vip-roads-container">
+          <!-- Bảng Hạt Giọt Nước -->
+          <div class="vip-road-card">
+            <div class="road-card-header">
+              <div class="rch-left">
+                <span class="rch-icon">💧</span>
+                <div>
+                  <h4>BẢNG HẠT GIỌT NƯỚC (BEAD PLATE)</h4>
+                  <p class="rch-desc">Hạt to rõ, số điểm nổi bật • Cột 6 hàng tuần tự</p>
+                </div>
+              </div>
+              <div class="rch-tags" id="beadPlateTags">
+                <span class="vip-tag-tai">T = TÀI</span>
+                <span class="vip-tag-xiu">X = XỈU</span>
+                <span class="vip-tag-hoa">H = HÒA</span>
+              </div>
+            </div>
+            <div class="vip-matrix-board" id="beadPlateContainer">
+              <!-- Dynamically populated 6-row beads with solid vivid colors -->
+            </div>
+          </div>
+
+          <!-- Đường Cầu Bệt & Cầu Nhảy -->
+          <div class="vip-road-card">
+            <div class="road-card-header">
+              <div class="rch-left">
+                <span class="rch-icon">🛣️</span>
+                <div>
+                  <h4>ĐƯỜNG CẦU BỆT & CẦU NHẢY (BIG ROAD)</h4>
+                  <p class="rch-desc">Dãy cầu dọc: Cầu Bệt • Đổi cột: Cầu Nhảy 1-1</p>
+                </div>
+              </div>
+              <div class="rch-status-pill" id="bigRoadStatus">Cầu Bệt Đang Chạy</div>
+            </div>
+            <div class="vip-bigroad-board" id="bigRoadContainer">
+              <!-- Dynamically populated Big Road columns -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Biểu Đồ Nhịp Điểm Tổng (5 - 45) -->
+        <div class="vip-card chart-section-card">
+          <div class="road-card-header">
+            <div class="rch-left">
+              <span class="rch-icon">📉</span>
+              <div>
+                <h4>BIỂU ĐỒ DAO ĐỘNG TỔNG ĐIỂM (5 - 45) QUA TỪNG PHIÊN</h4>
+                <p class="rch-desc">Quan sát sóng điểm dao động qua trục cân bằng 25 điểm</p>
+              </div>
+            </div>
+            <div class="chart-zones-legend">
+              <span class="cz-zone tai">● Vùng Tài (26 - 45)</span>
+              <span class="cz-zone hoa">-- Trục Hòa (25)</span>
+              <span class="cz-zone xiu">● Vùng Xỉu (5 - 24)</span>
+            </div>
+          </div>
+          <div class="vip-chart-canvas-wrapper">
+            <canvas id="sumTrendCanvas" width="1200" height="230"></canvas>
+          </div>
+        </div>
+
+        <!-- Thống Kê 9 Con Số Hot / Cold -->
+        <div class="vip-card hotcold-section-card">
+          <div class="road-card-header">
+            <div class="rch-left">
+              <span class="rch-icon">🎯</span>
+              <div>
+                <h4>TẦN SUẤT CON SỐ MAY MẮN (1 - 9) Ở HÀNG GIỮA</h4>
+                <p class="rch-desc">Thống kê số lần nổ của từng chữ số • Bấm vào để đặt cược nhanh</p>
+              </div>
+            </div>
+          </div>
+          <div class="vip-numbers-grid" id="numbersFreqGrid">
+            <!-- 9 lucky number balls with clear badges -->
+          </div>
+        </div>
+
+        <!-- Nhật Ký Chi Tiết Phiên -->
+        <div class="vip-card history-section-card">
+          <div class="road-card-header">
+            <div class="rch-left">
+              <span class="rch-icon">📋</span>
+              <div>
+                <h4>NHẬT KÝ CHI TIẾT TỪNG PHIÊN (SESSION HISTORY)</h4>
+                <p class="rch-desc">Xem lại 5 số hàng giữa, tổng điểm, tổ hợp bài và tiền thắng thua</p>
+              </div>
+            </div>
+          </div>
+          <div class="vip-table-wrapper">
+            <table class="vip-history-table" id="soikeoHistoryTable">
+              <thead>
+                <tr>
+                  <th>Phiên #</th>
+                  <th>Dãy 5 Số Hàng Giữa</th>
+                  <th>Tổng Điểm</th>
+                  <th>Cửa Thắng</th>
+                  <th>Chẵn / Lẻ</th>
+                  <th>Tổ Hợp Đạt Được</th>
+                  <th>Cược / Thắng</th>
+                </tr>
+              </thead>
+              <tbody id="soikeoTableBody">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- TAB 2: MATH SIMULATOR -->
+    <main id="tab-simulator" class="tab-content">
+      <div class="sim-panel-pro">
+        <!-- Header Banner -->
+        <div class="sim-pro-header">
+          <div class="sim-title-group">
+            <div class="sim-badges">
+              <span class="sim-badge-gold">GLI-19 CERTIFICATION READY</span>
+              <span class="sim-badge-tech">MONTE CARLO PROBABILITY ENGINE</span>
+              <span class="sim-badge-nist">NIST SP 800-22 RNG VALIDATED</span>
+            </div>
+            <h2>MÔ PHỎNG XÁC SUẤT TOÁN HỌC & KIỂM ĐỊNH RTP TOÀN DIỆN</h2>
+            <p>Hệ thống Monte Carlo phân tích xác suất thực nghiệm, độ biến động (Volatility σ), phân bố hệ số thưởng (Payout Distribution) và tỷ lệ đóng góp RTP chi tiết từng biểu tượng trên dãy số hàng giữa (5 cuộn).</p>
+          </div>
+
+          <div class="sim-pro-controls">
+            <div class="sim-select-wrap">
+              <label for="simSpinsSelect">Quy mô mẫu kiểm định:</label>
+              <select id="simSpinsSelect" class="sim-pro-select">
+                <option value="10000">10,000 spins (~0.1s)</option>
+                <option value="20000" selected>20,000 spins (~0.2s)</option>
+                <option value="50000">50,000 spins (~0.5s)</option>
+              </select>
+            </div>
+            <button id="btnRunSim" class="sim-pro-btn">
+              <span class="btn-icon">🚀</span>
+              <span class="btn-text">CHẠY KIỂM ĐỊNH MONTE CARLO</span>
+            </button>
+          </div>
+        </div>
+
+        <div id="simLoading" class="sim-loading hidden">
+          <div class="spinner"></div>
+          <div class="loading-msg">
+            <strong>Đang thực thi mô phỏng hàng chục nghìn lượt quay thực nghiệm...</strong>
+            <span>Tính toán phân bố hệ số thưởng, phương sai, khoảng tin cậy 95% và đóng góp RTP</span>
+          </div>
+        </div>
+
+        <div class="sim-pro-results" id="simResults">
+          <!-- 1. Executive KPI Cards (Bộ 6 Chỉ Số Điều Hành) -->
+          <div class="sim-section-header">
+            <h3>📊 1. BỘ CHỈ SỐ ĐIỀU HÀNH CHUẨN QUỐC TẾ (EXECUTIVE KPIS)</h3>
+            <span class="section-tag">ĐỘ TIN CẬY 95% (CONFIDENCE LEVEL)</span>
+          </div>
+          <div class="sim-kpi-grid">
+            <!-- KPI 1: Overall Base RTP -->
+            <div class="sim-kpi-card highlight-gold">
+              <div class="kpi-icon">🎯</div>
+              <div class="kpi-meta">
+                <span class="kpi-title">RTP THỰC NGHIỆM TỔNG THỂ</span>
+                <div class="kpi-number" id="simKpiRtp">95.24%</div>
+                <div class="kpi-detail">Mục tiêu thiết kế: <strong id="simKpiTargetRtp">95.00%</strong> (<span id="simKpiDelta" class="kpi-delta">+0.24%</span>)</div>
+              </div>
+            </div>
+
+            <!-- KPI 2: Hit Frequency -->
+            <div class="sim-kpi-card">
+              <div class="kpi-icon">⚡</div>
+              <div class="kpi-meta">
+                <span class="kpi-title">TẦN SUẤT TRÚNG (HIT FREQ)</span>
+                <div class="kpi-number glow-cyan" id="simKpiHitFreq">75.8%</div>
+                <div class="kpi-detail">Trung bình 1 trúng mỗi <strong id="simKpiHitRatio">1.32</strong> spins</div>
+              </div>
+            </div>
+
+            <!-- KPI 3: Max Win Multiplier -->
+            <div class="sim-kpi-card">
+              <div class="kpi-icon">👑</div>
+              <div class="kpi-meta">
+                <span class="kpi-title">HỆ SỐ THẮNG MAX ĐẠT ĐƯỢC</span>
+                <div class="kpi-number glow-purple" id="simKpiMaxWin">x250.0</div>
+                <div class="kpi-detail">Tối đa lý thuyết: <strong>x5,000.0</strong></div>
+              </div>
+            </div>
+
+            <!-- KPI 4: Volatility & Std Dev -->
+            <div class="sim-kpi-card">
+              <div class="kpi-icon">📉</div>
+              <div class="kpi-meta">
+                <span class="kpi-title">ĐỘ BIẾN ĐỘNG / ĐỘ LỆCH CHUẨN</span>
+                <div class="kpi-number" id="simKpiStdDev">σ = 4.42</div>
+                <div class="kpi-detail">Phân lớp: <strong id="simKpiVolClass">Trung Bình Cao</strong></div>
+              </div>
+            </div>
+
+            <!-- KPI 5: 95% Confidence Interval -->
+            <div class="sim-kpi-card">
+              <div class="kpi-icon">🔒</div>
+              <div class="kpi-meta">
+                <span class="kpi-title">KHOẢNG TIN CẬY 95% (CI)</span>
+                <div class="kpi-number font-small" id="simKpiCi95">[94.1% - 96.3%]</div>
+                <div class="kpi-detail">Biên độ sai số: <strong>±0.92%</strong></div>
+              </div>
+            </div>
+
+            <!-- KPI 6: Speed & Spins Simulated -->
+            <div class="sim-kpi-card">
+              <div class="kpi-icon">⏱️</div>
+              <div class="kpi-meta">
+                <span class="kpi-title">TỐC ĐỘ & QUY MÔ KIỂM ĐỊNH</span>
+                <div class="kpi-number glow-green" id="simKpiSpeed">48,200 /s</div>
+                <div class="kpi-detail">Hoàn thành trong <strong id="simKpiElapsed">0.42s</strong> • <span id="simKpiSpins">20,000</span> spins</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. Payout Distribution Multiplier Brackets -->
+          <div class="sim-section-header">
+            <h3>📈 2. PHÂN BỐ HỆ SỐ THƯỞNG (PAYOUT MULTIPLIER DISTRIBUTION)</h3>
+            <span class="section-tag">THEO 6 TẦNG BẬC HỆ SỐ THƯỞNG (BRACKETS)</span>
+          </div>
+          <div class="sim-dist-container">
+            <div class="sim-dist-grid" id="simDistGrid">
+              <!-- Dynamically populated 6 bracket cards with progress bars -->
+            </div>
+          </div>
+
+          <!-- 3. Full RTP Contribution & Bet Breakdown Table -->
+          <div class="sim-section-header">
+            <h3>📑 3. BẢNG ĐÓNG GÓP RTP CỦA TỪNG CỬA CƯỢC & BIỂU TƯỢNG (RTP CONTRIBUTION)</h3>
+            <div class="sim-table-filters" id="simTableFilterGroup">
+              <button class="tbl-filter-btn active" data-category="ALL">Tất Cả (26)</button>
+              <button class="tbl-filter-btn" data-category="🎰 Base Game">🎰 Base Game</button>
+              <button class="tbl-filter-btn" data-category="🎯 Cầu Điểm">🎯 Cầu Điểm</button>
+              <button class="tbl-filter-btn" data-category="⚖️ Chẵn Lẻ">⚖️ Chẵn Lẻ</button>
+              <button class="tbl-filter-btn" data-category="🎨 Dáng Bài">🎨 Dáng Bài</button>
+              <button class="tbl-filter-btn" data-category="🃏 Poker Hands">🃏 Poker Hands</button>
+              <button class="tbl-filter-btn" data-category="🔢 Số Đơn Lẻ">🔢 Số Đơn (1-9)</button>
+            </div>
+          </div>
+          <div class="sim-table-wrap">
+            <table class="sim-pro-table" id="simContributionsTable">
+              <thead>
+                <tr>
+                  <th>Cửa Cược / Biểu Tượng</th>
+                  <th>Phân Nhóm</th>
+                  <th>Hệ Số Odds</th>
+                  <th>Số Lần Thắng</th>
+                  <th>Tần Suất Trúng (%)</th>
+                  <th>RTP Thực Nghiệm</th>
+                  <th>RTP Thiết Kế</th>
+                  <th>Sai Lệch Δ</th>
+                  <th>Kiểm Định GLI-19</th>
+                </tr>
+              </thead>
+              <tbody id="simContributionsTableBody">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- 4. Symbol Frequency & Matches Matrix (Digits 1..9) -->
+          <div class="sim-section-header">
+            <h3>🔢 4. TẦN SUẤT & PHÂN BỐ SỐ LẦN TRÙNG KHỚP CỦA TỪNG CON SỐ (1 ĐẾN 9)</h3>
+            <span class="section-tag">KỲ VỌNG LÝ THUYẾT: 11.11% MỖI SỐ</span>
+          </div>
+          <div class="sim-symbols-grid" id="simSymbolsGrid">
+            <!-- Dynamically populated 9 cards for digits 1..9 -->
+          </div>
+
+          <!-- 5. Sum Distribution (5 to 45) -->
+          <div class="sim-section-header">
+            <h3>🔔 5. PHÂN BỐ XÁC SUẤT TỔNG ĐIỂM HÀNG GIỮA (GAUSSIAN BELL CURVE: 5 ĐẾN 45)</h3>
+            <span class="section-tag">ĐỈNH HỘI TỤ TẠI MỐC 25 ĐIỂM (~6.78%)</span>
+          </div>
+          <div class="sim-sum-chart-container">
+            <div class="sim-sum-bars-wrapper" id="simSumBarsWrapper">
+              <!-- Dynamically populated 41 columns for sum 5 to 45 -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- TAB 3: RULES -->
+    <main id="tab-rules" class="tab-content">
+      <div class="rules-panel">
+        <div class="panel-header">
+          <h2>LUẬT CHƠI & BẢNG HỆ SỐ THƯỞNG LUCKY NUMBERS 777</h2>
+          <p>Trò chơi sử dụng máy quay 5 cuộn x 3 hàng, nhưng <strong>CHỈ DUY NHẤT HÀNG Ở GIỮA (ROW 1)</strong> là dòng hợp lệ để tính thưởng.</p>
+        </div>
+
+        <div class="rules-cards-grid">
+          <div class="rule-card">
+            <h3>1. Cược Tài / Xỉu / Hòa 25</h3>
+            <ul>
+              <li><strong>Tài (Tổng 26 - 45):</strong> Thắng ăn <strong>x2.05</strong></li>
+              <li><strong>Xỉu (Tổng 5 - 24):</strong> Thắng ăn <strong>x2.05</strong></li>
+              <li><strong>Hòa 25 điểm:</strong> Thắng ăn <strong>x14.5</strong></li>
+            </ul>
+          </div>
+
+          <div class="rule-card">
+            <h3>2. Cược Chẵn / Lẻ</h3>
+            <ul>
+              <li><strong>Tổng Chẵn:</strong> Thắng ăn <strong>x1.92</strong></li>
+              <li><strong>Tổng Lẻ:</strong> Thắng ăn <strong>x1.92</strong></li>
+            </ul>
+          </div>
+
+          <div class="rule-card">
+            <h3>3. Cược Thùng (Toàn Chẵn / Toàn Lẻ)</h3>
+            <ul>
+              <li><strong>Thùng Toàn Chẵn:</strong> Cả 5 số ở giữa đều là số chẵn (2, 4, 6, 8) ➔ Thắng ăn <strong>x54.0</strong></li>
+              <li><strong>Thùng Toàn Lẻ:</strong> Cả 5 số ở giữa đều là số lẻ (1, 3, 5, 7, 9) ➔ Thắng ăn <strong>x18.0</strong></li>
+              <li><strong>Thùng Chung:</strong> Bất kể ra Thùng Chẵn hay Thùng Lẻ đều thắng ➔ Thắng ăn <strong>x13.5</strong></li>
+            </ul>
+          </div>
+
+          <div class="rule-card">
+            <h3>4. Cược Sảnh (5 Số Liên Tiếp)</h3>
+            <ul>
+              <li><strong>Sảnh bất kỳ:</strong> 5 số tạo thành chuỗi liên tiếp (Ví dụ: 2-4-5-1-3 hoặc 5-6-7-8-9) ➔ Thắng ăn <strong>x96.0</strong></li>
+              <li><strong>Sảnh Chuẩn:</strong> 5 số xếp đúng thứ tự tăng dần từ trái qua phải (1-2-3-4-5) ➔ <strong>ĐẠI JACKPOT x5,000.0</strong></li>
+            </ul>
+          </div>
+
+          <div class="rule-card">
+            <h3>5. Tổ Hợp Poker Hàng Giữa</h3>
+            <ul>
+              <li><strong>Ngũ Quý (5 số giống nhau):</strong> x5,000.0</li>
+              <li><strong>Tứ Quý (4 số giống nhau):</strong> x140.0</li>
+              <li><strong>Cù Lũ (3 số + 1 đôi):</strong> x90.0</li>
+              <li><strong>Sám Cô (3 số giống nhau):</strong> x13.0</li>
+              <li><strong>Hai Đôi:</strong> x8.5 | <strong>Một Đôi:</strong> x1.95</li>
+            </ul>
+          </div>
+
+          <div class="rule-card">
+            <h3>6. Cược Con Số Cụ Thể (1 Đến 9)</h3>
+            <p>Chọn con số may mắn của bạn. Tiền thắng tính theo số lần con số đó xuất hiện trên hàng giữa:</p>
+            <ul>
+              <li>Xuất hiện 1 lần: <strong>x1.7</strong></li>
+              <li>Xuất hiện 2 lần: <strong>x3.1</strong></li>
+              <li>Xuất hiện 3 lần: <strong>x7.5</strong></li>
+              <li>Xuất hiện 4 lần: <strong>x25.0</strong></li>
+              <li>Xuất hiện 5 lần: <strong>x100.0</strong></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- TAB 5: KIẾN TRÚC HỆ THỐNG & API SWAGGER -->
+    <main id="tab-architecture" class="tab-content">
+      <div class="arch-panel">
+        <div class="arch-header-banner">
+          <div>
+            <h2>🏗️ KIẾN TRÚC HỆ THỐNG SLOT 5x3 ĐẶT CƯỢC THEO CON SỐ</h2>
+            <p>Mô hình chuẩn iGaming GLI-19: Tách biệt hoàn toàn Client - Server • Dải cuộn ảo CSPRNG • Dòng thưởng duy nhất hàng giữa (Row 1).</p>
+          </div>
+          <div class="arch-header-actions">
+            <a href="/docs" target="_blank" class="swagger-hero-btn">📚 MỞ SWAGGER UI TƯƠNG TÁC (/docs) ➔</a>
+          </div>
+        </div>
+
+        <div class="arch-cards-grid">
+          <div class="arch-card">
+            <span class="card-num">01</span>
+            <h3>1. Math Core & Dải Cuộn Ảo (Reel Strips)</h3>
+            <p><strong>Không gian ngẫu nhiên công bằng:</strong> 5 cuộn quay được cấu hình từ 5 dải số ảo (Virtual Reel Strips) với 54 vị trí mỗi dải, phân bổ đều đặn các số 1..9.</p>
+            <ul>
+              <li><code>engine/reels.py</code>: Cấu hình dải số ảo 54 stops x 5 reels</li>
+              <li><code>engine/rules.py</code>: Bộ quy tắc trả thưởng (Tài/Xỉu, Chẵn/Lẻ, Thùng, Sảnh, Poker, Số đơn)</li>
+              <li><strong>Center Payline (Row 1):</strong> Chỉ dòng giữa mới là dòng trúng thưởng hợp lệ</li>
+              <li><strong>RNG Mật mã:</strong> <code>crypto.getRandomValues</code> / <code>secrets</code> đạt chuẩn GLI-19</li>
+            </ul>
+          </div>
+
+          <div class="arch-card">
+            <span class="card-num">02</span>
+            <h3>2. Backend REST API Chống Gian Lận</h3>
+            <p><strong>Toàn quyền tính thưởng trên Server:</strong> Client gửi lệnh cược lên Server, Server quay RNG, trừ cược, tính thưởng và trả về kết quả đã kiểm chứng. Client không thể can thiệp số dư.</p>
+            <ul>
+              <li><code>POST /api/spin</code>: Đặt cược và thực thi 1 lượt quay</li>
+              <li><code>GET /api/session</code>: Truy vấn số dư, lịch sử 100 phiên, RTP thực tế</li>
+              <li><code>GET /api/rules</code>: Đồng bộ bảng tỷ lệ thưởng và danh mục cược</li>
+              <li><code>POST /api/reset</code>: Nạp lại số dư ví người chơi về 10,000</li>
+              <li><code>POST /api/simulate</code>: Chạy Monte Carlo 100 - 50,000 spins</li>
+            </ul>
+          </div>
+
+          <div class="arch-card">
+            <span class="card-num">03</span>
+            <h3>3. Tích Hợp Đa Nền Tảng (Cross-Platform)</h3>
+            <p>Backend API thiết kế phi trạng thái (Stateless) và chuẩn REST/JSON, sẵn sàng tích hợp với bất kỳ giao diện người dùng nào:</p>
+            <ul>
+              <li><strong>HTML5 Web & Mobile Web:</strong> Chạy mượt trên mọi thiết bị qua Cloudflare Edge</li>
+              <li><strong>Unity (C#) / Godot:</strong> Tích hợp vào game 3D / 2D mobile native</li>
+              <li><strong>Telegram Mini App (TMA):</strong> Đóng gói chạy trực tiếp bên trong Telegram</li>
+              <li><strong>Backend Serverless:</strong> 100% Cloudflare Workers / FastAPI tương thích kép</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- BẢNG TỔNG HỢP ENDPOINT REST API -->
+        <div class="arch-endpoints-card">
+          <div class="card-top-row">
+            <h3>📋 DANH SÁCH REST API ENDPOINTS CHÍNH THỨC</h3>
+            <span class="badge-tag">OpenAPI 3.0.2</span>
+          </div>
+          <div class="table-scroll-wrap">
+            <table class="api-endpoints-table">
+              <thead>
+                <tr>
+                  <th>Phương Thức</th>
+                  <th>Endpoint</th>
+                  <th>Mô Tả Chức Năng</th>
+                  <th>Payload Request (JSON)</th>
+                  <th>Phản Hồi (Response)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="http-badge post">POST</span></td>
+                  <td><code>/api/spin</code></td>
+                  <td>Quay 5 cuộn, kiểm tra dòng giữa, đối soát cược và cộng tiền</td>
+                  <td><code>{"bets": {"TAI": 20, "SO_7": 10}}</code></td>
+                  <td>Grid 3x5, Stops, Analysis, Payouts, Net Profit</td>
+                </tr>
+                <tr>
+                  <td><span class="http-badge get">GET</span></td>
+                  <td><code>/api/session</code></td>
+                  <td>Lấy thông tin ví, số dư hiện tại, tổng cược/thắng, lịch sử 100 phiên</td>
+                  <td><em>None</em></td>
+                  <td>Session object, balance, recent_history[100]</td>
+                </tr>
+                <tr>
+                  <td><span class="http-badge get">GET</span></td>
+                  <td><code>/api/rules</code></td>
+                  <td>Lấy toàn bộ tỷ lệ thưởng x1.7..x5000, danh mục cược</td>
+                  <td><em>None</em></td>
+                  <td>Bet payouts, single number payouts, hand payouts</td>
+                </tr>
+                <tr>
+                  <td><span class="http-badge post">POST</span></td>
+                  <td><code>/api/reset</code></td>
+                  <td>Nạp lại số dư ví người chơi về mức mặc định</td>
+                  <td><code>{"initial_balance": 10000.0}</code></td>
+                  <td>Session object với số dư 10,000</td>
+                </tr>
+                <tr>
+                  <td><span class="http-badge post">POST</span></td>
+                  <td><code>/api/simulate</code></td>
+                  <td>Mô phỏng Monte Carlo 100 - 50,000 vòng quay đo xác suất thực tế</td>
+                  <td><code>{"spins": 10000}</code></td>
+                  <td>Thống kê RTP, tốc độ vòng quay/s, tỷ lệ Tài/Xỉu/Thùng/Sảnh</td>
+                </tr>
+                <tr>
+                  <td><span class="http-badge get">GET</span></td>
+                  <td><code>/docs</code></td>
+                  <td>Giao diện Swagger UI tương tác trực quan để test API trực tiếp</td>
+                  <td><em>None</em></td>
+                  <td>Trang Swagger UI tương tác chuẩn OpenAPI</td>
+                </tr>
+                <tr>
+                  <td><span class="http-badge get">GET</span></td>
+                  <td><code>/openapi.json</code></td>
+                  <td>Đặc tả OpenAPI 3.0.2 dạng JSON phục vụ tích hợp & codegen</td>
+                  <td><em>None</em></td>
+                  <td>OpenAPI 3.0.2 Specification Schema</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- CODE PREVIEW REQUEST / RESPONSE -->
+        <div class="api-doc-box">
+          <div class="doc-box-header">
+            <h3>Ví Dụ Request & Response Chi Tiết: <code>POST /api/spin</code></h3>
+            <span class="badge-tag">JSON API</span>
+          </div>
+          <div class="code-preview">
+<pre><code>// 1. Client gửi lệnh cược lên Server (Ví dụ: Cược Tài 50 + Cược Thùng 20 + Cược Con Số 7 là 10)
+POST /api/spin HTTP/1.1
+Content-Type: application/json
+
+{
+  "bets": {
+    "TAI": 50.0,
+    "THUNG": 20.0,
+    "SO_7": 10.0
+  }
+}
+
+// 2. Server phản hồi kết quả kiểm chứng (RNG Stops, Grid 3x5, Analysis hàng giữa & Payouts)
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+  "status": "success",
+  "data": {
+    "stops": [14, 28, 42, 7, 51],
+    "grid": [
+      [3, 8, 1, 6, 2],
+      [7, 7, 7, 8, 9],  // <-- DÒNG TRẢ THƯỞNG DUY NHẤT (ROW 1)
+      [4, 5, 2, 9, 3]
+    ],
+    "center_row": [7, 7, 7, 8, 9],
+    "analysis": {
+      "sum": 38,
+      "is_tai": true,
+      "is_xiu": false,
+      "is_hoa_25": false,
+      "is_chan": false,
+      "is_le": true,
+      "is_thung": false,
+      "is_sanh": false,
+      "best_hand": "SAM_CO",
+      "hand_title_vi": "Sám Cô (Bộ 3 số 7)",
+      "counts": { "7": 3, "8": 1, "9": 1 }
+    },
+    "payout": {
+      "total_bet": 80.0,
+      "total_won": 177.5,
+      "net_profit": 97.5,
+      "winning_items": [
+        {
+          "bet_type": "TAI",
+          "wager": 50.0,
+          "multiplier": 2.05,
+          "win_amount": 102.5,
+          "reason_vi": "Tổng 38 > 25 (TÀI)"
+        },
+        {
+          "bet_type": "SO_7",
+          "wager": 10.0,
+          "multiplier": 7.5,
+          "win_amount": 75.0,
+          "reason_vi": "Số 7 xuất hiện 3 lần"
+        }
+      ]
+    }
+  }
+}</code></pre>
+          </div>
+        </div>
+
+        <!-- EMBEDDED SWAGGER BANNER / LINK -->
+        <div class="swagger-embed-banner">
+          <div class="seb-content">
+            <span class="seb-icon">⚡</span>
+            <div>
+              <h4>TRẢI NGHIỆM SWAGGER UI TRỰC TIẾP TRÊN TRÌNH DUYỆT</h4>
+              <p>Bạn có thể thử nghiệm gửi request trực tiếp (Try it out) tới toàn bộ API của Lucky Numbers 777 ngay bây giờ.</p>
+            </div>
+          </div>
+          <a href="/docs" target="_blank" class="seb-btn">🚀 MỞ SWAGGER UI TẠI /docs</a>
+        </div>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <span>Lucky Numbers 777 Slot Engine &copy; 2026. Single Center Payline Edition.</span>
+      <div class="footer-links">
+        <a href="/docs" target="_blank">📚 Swagger API Docs</a>
+        <button id="btnResetBalance" class="link-btn">🔄 Reset Số Dư (10,000)</button>
+      </div>
+    </footer>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
