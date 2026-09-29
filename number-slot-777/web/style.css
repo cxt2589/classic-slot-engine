@@ -51,7 +51,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 0;
+  padding: 10px 0;
   border-bottom: 1px solid rgba(255, 215, 0, 0.2);
   gap: 16px;
   flex-wrap: wrap;
@@ -3371,27 +3371,14 @@ body {
     background: rgba(8, 10, 17, 0.94);
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
-    transition: padding 0.25s ease, background 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+    padding: 10px 0;
+    transition: background 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
   }
 
   .top-nav.is-sticky-desktop {
-    padding: 8px 16px;
     background: rgba(6, 8, 14, 0.98);
     border-bottom: 1px solid rgba(255, 215, 0, 0.4);
-    box-shadow: 0 6px 25px rgba(0, 0, 0, 0.85);
-  }
-
-  .top-nav.is-sticky-desktop .brand-text .subtext {
-    display: none;
-  }
-
-  .top-nav.is-sticky-desktop .brand-icon {
-    font-size: 1.8rem;
-  }
-
-  .top-nav.is-sticky-desktop .tab-btn {
-    padding: 6px 12px;
-    font-size: 0.84rem;
+    box-shadow: 0 4px 25px rgba(0, 0, 0, 0.85);
   }
 }
 

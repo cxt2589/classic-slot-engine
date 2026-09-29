@@ -311,6 +311,8 @@ function setupStickyAndDockedNavigation() {
   if (!topNav || !mainNavTabs) return;
 
   let ticking = false;
+  let isDesktopSticky = false;
+  let isMobileDocked = false;
 
   function onScroll() {
     if (!ticking) {
@@ -319,32 +321,49 @@ function setupStickyAndDockedNavigation() {
         const isMobile = window.innerWidth <= 768;
 
         if (isMobile) {
-          // Mobile mode: dock tabs to bottom when scrolled down past header
-          if (scrollY > 50) {
+          // Reset desktop state if switched to mobile
+          if (isDesktopSticky) {
+            isDesktopSticky = false;
+            topNav.classList.remove("is-sticky-desktop");
+          }
+
+          // Mobile mode with hysteresis:
+          // Dock when scrolled down past 70px
+          // Undock only when scrolled back up above 20px
+          if (scrollY > 70 && !isMobileDocked) {
+            isMobileDocked = true;
             mainNavTabs.classList.add("is-docked-bottom");
             appContainer?.classList.add("has-docked-nav");
             if (navTabsWrapper) {
               navTabsWrapper.style.minHeight = `${mainNavTabs.offsetHeight || 44}px`;
             }
-          } else {
+          } else if (scrollY < 20 && isMobileDocked) {
+            isMobileDocked = false;
             mainNavTabs.classList.remove("is-docked-bottom");
             appContainer?.classList.remove("has-docked-nav");
             if (navTabsWrapper) {
               navTabsWrapper.style.minHeight = "";
             }
           }
-          topNav.classList.remove("is-sticky-desktop");
         } else {
-          // Desktop mode: stick to top when scrolled down
-          mainNavTabs.classList.remove("is-docked-bottom");
-          appContainer?.classList.remove("has-docked-nav");
-          if (navTabsWrapper) {
-            navTabsWrapper.style.minHeight = "";
+          // Reset mobile state if switched to desktop
+          if (isMobileDocked) {
+            isMobileDocked = false;
+            mainNavTabs.classList.remove("is-docked-bottom");
+            appContainer?.classList.remove("has-docked-nav");
+            if (navTabsWrapper) {
+              navTabsWrapper.style.minHeight = "";
+            }
           }
 
-          if (scrollY > 20) {
+          // Desktop mode with hysteresis:
+          // Activate sticky accent when scrolled past 60px
+          // Remove sticky accent only when scrolled back up above 15px
+          if (scrollY > 60 && !isDesktopSticky) {
+            isDesktopSticky = true;
             topNav.classList.add("is-sticky-desktop");
-          } else {
+          } else if (scrollY < 15 && isDesktopSticky) {
+            isDesktopSticky = false;
             topNav.classList.remove("is-sticky-desktop");
           }
         }
