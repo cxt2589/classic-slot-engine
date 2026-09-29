@@ -1530,7 +1530,7 @@ function drawSumTrendChart(data) {
 
     if (chrono.length <= 35) {
       ctx.fillStyle = color;
-      ctx.font = "bold 10px Montserrat, sans-serif";
+      ctx.font = "bold 10px 'Orbitron', 'Be Vietnam Pro', sans-serif";
       ctx.textAlign = "center";
       ctx.fillText(item.sum, x, y - 8);
     }

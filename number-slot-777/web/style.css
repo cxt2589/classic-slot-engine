@@ -11,16 +11,20 @@
   --neon-green: #00e676;
   --spin-gradient: linear-gradient(180deg, #ff3d00 0%, #d50000 60%, #8e0000 100%);
   --gold-gradient: linear-gradient(135deg, #fff2a3 0%, #ffd700 50%, #b8860b 100%);
-  --font-display: 'Be Vietnam Pro', 'Montserrat', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-body: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-numbers: 'Orbitron', 'Montserrat', monospace, sans-serif;
+  --font-display: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-body: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-numbers: 'Orbitron', 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace, sans-serif;
   --font-code: 'Consolas', 'Courier New', monospace;
 }
 
-* {
+*, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+}
+
+button, input, select, textarea, optgroup {
+  font-family: inherit;
 }
 
 body {
@@ -92,6 +96,7 @@ body {
 }
 
 .tab-btn {
+  font-family: var(--font-display);
   background: transparent;
   border: none;
   color: #a0aec0;
@@ -207,6 +212,7 @@ body {
   background: #161928;
   padding: 2px 8px;
   border-radius: 4px;
+  letter-spacing: 0.3px;
 }
 
 .res-hand {
@@ -707,10 +713,12 @@ body {
 }
 
 .bet-section-title {
-  font-size: 0.7rem;
-  font-weight: 700;
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 800;
   color: #718096;
   text-transform: uppercase;
+  letter-spacing: 0.3px;
   margin-top: 4px;
 }
 
@@ -756,10 +764,12 @@ body {
 }
 
 .bet-name {
-  font-size: 0.75rem;
-  font-weight: 700;
+  font-family: var(--font-display);
+  font-size: 0.76rem;
+  font-weight: 800;
   color: #e2e8f0;
   text-align: center;
+  letter-spacing: 0.3px;
 }
 
 .bet-odds {
@@ -1255,6 +1265,7 @@ body {
 }
 
 .tbl-filter-btn {
+  font-family: var(--font-display);
   background: #141828;
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: #a0aec0;
@@ -1264,6 +1275,7 @@ body {
   font-weight: 700;
   cursor: pointer;
   transition: all 0.15s;
+  letter-spacing: 0.3px;
 }
 
 .tbl-filter-btn:hover {
@@ -1942,12 +1954,13 @@ body {
 .gls-streak-badge {
   background: linear-gradient(135deg, #d32f2f, #b71c1c);
   color: #ffffff;
+  font-family: var(--font-display);
   font-weight: 800;
   font-size: 0.75rem;
   padding: 4px 12px;
   border-radius: 20px;
   box-shadow: 0 0 12px rgba(211, 47, 47, 0.6);
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
   white-space: nowrap;
 }
 
@@ -1966,8 +1979,10 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   padding: 6px 12px;
+  font-family: var(--font-display);
   font-size: 0.8rem;
   font-weight: 700;
+  letter-spacing: 0.2px;
 }
 
 .gls-dot {
@@ -2007,22 +2022,32 @@ body {
   padding: 3px;
 }
 
+.gls-name {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 0.78rem;
+  color: #cbd5e0;
+  letter-spacing: 0.3px;
+}
+
 .gls-toggle-btn {
+  font-family: var(--font-display);
   background: transparent;
   color: #a0aec0;
   border: none;
   padding: 5px 12px;
   border-radius: 6px;
   font-size: 0.75rem;
-  font-weight: 700;
+  font-weight: 800;
   cursor: pointer;
   transition: all 0.2s;
+  letter-spacing: 0.3px;
 }
 
 .gls-toggle-btn.active {
   background: var(--gold-gradient);
   color: #000;
-  font-weight: 900;
+  font-weight: 800;
   box-shadow: 0 0 10px rgba(255, 215, 0, 0.4);
 }
 
@@ -2088,10 +2113,12 @@ body {
 }
 
 .gls-tag {
-  font-size: 0.7rem;
+  font-family: var(--font-display);
+  font-size: 0.72rem;
   font-weight: 700;
   padding: 2px 8px;
   border-radius: 4px;
+  letter-spacing: 0.2px;
 }
 
 .gls-tag.tai { background: rgba(255, 23, 68, 0.2); color: #ff5252; border: 1px solid rgba(255, 23, 68, 0.4); }
@@ -2099,6 +2126,7 @@ body {
 .gls-tag.hoa { background: rgba(255, 215, 0, 0.2); color: #ffd700; border: 1px solid rgba(255, 215, 0, 0.4); }
 
 .gls-road-status {
+  font-family: var(--font-display);
   font-size: 0.72rem;
   font-weight: 800;
   color: #00e676;
@@ -2106,6 +2134,8 @@ body {
   background: rgba(0, 230, 118, 0.12);
   padding: 2px 8px;
   border-radius: 12px;
+  white-space: nowrap;
+  letter-spacing: 0.3px;
 }
 
 .gls-matrix-wrapper {
@@ -2452,12 +2482,13 @@ body {
   right: -8px;
   background: #ffd700;
   color: #000;
+  font-family: var(--font-display);
   font-size: 0.55rem;
-  font-weight: 900;
+  font-weight: 800;
   padding: 1px 4px;
   border-radius: 6px;
   box-shadow: 0 0 8px #ffd700;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
   animation: pulseGoldBadge 1.2s infinite alternate;
 }
 
@@ -2477,13 +2508,14 @@ body {
   transform: translateX(-50%);
   background: linear-gradient(135deg, #ffd700, #ff9100);
   color: #000;
+  font-family: var(--font-display);
   font-size: 0.58rem;
-  font-weight: 900;
+  font-weight: 800;
   padding: 1px 5px;
   border-radius: 8px;
   box-shadow: 0 0 10px #ffd700;
   white-space: nowrap;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
   z-index: 15;
 }
 
@@ -2671,9 +2703,9 @@ body {
 
 .pillar-title {
   font-family: var(--font-display);
-  font-weight: 900;
+  font-weight: 800;
   font-size: 1rem;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
 }
 
 .pillar-odds {
@@ -2773,9 +2805,9 @@ body {
   align-items: center;
   justify-content: center;
   font-family: var(--font-display);
-  font-weight: 900;
+  font-weight: 800;
   font-size: 0.8rem;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
   transition: width 0.4s ease;
   white-space: nowrap;
   overflow: hidden;
@@ -2790,13 +2822,19 @@ body {
 .seg-hoa {
   background: #ffb300;
   color: #000000;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .seg-xiu {
   background: linear-gradient(90deg, #0288d1, #03a9f4);
   color: #ffffff;
   text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+}
+
+.seg-label {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: 0.3px;
 }
 
 .streak-banner-row {
@@ -2820,15 +2858,18 @@ body {
 }
 
 .s-lbl {
+  font-family: var(--font-display);
   font-size: 0.7rem;
   font-weight: 800;
   color: #718096;
 }
 
 .s-val {
+  font-family: var(--font-display);
   font-size: 0.95rem;
   font-weight: 800;
   color: #e2e8f0;
+  letter-spacing: 0.3px;
 }
 
 /* ========================================================
@@ -2874,10 +2915,10 @@ body {
 .rch-left h4 {
   font-family: var(--font-display);
   font-size: 0.95rem;
-  font-weight: 900;
+  font-weight: 800;
   color: #ffffff;
   margin: 0;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
 }
 
 .rch-desc {
@@ -2891,6 +2932,11 @@ body {
   gap: 8px;
 }
 
+.vip-tag {
+  font-family: var(--font-display);
+  letter-spacing: 0.3px;
+}
+
 .vip-tag-tai {
   background: rgba(255, 23, 68, 0.2);
   color: #ff5252;
@@ -2899,6 +2945,8 @@ body {
   border-radius: 4px;
   font-size: 0.72rem;
   font-weight: 800;
+  font-family: var(--font-display);
+  letter-spacing: 0.3px;
 }
 
 .vip-tag-xiu {
@@ -2909,6 +2957,8 @@ body {
   border-radius: 4px;
   font-size: 0.72rem;
   font-weight: 800;
+  font-family: var(--font-display);
+  letter-spacing: 0.3px;
 }
 
 .vip-tag-hoa {
@@ -2919,6 +2969,32 @@ body {
   border-radius: 4px;
   font-size: 0.72rem;
   font-weight: 800;
+  font-family: var(--font-display);
+  letter-spacing: 0.3px;
+}
+
+.vip-tag-chan {
+  background: rgba(224, 64, 251, 0.2);
+  color: #ea80fc;
+  border: 1px solid rgba(224, 64, 251, 0.4);
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  font-family: var(--font-display);
+  letter-spacing: 0.3px;
+}
+
+.vip-tag-le {
+  background: rgba(255, 145, 0, 0.2);
+  color: #ffb74d;
+  border: 1px solid rgba(255, 145, 0, 0.4);
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  font-family: var(--font-display);
+  letter-spacing: 0.3px;
 }
 
 .rch-status-pill {
@@ -2929,6 +3005,8 @@ body {
   border-radius: 12px;
   font-size: 0.75rem;
   font-weight: 800;
+  font-family: var(--font-display);
+  letter-spacing: 0.3px;
 }
 
 .vip-matrix-board {
@@ -3186,8 +3264,10 @@ body {
   display: inline-block;
   padding: 3px 8px;
   border-radius: 4px;
+  font-family: var(--font-display);
   font-weight: 800;
   font-size: 0.72rem;
+  letter-spacing: 0.3px;
 }
 .tbl-tag.tai { background: rgba(255, 23, 68, 0.2); color: #ff5252; border: 1px solid rgba(255, 23, 68, 0.4); }
 .tbl-tag.xiu { background: rgba(0, 229, 255, 0.2); color: #40c4ff; border: 1px solid rgba(0, 229, 255, 0.4); }

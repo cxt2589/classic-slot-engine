@@ -409,7 +409,7 @@ const SWAGGER_HTML = `<!DOCTYPE html>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@600;700;800;900&family=Montserrat:wght@700;800;900&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400..900;1,400..700&family=Orbitron:wght@700;900&display=swap&subset=vietnamese" rel="stylesheet">
   <style>
     body {
       margin: 0;
@@ -435,11 +435,11 @@ const SWAGGER_HTML = `<!DOCTYPE html>
       font-size: 1.8rem;
     }
     .ct-title {
-      font-family: 'Montserrat', 'Be Vietnam Pro', sans-serif;
+      font-family: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       font-size: 1.25rem;
-      font-weight: 900;
+      font-weight: 800;
       color: #ffd700;
-      letter-spacing: 1px;
+      letter-spacing: 0.5px;
     }
     .ct-sub {
       font-size: 0.8rem;
