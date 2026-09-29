@@ -178,23 +178,22 @@ const OPENAPI_SPEC = {
   openapi: "3.0.2",
   info: {
     title: "Lucky Numbers 777 - Classic Number Slot Engine API",
-    description: "Backend API and Math Engine for 5x3 Single Center Line Number Slot with Tài/Xỉu, Chẵn/Lẻ, Thùng, Sảnh, Poker Hands and Single Number Bets.",
-    version: "1.0.0"
+    description: "Backend API and GLI-19 Math Engine for 5x3 Single Center Payline Number Slot. Supports Base Game Spin, Tài/Xỉu, Chẵn/Lẻ, Thùng, Sảnh, Poker Hands, Single Number Bets (1-9), Real-time Baccarat Roadmaps (Bead Road & Multi-tier Big Road), and Monte Carlo Verification.",
+    version: "1.2.0",
+    contact: {
+      name: "Lucky Numbers 777 Engineering Team",
+      url: "https://lucky-numbers-777.pages.dev"
+    }
   },
+  servers: [
+    { url: "/", description: "Current Environment" }
+  ],
   paths: {
-    "/api/session": {
-      get: {
-        summary: "Retrieve Player Session Info",
-        description: "Returns the current balance, total wagered, total won, empirical RTP, and up to 100 recent spin records.",
-        responses: {
-          "200": { description: "Successful Response" }
-        }
-      }
-    },
     "/api/spin": {
       post: {
-        summary: "Execute Spin and Evaluate Center Line",
-        description: "Spins 5 virtual reels, extracts row 1 (center row), checks user bets against game rules, updates player wallet and logs history.",
+        tags: ["Gameplay"],
+        summary: "Execute Spin and Evaluate Center Payline",
+        description: "Spins 5 virtual reels using CSPRNG, extracts Row 1 (Center Payline), evaluates user bets against mathematical rules, calculates net winnings, updates session balance, and logs history.",
         requestBody: {
           required: true,
           content: {
@@ -204,8 +203,14 @@ const OPENAPI_SPEC = {
                 properties: {
                   bets: {
                     type: "object",
-                    additionalProperties: { type: "number" },
-                    example: { TAI: 50.0, THUNG: 20.0, SO_7: 10.0 }
+                    description: "Key-value map of active bets. Allowed keys: BASE_SPIN, TAI, XIU, HOA_25, CHAN, LE, THUNG, THUNG_CHAN, THUNG_LE, SANH, SANH_CHUAN, NGU_QUY, TU_QUY, CU_LU, SAM_CO, HAI_DOI, SO_1 .. SO_9. If empty {}, defaults automatically to {'BASE_SPIN': 10.0}.",
+                    additionalProperties: { type: "number", minimum: 0.1 },
+                    example: {
+                      BASE_SPIN: 10.0,
+                      TAI: 50.0,
+                      THUNG: 20.0,
+                      SO_7: 10.0
+                    }
                   }
                 }
               }
@@ -213,47 +218,223 @@ const OPENAPI_SPEC = {
           }
         },
         responses: {
-          "200": { description: "Successful spin execution" },
-          "400": { description: "Invalid bets or insufficient balance" }
+          "200": {
+            description: "Spin evaluated successfully",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    status: { type: "string", example: "success" },
+                    data: {
+                      type: "object",
+                      properties: {
+                        stops: { type: "array", items: { type: "integer" }, example: [12, 34, 5, 29, 41] },
+                        grid: {
+                          type: "array",
+                          items: { type: "array", items: { type: "integer" } },
+                          description: "3x5 visible reel matrix. Row 1 is the ONLY winning payline."
+                        },
+                        center_row: { type: "array", items: { type: "integer" }, example: [7, 7, 7, 8, 9] },
+                        analysis: {
+                          type: "object",
+                          properties: {
+                            sum: { type: "integer", example: 38 },
+                            is_tai: { type: "boolean", example: true },
+                            is_xiu: { type: "boolean", example: false },
+                            is_hoa_25: { type: "boolean", example: false },
+                            is_chan: { type: "boolean", example: false },
+                            is_le: { type: "boolean", example: true },
+                            is_thung: { type: "boolean", example: false },
+                            is_sanh: { type: "boolean", example: false },
+                            best_hand: { type: "string", example: "SAM_CO" },
+                            hand_title_vi: { type: "string", example: "Sám Cô (Bộ 3 số 7)" },
+                            counts: { type: "object", example: { "7": 3, "8": 1, "9": 1 } }
+                          }
+                        },
+                        payout: {
+                          type: "object",
+                          properties: {
+                            total_bet: { type: "number", example: 90.0 },
+                            total_won: { type: "number", example: 199.5 },
+                            net_profit: { type: "number", example: 109.5 },
+                            winning_items: {
+                              type: "array",
+                              items: {
+                                type: "object",
+                                properties: {
+                                  bet_type: { type: "string", example: "TAI" },
+                                  wager: { type: "number", example: 50.0 },
+                                  multiplier: { type: "number", example: 2.05 },
+                                  win_amount: { type: "number", example: 102.5 },
+                                  reason_vi: { type: "string", example: "Tổng 38 > 25 (TÀI)" }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        session: {
+                          type: "object",
+                          properties: {
+                            balance: { type: "number", example: 10109.5 },
+                            total_spins: { type: "integer", example: 42 },
+                            total_wagered: { type: "number", example: 2500.0 },
+                            total_won: { type: "number", example: 2609.5 },
+                            empirical_rtp: { type: "number", example: 104.38 }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { description: "Insufficient balance or invalid wager format" }
         }
       }
     },
-    "/api/reset": {
-      post: {
-        summary: "Reset Player Balance",
-        description: "Resets the player balance to 10,000 credits and initializes seeded history.",
+    "/api/session": {
+      get: {
+        tags: ["Player Session"],
+        summary: "Retrieve Wallet Balance & Recent Spin History",
+        description: "Returns player wallet meters (balance, total wagered, total won, empirical RTP) and the 100 most recent spin results used to render the VIP Bead Plate, Multi-tier Big Road, and Trend line charts.",
         responses: {
-          "200": { description: "Balance reset" }
+          "200": {
+            description: "Player session information",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    status: { type: "string", example: "success" },
+                    data: {
+                      type: "object",
+                      properties: {
+                        balance: { type: "number", example: 10000.0 },
+                        total_spins: { type: "integer", example: 120 },
+                        total_wagered: { type: "number", example: 15400.0 },
+                        total_won: { type: "number", example: 14750.0 },
+                        empirical_rtp: { type: "number", example: 95.78 }
+                      }
+                    },
+                    recent_history: {
+                      type: "array",
+                      description: "List of last 100 spins for Bead Road & Big Road calculations",
+                      items: { type: "object" }
+                    }
+                  }
+                }
+              }
+            }
+          }
         }
       }
     },
     "/api/rules": {
       get: {
-        summary: "Get Betting Rules & Paytable",
-        description: "Returns all multipliers for Tài/Xỉu, Chẵn/Lẻ, Thùng, Sảnh, Poker combinations, and Single numbers 1-9.",
+        tags: ["Game Rules & Math"],
+        summary: "Get Paytable Multipliers & Visual Mappings",
+        description: "Returns mathematical multiplier odds for all bet types: Base Game Spin hands (x0.3..x300), Score bets (Tài/Xỉu x2.05, Hòa x14.5), Parity (Chẵn/Lẻ x1.92), Flushes (x13.6..x55.0), Straights (x94.0..x5000.0), Single numbers 1-9 (x1.0..x500.0), and neon color codes.",
         responses: {
-          "200": { description: "Rules and paytable" }
+          "200": {
+            description: "Game paytable definitions",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    status: { type: "string", example: "success" },
+                    data: {
+                      type: "object",
+                      properties: {
+                        bet_payouts: { type: "object" },
+                        single_number_payouts: { type: "object" },
+                        base_hand_payouts: { type: "object" },
+                        number_colors: { type: "object" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
         }
       }
     },
-    "/api/simulate": {
+    "/api/reset": {
       post: {
-        summary: "Run Monte Carlo Math Simulation",
-        description: "Simulates up to 50,000 spins to verify empirical RTP and outcome frequencies.",
+        tags: ["Player Session"],
+        summary: "Reset Wallet Balance & Clear Session",
+        description: "Re-seeds the player balance back to initial credits (default: 10,000) and resets spin counters.",
         requestBody: {
           content: {
             "application/json": {
               schema: {
                 type: "object",
                 properties: {
-                  spins: { type: "integer", default: 10000, minimum: 100, maximum: 50000 }
+                  initial_balance: { type: "number", default: 10000.0, minimum: 100.0 }
                 }
               }
             }
           }
         },
         responses: {
-          "200": { description: "Simulation results" }
+          "200": { description: "Session successfully reset" }
+        }
+      }
+    },
+    "/api/simulate": {
+      post: {
+        tags: ["Game Rules & Math"],
+        summary: "Run GLI-19 Monte Carlo Math Simulation",
+        description: "Executes 100 to 50,000 real-time Monte Carlo spins to verify mathematical RTP (95.0% - 96.0%), hit frequency, standard deviation, payout brackets, and bet performance.",
+        requestBody: {
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  spins: { type: "integer", default: 20000, minimum: 100, maximum: 50000 },
+                  category_filter: { type: "string", default: "ALL" }
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          "200": {
+            description: "Detailed GLI-19 certification metrics",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    status: { type: "string", example: "success" },
+                    data: {
+                      type: "object",
+                      properties: {
+                        total_spins: { type: "integer", example: 20000 },
+                        elapsed_seconds: { type: "number", example: 0.185 },
+                        spins_per_second: { type: "number", example: 108108 },
+                        base_game_rtp: { type: "number", example: 95.12 },
+                        target_rtp: { type: "number", example: 95.0 },
+                        hit_frequency: { type: "number", example: 75.64 },
+                        max_win_multiplier: { type: "number", example: 250.0 },
+                        std_dev: { type: "number", example: 2.14 },
+                        volatility_class: { type: "string", example: "LOW-MEDIUM" },
+                        confidence_interval_95: { type: "array", items: { type: "number" } },
+                        bracket_distribution: { type: "object" },
+                        bet_performance: { type: "object" },
+                        symbols_stats: { type: "object" },
+                        sum_distribution: { type: "object" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
         }
       }
     }

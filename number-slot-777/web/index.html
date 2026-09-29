@@ -942,11 +942,11 @@
             <h3>2. Backend REST API Chống Gian Lận</h3>
             <p><strong>Toàn quyền tính thưởng trên Server:</strong> Client gửi lệnh cược lên Server, Server quay RNG, trừ cược, tính thưởng và trả về kết quả đã kiểm chứng. Client không thể can thiệp số dư.</p>
             <ul>
-              <li><code>POST /api/spin</code>: Đặt cược và thực thi 1 lượt quay</li>
-              <li><code>GET /api/session</code>: Truy vấn số dư, lịch sử 100 phiên, RTP thực tế</li>
+              <li><code>POST /api/spin</code>: Đặt cược Base Spin + Cửa phụ và thực thi 1 lượt quay</li>
+              <li><code>GET /api/session</code>: Truy vấn số dư ví, thống kê và telemetry 100 phiên soi cầu</li>
               <li><code>GET /api/rules</code>: Đồng bộ bảng tỷ lệ thưởng và danh mục cược</li>
               <li><code>POST /api/reset</code>: Nạp lại số dư ví người chơi về 10,000</li>
-              <li><code>POST /api/simulate</code>: Chạy Monte Carlo 100 - 50,000 spins</li>
+              <li><code>POST /api/simulate</code>: Chạy Monte Carlo 100 - 50,000 spins đo RTP thực tế</li>
             </ul>
           </div>
 
@@ -959,6 +959,30 @@
               <li><strong>Unity (C#) / Godot:</strong> Tích hợp vào game 3D / 2D mobile native</li>
               <li><strong>Telegram Mini App (TMA):</strong> Đóng gói chạy trực tiếp bên trong Telegram</li>
               <li><strong>Backend Serverless:</strong> 100% Cloudflare Workers / FastAPI tương thích kép</li>
+            </ul>
+          </div>
+
+          <div class="arch-card">
+            <span class="card-num">04</span>
+            <h3>4. Quản Lý Đặt Cược & Giảm Cược (Bet Manager)</h3>
+            <p><strong>Kiểm soát vốn linh hoạt với 4 cơ chế bảo vệ:</strong> Cung cấp khả năng tinh chỉnh cược tối ưu cho người chơi:</p>
+            <ul>
+              <li><strong>3 Chế Độ Thao Tác:</strong> <code>[➕ Cược Thêm]</code>, <code>[➖ Giảm Cược]</code> (trừ 1 chip), <code>[🗑️ Xóa Cửa]</code> (hủy ngay cửa cược).</li>
+              <li><strong>Chuột Phải (Right-Click):</strong> Giảm nhanh giá trị chip đang chọn mà không cần đổi chế độ.</li>
+              <li><strong>Nút Xóa Nhanh <code>✕</code>:</strong> Tích hợp trực tiếp trên chip cược tại mỗi ô.</li>
+              <li><strong>Ngăn Xếp Hoàn Tác (Undo Stack):</strong> Lưu trữ 30 bước thay đổi cược, hoàn tác bằng phím <code>[↩️ Hoàn tác]</code>.</li>
+              <li><strong>Thao Tác Toàn Bàn:</strong> Nút <code>[⚡ Nhân Đôi x2]</code> và <code>[🗑️ Xóa Tất Cả]</code> tiện lợi.</li>
+            </ul>
+          </div>
+
+          <div class="arch-card">
+            <span class="card-num">05</span>
+            <h3>5. Động Cơ Soi Cầu Baccarat Real-time (Roadmaps)</h3>
+            <p><strong>Hiển thị nhịp cầu chuẩn Casino:</strong> Trực quan hóa dữ liệu thống kê từ API <code>/api/session</code> để người chơi phân tích cầu:</p>
+            <ul>
+              <li><strong>Bảng Hạt Giọt Nước (Bead Plate):</strong> Ma trận 6 hàng dọc x N cột, ghi nhận kết quả theo thứ tự từ trên xuống dưới, hết cột chuyển sang cột tiếp theo bên phải.</li>
+              <li><strong>Đường Cầu Bệt & Cầu Nhảy (Big Road):</strong> Công nghệ Multi-Tier Wrapping chuẩn quốc tế, tự động xuống tầng khi hết bề rộng màn hình, <strong>triệt tiêu hoàn toàn thanh cuộn ngang</strong>.</li>
+              <li><strong>Nhận Dạng Ván Mới Nhất:</strong> Đèn chỉ hướng thời gian <code>[ ◀ CŨ HƠN ] ─── CHIỀU THỜI GIAN ─── [ ⚡ VÁN MỚI NHẤT ▶ ]</code>, hào quang viền vàng xung nhịp và nhãn <code>⚡ MỚI</code> hiển thị trực quan tại hạt/chấm kết quả mới nhất.</li>
             </ul>
           </div>
         </div>
@@ -984,16 +1008,16 @@
                 <tr>
                   <td><span class="http-badge post">POST</span></td>
                   <td><code>/api/spin</code></td>
-                  <td>Quay 5 cuộn, kiểm tra dòng giữa, đối soát cược và cộng tiền</td>
-                  <td><code>{"bets": {"TAI": 20, "SO_7": 10}}</code></td>
-                  <td>Grid 3x5, Stops, Analysis, Payouts, Net Profit</td>
+                  <td>Quay 5 cuộn, kiểm tra dòng giữa (Row 1), đối soát cược Base Spin & Side Bets, cộng thưởng và cập nhật lịch sử soi cầu</td>
+                  <td><code>{"bets": {"BASE_SPIN": 10, "TAI": 50, "SO_7": 10}}</code></td>
+                  <td>Grid 3x5, Stops, Analysis, Payouts, Net Profit, Session (ví & lịch sử)</td>
                 </tr>
                 <tr>
                   <td><span class="http-badge get">GET</span></td>
                   <td><code>/api/session</code></td>
-                  <td>Lấy thông tin ví, số dư hiện tại, tổng cược/thắng, lịch sử 100 phiên</td>
+                  <td>Lấy thông tin ví, số dư hiện tại, tổng cược/thắng, dữ liệu telemetry 100 phiên phục vụ vẽ Bead Road & Big Road</td>
                   <td><em>None</em></td>
-                  <td>Session object, balance, recent_history[100]</td>
+                  <td>Session object, balance, recent_history[100] (center_line, sum, tai_xiu, chan_le, poker_hand...)</td>
                 </tr>
                 <tr>
                   <td><span class="http-badge get">GET</span></td>
@@ -1042,19 +1066,20 @@
             <span class="badge-tag">JSON API</span>
           </div>
           <div class="code-preview">
-<pre><code>// 1. Client gửi lệnh cược lên Server (Ví dụ: Cược Tài 50 + Cược Thùng 20 + Cược Con Số 7 là 10)
+<pre><code>// 1. Client gửi lệnh cược lên Server (Ví dụ: Quay thường 10 + Cược Tài 50 + Cược Thùng 20 + Cược Con Số 7 là 10)
 POST /api/spin HTTP/1.1
 Content-Type: application/json
 
 {
   "bets": {
+    "BASE_SPIN": 10.0,
     "TAI": 50.0,
     "THUNG": 20.0,
     "SO_7": 10.0
   }
 }
 
-// 2. Server phản hồi kết quả kiểm chứng (RNG Stops, Grid 3x5, Analysis hàng giữa & Payouts)
+// 2. Server phản hồi kết quả kiểm chứng (RNG Stops, Grid 3x5, Analysis hàng giữa, Payouts & Session Telemetry)
 HTTP/1.1 200 OK
 Content-Type: application/json
 
@@ -1069,6 +1094,7 @@ Content-Type: application/json
     ],
     "center_row": [7, 7, 7, 8, 9],
     "analysis": {
+      "numbers": [7, 7, 7, 8, 9],
       "sum": 38,
       "is_tai": true,
       "is_xiu": false,
@@ -1076,16 +1102,26 @@ Content-Type: application/json
       "is_chan": false,
       "is_le": true,
       "is_thung": false,
+      "is_thung_chan": false,
+      "is_thung_le": false,
       "is_sanh": false,
+      "is_sanh_chuan": false,
       "best_hand": "SAM_CO",
       "hand_title_vi": "Sám Cô (Bộ 3 số 7)",
       "counts": { "7": 3, "8": 1, "9": 1 }
     },
     "payout": {
-      "total_bet": 80.0,
-      "total_won": 177.5,
-      "net_profit": 97.5,
+      "total_bet": 90.0,
+      "total_won": 199.5,
+      "net_profit": 109.5,
       "winning_items": [
+        {
+          "bet_type": "BASE_SPIN",
+          "wager": 10.0,
+          "multiplier": 2.2,
+          "win_amount": 22.0,
+          "reason_vi": "Ăn tổ hợp Base Game: Sám Cô (x2.2)"
+        },
         {
           "bet_type": "TAI",
           "wager": 50.0,
@@ -1101,6 +1137,14 @@ Content-Type: application/json
           "reason_vi": "Số 7 xuất hiện 3 lần"
         }
       ]
+    },
+    "session": {
+      "session_id": "num-cf-a89f21d",
+      "balance": 10109.5,
+      "total_wagered": 90.0,
+      "total_won": 199.5,
+      "total_spins": 1,
+      "rtp_actual": 221.67
     }
   }
 }</code></pre>
