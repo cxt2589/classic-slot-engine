@@ -895,8 +895,6 @@ async function triggerSpin() {
         // Render nodes
         strip.innerHTML = "";
         strip.style.transition = "none";
-        const initialOffset = -((totalItems - 3) * 110);
-        strip.style.transform = `translateY(${initialOffset}px)`;
 
         stripNums.forEach((num, idx) => {
           const color = NUMBER_COLORS[num] || "#fff";
@@ -912,6 +910,11 @@ async function triggerSpin() {
           cell.innerHTML = `<span class="slot-number-text" style="color:${color}">${num}</span>`;
           strip.appendChild(cell);
         });
+
+        // Dynamically measure actual cell height rendered by CSS for pixel-perfect offset on all screens
+        const cellH = strip.firstElementChild ? strip.firstElementChild.offsetHeight : 110;
+        const initialOffset = -((totalItems - 3) * cellH);
+        strip.style.transform = `translateY(${initialOffset}px)`;
 
         // Compute duration with staggered interval
         const duration = state.isTurbo ? (0.35 + c * 0.12) : (0.80 + c * 0.25);

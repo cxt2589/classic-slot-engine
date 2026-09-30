@@ -15,6 +15,9 @@
   --font-body: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-numbers: 'Orbitron', 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace, sans-serif;
   --font-code: 'Consolas', 'Courier New', monospace;
+  --slot-cell-h: 110px;
+  --reels-pad: 8px;
+  --slot-num-size: 3.2rem;
 }
 
 *, *::before, *::after {
@@ -380,7 +383,7 @@ body.is-telegram-app .brand-text .subtext {
 
 .dim-overlay-top {
   top: 0;
-  height: 118px;
+  height: calc(var(--slot-cell-h) + var(--reels-pad));
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(18, 24, 42, 0.28) 60%, rgba(10, 15, 28, 0.15) 100%);
   backdrop-filter: blur(1.5px);
   -webkit-backdrop-filter: blur(1.5px);
@@ -388,7 +391,7 @@ body.is-telegram-app .brand-text .subtext {
 }
 
 .dim-overlay-bottom {
-  top: 228px;
+  top: calc(var(--slot-cell-h) * 2 + var(--reels-pad));
   bottom: 0;
   background: linear-gradient(0deg, rgba(255, 255, 255, 0.08) 0%, rgba(18, 24, 42, 0.28) 60%, rgba(10, 15, 28, 0.15) 100%);
   backdrop-filter: blur(1.5px);
@@ -398,10 +401,10 @@ body.is-telegram-app .brand-text .subtext {
 
 .center-line-marker {
   position: absolute;
-  top: 118px; /* Aligned with Row 1 */
+  top: calc(var(--slot-cell-h) + var(--reels-pad)); /* Aligned with Row 1 */
   left: 0;
   width: 100%;
-  height: 110px;
+  height: var(--slot-cell-h);
   pointer-events: none;
   z-index: 5;
   border-top: 2px solid var(--gold-primary);
@@ -440,7 +443,7 @@ body.is-telegram-app .brand-text .subtext {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 4px;
-  padding: 8px;
+  padding: var(--reels-pad);
   background: #080910;
 }
 
@@ -448,7 +451,7 @@ body.is-telegram-app .brand-text .subtext {
   background: #10121d;
   border: 1px solid #1f2334;
   border-radius: 6px;
-  height: 330px; /* 3 rows * 110px */
+  height: calc(var(--slot-cell-h) * 3); /* 3 visible rows */
   overflow: hidden;
   position: relative;
 }
@@ -464,9 +467,9 @@ body.is-telegram-app .brand-text .subtext {
 }
 
 .num-cell-slot {
-  height: 110px;
-  min-height: 110px;
-  max-height: 110px;
+  height: var(--slot-cell-h);
+  min-height: var(--slot-cell-h);
+  max-height: var(--slot-cell-h);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -563,7 +566,7 @@ body.is-telegram-app .brand-text .subtext {
 
 .slot-number-text {
   font-family: var(--font-numbers);
-  font-size: 3.2rem;
+  font-size: var(--slot-num-size);
   font-weight: 900;
   line-height: 1;
   text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
@@ -591,7 +594,10 @@ body.is-telegram-app .brand-text .subtext {
   border: 3px solid var(--gold-primary);
   box-shadow: 0 0 50px rgba(255, 215, 0, 0.85);
   border-radius: 14px;
-  padding: 22px 36px;
+  padding: 16px 20px;
+  width: 90%;
+  max-width: 340px;
+  box-sizing: border-box;
   text-align: center;
   z-index: 30;
   transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
@@ -3537,11 +3543,14 @@ body.is-telegram-app .brand-text .subtext {
 .hidden { display: none !important; }
 
 /* ========================================================
-   RESPONSIVE DESIGN
+   RESPONSIVE DESIGN (UNIVERSAL MULTI-SCREEN SYSTEM)
    ======================================================== */
+
+/* TABLETS & DESKTOPS (<= 1080px) */
 @media (max-width: 1080px) {
   .game-layout {
     grid-template-columns: 1fr;
+    gap: 16px;
   }
   .gls-boards-grid {
     grid-template-columns: 1fr;
@@ -3558,36 +3567,12 @@ body.is-telegram-app .brand-text .subtext {
   .vip-numbers-grid {
     grid-template-columns: repeat(5, 1fr);
   }
-  .bet-row.nine-cols {
-    grid-template-columns: repeat(5, 1fr);
-  }
   .rules-cards-grid {
     grid-template-columns: 1fr;
   }
 }
 
-@media (max-width: 640px) {
-  .gls-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  .streak-banner-row {
-    grid-template-columns: 1fr;
-  }
-  .vip-numbers-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-  .bet-row.nine-cols {
-    grid-template-columns: repeat(3, 1fr);
-  }
-  .bet-row.six-cols {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-/* ========================================================
-   DESKTOP STICKY TOP NAVIGATION
-   ======================================================== */
+/* DESKTOP STICKY TOP NAVIGATION (>= 769px) */
 @media (min-width: 769px) {
   .top-nav {
     position: sticky;
@@ -3607,51 +3592,89 @@ body.is-telegram-app .brand-text .subtext {
   }
 }
 
-/* ========================================================
-   MOBILE DOCKED BOTTOM NAVIGATION
-   ======================================================== */
+/* ALL MOBILE & TABLET SCREENS (<= 768px) */
 @media (max-width: 768px) {
+  :root {
+    --slot-cell-h: 96px;
+    --reels-pad: 6px;
+    --slot-num-size: 2.7rem;
+  }
+
+  .app-container {
+    padding: 0 10px;
+  }
+
+  .slot-cabinet {
+    padding: 12px 10px;
+    border-radius: 12px;
+  }
+
+  .betting-board {
+    padding: 14px 10px;
+    border-radius: 12px;
+  }
+
+  /* Compact 1-line top header */
   .top-nav {
     position: relative;
-    padding: 10px 0;
-    gap: 10px;
+    padding: 8px 0;
+    gap: 8px;
     border-bottom: 1px solid rgba(255, 215, 0, 0.15);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: nowrap;
   }
 
   .brand {
-    gap: 8px;
+    gap: 6px;
+    flex-shrink: 0;
   }
 
   .brand-icon {
-    font-size: 1.8rem;
+    font-size: 1.6rem;
   }
 
   .brand-text h1 {
-    font-size: 1.15rem;
-    letter-spacing: 1px;
+    font-size: clamp(0.95rem, 3.8vw, 1.2rem);
+    letter-spacing: 0.5px;
+    white-space: nowrap;
   }
 
   .brand-text .subtext {
-    font-size: 0.65rem;
-    letter-spacing: 0.5px;
+    display: none !important;
   }
 
   .header-actions {
     margin-left: auto;
+    gap: 6px;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
   }
 
+  /* Hide bulky 130px stat-badge in mobile header (Center payline marker already shows it) */
   .stat-badge {
-    padding: 4px 8px;
+    display: none !important;
   }
 
-  .stat-badge .lbl {
-    font-size: 0.58rem;
+  .tg-user-pill {
+    padding: 3px 8px;
+    gap: 6px;
   }
 
-  .stat-badge .val {
-    font-size: 0.68rem;
+  .tg-user-name {
+    max-width: 90px;
+    font-size: 0.72rem;
   }
 
+  .tg-share-btn, .icon-btn {
+    width: 34px;
+    height: 34px;
+    font-size: 1rem;
+  }
+
+  /* Navigation tab wrapper on mobile */
   .nav-tabs-wrapper {
     width: 100%;
     order: 3;
@@ -3688,7 +3711,7 @@ body.is-telegram-app .brand-text .subtext {
     display: none;
   }
 
-  /* When scrolled down on mobile: DOCKED AT SCREEN BOTTOM */
+  /* DOCKED AT SCREEN BOTTOM */
   .nav-tabs.is-docked-bottom {
     position: fixed !important;
     bottom: 0 !important;
@@ -3765,6 +3788,368 @@ body.is-telegram-app .brand-text .subtext {
 
   .app-container.has-docked-nav {
     padding-bottom: max(75px, calc(65px + env(safe-area-inset-bottom, 12px))) !important;
+  }
+
+  .bet-row.nine-cols {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* SMARTPHONES: IPHONE 12/13/14/15, PLUS, PRO MAX (<= 600px) */
+@media (max-width: 600px) {
+  :root {
+    --slot-cell-h: 86px;
+    --reels-pad: 4px;
+    --slot-num-size: 2.3rem;
+  }
+
+  .app-container {
+    padding: 0 6px;
+  }
+
+  .slot-cabinet {
+    padding: 10px 6px;
+    border-radius: 10px;
+  }
+
+  .betting-board {
+    padding: 10px 6px;
+    border-radius: 10px;
+  }
+
+  .cabinet-marquee {
+    padding: 6px 8px;
+    margin-bottom: 8px;
+  }
+
+  .marquee-sub {
+    font-size: 0.62rem;
+    letter-spacing: 0.5px;
+  }
+
+  .res-tag {
+    font-size: 0.78rem;
+    padding: 2px 6px;
+  }
+
+  .res-hand {
+    font-size: 0.75rem;
+  }
+
+  .marker-text {
+    font-size: 0.52rem;
+    letter-spacing: 0.8px;
+    padding: 2px 4px;
+  }
+
+  .marker-arrow {
+    font-size: 0.95rem;
+  }
+
+  /* Perfectly Balanced Symmetrical Action Bar */
+  .cabinet-action-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 5px;
+    margin-top: 10px;
+    width: 100%;
+  }
+
+  .sec-btn {
+    width: 100%;
+    min-width: 0;
+    height: 38px;
+    min-height: 38px;
+    max-height: 38px;
+    padding: 0 2px;
+    font-size: 0.65rem;
+    line-height: 1;
+    white-space: nowrap;
+    border-radius: 6px;
+    flex: none;
+  }
+
+  .spin-btn {
+    grid-column: 1 / -1;
+    width: 100%;
+    height: 50px;
+    min-height: 50px;
+    padding: 0;
+    border-radius: 10px;
+    flex-direction: row;
+    gap: 8px;
+    box-shadow: 0 4px 14px rgba(213, 0, 0, 0.5);
+  }
+
+  .spin-main {
+    font-size: 1.2rem;
+    letter-spacing: 2px;
+  }
+
+  .spin-sub {
+    font-size: 0.62rem;
+    margin-top: 2px;
+  }
+
+  /* Cabinet Meters */
+  .cabinet-meters {
+    gap: 5px;
+    margin-top: 8px;
+  }
+
+  .meter-box {
+    padding: 6px 4px;
+    border-radius: 8px;
+  }
+
+  .meter-lbl {
+    font-size: 0.56rem;
+  }
+
+  .meter-val {
+    font-size: clamp(0.85rem, 3.2vw, 1.05rem);
+  }
+
+  .quick-topup-btn {
+    font-size: 0.54rem;
+    padding: 1px 4px;
+  }
+
+  /* Chip Selector & Action Controls */
+  .chip-selector-strip {
+    padding: 8px 6px;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .chip-select-left {
+    width: 100%;
+    justify-content: space-between;
+    gap: 4px;
+  }
+
+  .chip-lbl {
+    font-size: 0.62rem;
+  }
+
+  .chips-list {
+    flex: 1;
+    justify-content: space-between;
+    gap: 3px;
+  }
+
+  .bet-chip {
+    width: 32px;
+    height: 32px;
+    font-size: 0.7rem;
+    border-width: 1.5px;
+  }
+
+  .chip-mode-group {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+  }
+
+  .bet-modes-list {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+    width: 100%;
+  }
+
+  .bet-mode-btn {
+    width: 100%;
+    padding: 6px 2px;
+    font-size: 0.62rem;
+    text-align: center;
+    white-space: nowrap;
+    border-radius: 6px;
+  }
+
+  .board-quick-actions {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+    width: 100%;
+  }
+
+  .board-action-btn {
+    width: 100%;
+    padding: 6px 2px;
+    font-size: 0.62rem;
+    text-align: center;
+    white-space: nowrap;
+    border-radius: 6px;
+  }
+
+  /* Betting grid rows */
+  .bet-row.nine-cols {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 5px;
+  }
+
+  .bet-row.six-cols {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 5px;
+  }
+
+  .bet-row.three-cols {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 5px;
+  }
+
+  .bet-row.two-cols {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 5px;
+  }
+
+  .bet-cell {
+    min-height: 44px;
+    padding: 6px 4px;
+  }
+
+  .bet-name {
+    font-size: 0.72rem;
+  }
+
+  .bet-odds {
+    font-size: 0.65rem;
+  }
+
+  .streak-banner-row {
+    grid-template-columns: 1fr;
+  }
+
+  .vip-numbers-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* NARROW MOBILE (<= 480px) */
+@media (max-width: 480px) {
+  :root {
+    --slot-cell-h: 80px;
+    --reels-pad: 4px;
+    --slot-num-size: 2.1rem;
+  }
+
+  .reels-container {
+    gap: 3px;
+  }
+
+  .brand-text h1 {
+    font-size: 1.05rem;
+  }
+
+  .tg-user-pill {
+    padding: 2px 6px;
+    gap: 4px;
+  }
+
+  .tg-user-name {
+    max-width: 75px;
+    font-size: 0.68rem;
+  }
+
+  .icon-btn {
+    width: 30px;
+    height: 30px;
+    font-size: 0.9rem;
+  }
+}
+
+/* COMPACT / SMALL MOBILE (IPHONE SE, SMALL ANDROIDS <= 380px) */
+@media (max-width: 380px) {
+  :root {
+    --slot-cell-h: 72px;
+    --reels-pad: 3px;
+    --slot-num-size: 1.85rem;
+  }
+
+  .app-container {
+    padding: 0 4px;
+  }
+
+  .slot-cabinet, .betting-board {
+    padding: 8px 4px;
+    border-radius: 8px;
+  }
+
+  .brand-text h1 {
+    font-size: 0.92rem;
+    letter-spacing: 0;
+  }
+
+  .tg-user-pill {
+    padding: 2px 4px;
+    gap: 2px;
+  }
+
+  .tg-user-name {
+    max-width: 60px;
+    font-size: 0.62rem;
+  }
+
+  .icon-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 0.82rem;
+  }
+
+  .bet-chip {
+    width: 28px;
+    height: 28px;
+    font-size: 0.65rem;
+  }
+
+  .marker-text {
+    font-size: 0.44rem;
+    letter-spacing: 0.2px;
+    padding: 1px 3px;
+  }
+
+  .marker-arrow {
+    font-size: 0.8rem;
+  }
+
+  .sec-btn {
+    height: 34px;
+    min-height: 34px;
+    max-height: 34px;
+    font-size: 0.58rem;
+  }
+
+  .spin-btn {
+    height: 44px;
+    min-height: 44px;
+  }
+
+  .spin-main {
+    font-size: 1.05rem;
+  }
+
+  .spin-sub {
+    font-size: 0.56rem;
+  }
+
+  .res-tag {
+    font-size: 0.68rem;
+    padding: 1px 4px;
+  }
+
+  .res-hand {
+    font-size: 0.68rem;
+  }
+
+  .meter-lbl {
+    font-size: 0.5rem;
+  }
+
+  .meter-val {
+    font-size: 0.82rem;
   }
 }
 
