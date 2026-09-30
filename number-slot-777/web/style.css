@@ -27,6 +27,11 @@ button, input, select, textarea, optgroup {
   font-family: inherit;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior-y: none;
+}
+
 body {
   background-color: var(--bg-dark);
   background-image: 
@@ -35,6 +40,12 @@ body {
   color: #e2e8f0;
   font-family: var(--font-body);
   min-height: 100vh;
+  min-height: var(--tg-viewport-stable-height, 100dvh);
+  overscroll-behavior-y: none;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
 }
 
 .app-container {
@@ -44,6 +55,7 @@ body {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  min-height: var(--tg-viewport-stable-height, 100dvh);
 }
 
 /* TOP NAVIGATION */
@@ -180,6 +192,98 @@ body {
   height: 38px;
   border-radius: 50%;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.icon-btn:hover {
+  background: rgba(255, 255, 255, 0.16);
+  transform: scale(1.05);
+}
+
+/* TELEGRAM USER PILL & BADGES */
+.tg-user-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, rgba(36, 161, 222, 0.18) 0%, rgba(13, 20, 36, 0.85) 100%);
+  border: 1px solid rgba(36, 161, 222, 0.5);
+  padding: 4px 10px;
+  border-radius: 20px;
+  box-shadow: 0 0 14px rgba(36, 161, 222, 0.25);
+}
+
+.tg-user-avatar {
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.tg-user-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.tg-user-name {
+  font-size: 0.76rem;
+  font-weight: 800;
+  color: #fff;
+  max-width: 120px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: 0.2px;
+}
+
+.tg-badge {
+  font-size: 0.54rem;
+  color: #00e5ff;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+}
+
+.tg-share-btn {
+  background: linear-gradient(135deg, #24a1de 0%, #0088cc 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.35) !important;
+  color: #fff !important;
+  box-shadow: 0 0 12px rgba(36, 161, 222, 0.45) !important;
+}
+
+.meter-lbl-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  gap: 6px;
+}
+
+.quick-topup-btn {
+  background: rgba(0, 230, 118, 0.16);
+  border: 1px solid rgba(0, 230, 118, 0.45);
+  color: #00e676;
+  font-size: 0.62rem;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  line-height: 1.2;
+}
+
+.quick-topup-btn:hover {
+  background: #00e676;
+  color: #000;
+  box-shadow: 0 0 10px rgba(0, 230, 118, 0.6);
+}
+
+/* Telegram Mini App Specific Container Tweaks */
+body.is-telegram-app .top-nav {
+  padding-top: max(8px, env(safe-area-inset-top, 8px));
+}
+
+body.is-telegram-app .brand-text .subtext {
+  display: none;
 }
 
 /* TAB CONTENTS */

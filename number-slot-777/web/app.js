@@ -123,11 +123,106 @@ const soundEngine = {
   }
 };
 
+// Telegram WebApp Engine & Haptic Controller
+const telegramEngine = {
+  tg: window.Telegram?.WebApp || null,
+
+  init() {
+    if (!this.tg) {
+      console.log("[TelegramEngine] Running in standard Web Browser");
+      return;
+    }
+    console.log("[TelegramEngine] Telegram WebApp detected", this.tg);
+    try {
+      this.tg.ready();
+      this.tg.expand();
+      if (typeof this.tg.enableClosingConfirmation === "function") {
+        this.tg.enableClosingConfirmation();
+      }
+      if (typeof this.tg.setHeaderColor === "function") {
+        this.tg.setHeaderColor("#07080d");
+      }
+      if (typeof this.tg.setBackgroundColor === "function") {
+        this.tg.setBackgroundColor("#07080d");
+      }
+      document.body.classList.add("is-telegram-app");
+
+      // Telegram User profile display
+      const user = this.tg.initDataUnsafe?.user;
+      if (user) {
+        if (dom.tgUserPill) dom.tgUserPill.style.display = "flex";
+        if (dom.tgUserName) {
+          const displayName = user.username ? `@${user.username}` : (user.first_name || "Thành viên");
+          dom.tgUserName.textContent = displayName;
+        }
+        if (dom.tgUserAvatar) {
+          dom.tgUserAvatar.textContent = user.photo_url ? "⭐️" : "👤";
+        }
+      }
+
+      if (dom.tgShareBtn) {
+        dom.tgShareBtn.style.display = "inline-flex";
+        dom.tgShareBtn.addEventListener("click", () => {
+          this.haptic("light");
+          const shareText = encodeURIComponent("🎰 Chơi Lucky Numbers 777 nhận ngay 10,000 Xu cùng mình nhé! Trúng thưởng x5000 cực đã!");
+          const shareUrl = `https://t.me/share/url?url=https://t.me/relicspin_bot&text=${shareText}`;
+          if (typeof this.tg.openTelegramLink === "function") {
+            this.tg.openTelegramLink(shareUrl);
+          } else {
+            window.open(shareUrl, "_blank");
+          }
+        });
+      }
+
+      // Telegram BackButton integration
+      if (this.tg.BackButton) {
+        this.tg.BackButton.onClick(() => {
+          this.haptic("light");
+          switchTabTo("game");
+        });
+      }
+    } catch (e) {
+      console.warn("[TelegramEngine] Init warning:", e);
+    }
+  },
+
+  updateBackButton(activeTab) {
+    if (!this.tg?.BackButton) return;
+    try {
+      if (activeTab === "game") {
+        this.tg.BackButton.hide();
+      } else {
+        this.tg.BackButton.show();
+      }
+    } catch (e) {}
+  },
+
+  haptic(type = "light") {
+    if (!this.tg?.HapticFeedback) return;
+    try {
+      if (["light", "medium", "heavy", "rigid", "soft"].includes(type)) {
+        this.tg.HapticFeedback.impactOccurred(type);
+      } else if (["success", "warning", "error"].includes(type)) {
+        this.tg.HapticFeedback.notificationOccurred(type);
+      } else if (type === "selection") {
+        this.tg.HapticFeedback.selectionChanged();
+      }
+    } catch (e) {}
+  }
+};
+
 const dom = {
   // Navigation
   tabBtns: document.querySelectorAll(".tab-btn"),
   tabContents: document.querySelectorAll(".tab-content"),
   soundToggle: document.getElementById("soundToggle"),
+
+  // Telegram Integration
+  tgUserPill: document.getElementById("tgUserPill"),
+  tgUserAvatar: document.getElementById("tgUserAvatar"),
+  tgUserName: document.getElementById("tgUserName"),
+  tgShareBtn: document.getElementById("tgShareBtn"),
+  btnQuickTopUp: document.getElementById("btnQuickTopUp"),
 
   // Marquee
   resSum: document.getElementById("resSum"),
@@ -263,6 +358,7 @@ const NUMBER_COLORS = {
 };
 
 async function init() {
+  telegramEngine.init();
   setupNavigation();
   setupBettingBoard();
   setupActions();
@@ -271,25 +367,30 @@ async function init() {
   renderInitialReels();
 }
 
+function switchTabTo(tabKey) {
+  dom.tabBtns.forEach(b => {
+    b.classList.toggle("active", b.dataset.tab === tabKey);
+  });
+  dom.tabContents.forEach(c => {
+    c.classList.toggle("active", c.id === `tab-${tabKey}`);
+  });
+  window.scrollTo({ top: 0, behavior: "smooth" });
+  telegramEngine.haptic("selection");
+  telegramEngine.updateBackButton(tabKey);
+
+  if (tabKey === "soikeo") {
+    setTimeout(renderSoiKeo, 50);
+  } else if (tabKey === "simulator") {
+    if (!state.lastSimData) {
+      setTimeout(runSimulation, 50);
+    }
+  }
+}
+
 function setupNavigation() {
   dom.tabBtns.forEach(btn => {
     btn.addEventListener("click", () => {
-      dom.tabBtns.forEach(b => b.classList.remove("active"));
-      dom.tabContents.forEach(c => c.classList.remove("active"));
-      btn.classList.add("active");
-      const target = `tab-${btn.dataset.tab}`;
-      document.getElementById(target)?.classList.add("active");
-
-      // Smooth scroll to top when switching tabs
-      window.scrollTo({ top: 0, behavior: "smooth" });
-
-      if (btn.dataset.tab === "soikeo") {
-        setTimeout(renderSoiKeo, 50);
-      } else if (btn.dataset.tab === "simulator") {
-        if (!state.lastSimData) {
-          setTimeout(runSimulation, 50);
-        }
-      }
+      switchTabTo(btn.dataset.tab);
     });
   });
 
@@ -298,6 +399,7 @@ function setupNavigation() {
     state.soundEnabled = !state.soundEnabled;
     dom.soundToggle.textContent = state.soundEnabled ? "🔊" : "🔇";
     dom.soundToggle.style.opacity = state.soundEnabled ? "1" : "0.5";
+    telegramEngine.haptic("light");
   });
 
   setupStickyAndDockedNavigation();
@@ -415,6 +517,16 @@ async function loadSession() {
     if (json.status === "success") {
       state.session = json.data;
       state.historyData = json.data.history || json.recent_history || [];
+
+      // Restore user-specific balance if in Telegram
+      const tgUserId = telegramEngine.tg?.initDataUnsafe?.user?.id;
+      if (tgUserId) {
+        const saved = localStorage.getItem(`tg_balance_${tgUserId}`);
+        if (saved !== null && !isNaN(parseFloat(saved))) {
+          state.session.balance = parseFloat(saved);
+        }
+      }
+
       updateMeters();
       renderSoiKeo();
     }
@@ -431,6 +543,12 @@ function updateMeters(lastWin = 0) {
   if (lastWin > 0) {
     dom.meterWin.textContent = lastWin.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
+
+  // Persist balance for Telegram user
+  const tgUserId = telegramEngine.tg?.initDataUnsafe?.user?.id;
+  if (tgUserId && state.session?.balance !== undefined) {
+    localStorage.setItem(`tg_balance_${tgUserId}`, state.session.balance);
+  }
 }
 
 function pushBetHistory() {
@@ -444,6 +562,7 @@ function setupBettingBoard() {
     chip.addEventListener("click", () => {
       soundEngine.init();
       soundEngine.playChip();
+      telegramEngine.haptic("selection");
       dom.betChips.forEach(c => c.classList.remove("active"));
       chip.classList.add("active");
       state.selectedChip = parseInt(chip.dataset.val);
@@ -456,6 +575,7 @@ function setupBettingBoard() {
     btn.addEventListener("click", () => {
       soundEngine.init();
       soundEngine.playChip();
+      telegramEngine.haptic("selection");
       modeBtns.forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
       state.betInteractionMode = btn.dataset.mode || "add";
@@ -468,6 +588,7 @@ function setupBettingBoard() {
       if (state.betHistoryStack.length > 0) {
         soundEngine.init();
         soundEngine.playChip();
+        telegramEngine.haptic("medium");
         state.placedBets = JSON.parse(state.betHistoryStack.pop());
         renderPlacedChips();
         updateMeters();
@@ -481,6 +602,7 @@ function setupBettingBoard() {
         pushBetHistory();
         soundEngine.init();
         soundEngine.playChip();
+        telegramEngine.haptic("medium");
         state.placedBets = {};
         renderPlacedChips();
         updateMeters();
@@ -494,6 +616,7 @@ function setupBettingBoard() {
         pushBetHistory();
         soundEngine.init();
         soundEngine.playChip();
+        telegramEngine.haptic("medium");
         for (const k in state.placedBets) {
           state.placedBets[k] *= 2;
         }
@@ -514,6 +637,7 @@ function setupBettingBoard() {
         pushBetHistory();
         soundEngine.init();
         soundEngine.playChip();
+        telegramEngine.haptic("medium");
         delete state.placedBets[betKey];
         renderPlacedChips();
         updateMeters();
@@ -523,6 +647,7 @@ function setupBettingBoard() {
       pushBetHistory();
       soundEngine.init();
       soundEngine.playChip();
+      telegramEngine.haptic("light");
 
       if (state.betInteractionMode === "add") {
         state.placedBets[betKey] = (state.placedBets[betKey] || 0) + state.selectedChip;
@@ -596,6 +721,7 @@ function setupActions() {
       pushBetHistory();
       soundEngine.init();
       soundEngine.playChip();
+      telegramEngine.haptic("medium");
       state.placedBets = {};
       renderPlacedChips();
       updateMeters();
@@ -607,6 +733,7 @@ function setupActions() {
       pushBetHistory();
       soundEngine.init();
       soundEngine.playChip();
+      telegramEngine.haptic("medium");
       for (const k in state.placedBets) {
         state.placedBets[k] *= 2;
       }
@@ -617,12 +744,14 @@ function setupActions() {
 
   dom.btnTurbo.addEventListener("click", () => {
     state.isTurbo = !state.isTurbo;
+    telegramEngine.haptic("medium");
     dom.btnTurbo.classList.toggle("active", state.isTurbo);
     dom.btnTurbo.textContent = state.isTurbo ? "⚡ TURBO: BẬT" : "⚡ TURBO: TẮT";
   });
 
   dom.btnAuto.addEventListener("click", () => {
     state.isAutoSpin = !state.isAutoSpin;
+    telegramEngine.haptic("medium");
     dom.btnAuto.classList.toggle("active", state.isAutoSpin);
     dom.btnAuto.textContent = state.isAutoSpin ? "🔄 AUTO (ON)" : "🔄 AUTO (OFF)";
     if (state.isAutoSpin && !state.isSpinning) triggerSpin();
@@ -630,11 +759,25 @@ function setupActions() {
 
   dom.btnSpin.addEventListener("click", () => {
     soundEngine.init();
+    telegramEngine.haptic("heavy");
     if (!state.isSpinning) triggerSpin();
   });
 
+  if (dom.btnQuickTopUp) {
+    dom.btnQuickTopUp.addEventListener("click", () => {
+      soundEngine.init();
+      soundEngine.playWin();
+      telegramEngine.haptic("success");
+      if (state.session) {
+        state.session.balance += 10000.0;
+        updateMeters();
+      }
+    });
+  }
+
   dom.btnResetBalance.addEventListener("click", async () => {
     try {
+      telegramEngine.haptic("medium");
       const res = await fetch("/api/reset", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -673,6 +816,7 @@ async function triggerSpin() {
 
   const totalBet = Object.values(state.placedBets).reduce((acc, v) => acc + v, 0);
   if (state.session && state.session.balance < totalBet) {
+    telegramEngine.haptic("error");
     alert("Số dư của bạn không đủ cho tổng cược!");
     state.isAutoSpin = false;
     dom.btnAuto.classList.remove("active");
@@ -782,6 +926,7 @@ async function triggerSpin() {
         setTimeout(() => {
           strip.classList.remove("strip-rolling");
           soundEngine.playReelStop();
+          telegramEngine.haptic("rigid");
           renderReelStatic(c, targetNums);
           resolve();
         }, duration * 1000);
@@ -845,6 +990,7 @@ function handleResults(center_row, analysis, payout) {
 
     const totalBet = payout.total_bet || 10;
     if (totalWon >= totalBet * 5 && totalWon > 0 && dom.winBanner) {
+      telegramEngine.haptic("warning");
       dom.winBannerTitle.textContent = totalWon >= totalBet * 20 ? "JACKPOT / EPIC WIN!" : "BIG WIN!";
       dom.winBannerAmount.textContent = `+${totalWon.toFixed(2)}`;
       dom.winBannerDesc.textContent = `${analysis.hand_title_vi} • Lãi ròng: +${payout.net_profit.toFixed(2)}`;
@@ -860,6 +1006,7 @@ function handleResults(center_row, analysis, payout) {
         }
       }, 3000);
     } else if (totalWon > 0) {
+      telegramEngine.haptic("success");
       soundEngine.playWin();
     }
   }

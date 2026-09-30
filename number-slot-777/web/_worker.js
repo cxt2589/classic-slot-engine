@@ -539,6 +539,64 @@ export default {
       });
     }
 
+    // Telegram Bot Webhook endpoint
+    if (url.pathname === "/api/telegram-webhook" && request.method === "POST") {
+      try {
+        const update = await request.json();
+        if (update && update.message) {
+          const msg = update.message;
+          const chatId = msg.chat?.id;
+          const firstName = msg.from?.first_name || "Bạn";
+          const botToken = "8844960516:AAG8gcsv_WA9ORpk6xSfwB6qFrFJ2utWKDo";
+          const appUrl = "https://lucky-numbers-777.pages.dev";
+
+          const replyText = `🎰 *CHÀO MỪNG ${firstName.toUpperCase()} ĐẾN VỚI LUCKY NUMBERS 777!* 🎰\n\n` +
+            `Trải nghiệm Game Slot 5x3 Số Học độc quyền ngay trên Telegram:\n\n` +
+            `✨ *Dòng Thưởng:* Chỉ tính hàng giữa (Center Payline) kịch tính.\n` +
+            `🎯 *Cược Phong Phú:* Số đơn 1-9 (x8), Tài/Xỉu (x2.05), Chẵn/Lẻ (x1.92), Sảnh Rồng (x5000), Tứ Quý...\n` +
+            `📳 *Haptic Engine:* Rung phản hồi sống động theo từng nhịp quay.\n` +
+            `📊 *VIP Roadmaps:* Bảng Soi Kèo Bead Plate, Big Road & Thống kê chi tiết.\n\n` +
+            `💰 *Tặng ngay 10,000 Xu trải nghiệm miễn phí!*\n\n` +
+            `👇 *Bấm nút bên dưới để mở Mini App và chơi ngay:*`;
+
+          const keyboard = [
+            [
+              {
+                text: "🎰 CHƠI NGAY TRÊN TELEGRAM 🚀",
+                web_app: { url: appUrl }
+              }
+            ],
+            [
+              {
+                text: "📜 Luật Chơi & Trả Thưởng",
+                web_app: { url: `${appUrl}#rules` }
+              },
+              {
+                text: "📈 Bảng Soi Kèo",
+                web_app: { url: `${appUrl}#soikeo` }
+              }
+            ]
+          ];
+
+          await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              chat_id: chatId,
+              text: replyText,
+              parse_mode: "Markdown",
+              reply_markup: {
+                inline_keyboard: keyboard
+              }
+            })
+          });
+        }
+      } catch (err) {
+        console.error("Webhook error:", err);
+      }
+      return new Response("OK", { status: 200 });
+    }
+
     if (url.pathname === "/api/rules" && request.method === "GET") {
       return jsonRes({
         status: "success",

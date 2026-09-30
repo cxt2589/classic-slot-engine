@@ -2,8 +2,10 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="format-detection" content="telephone=no">
   <title>Lucky Numbers 777 - Classic 5x3 Number Slot</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <link rel="stylesheet" href="/static/style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -52,6 +54,16 @@
       </div>
 
       <div class="header-actions">
+        <!-- Telegram Mini App User Badge -->
+        <div id="tgUserPill" class="tg-user-pill" style="display:none" title="Tài khoản Telegram">
+          <div class="tg-user-avatar" id="tgUserAvatar">👤</div>
+          <div class="tg-user-info">
+            <span class="tg-user-name" id="tgUserName">Telegram User</span>
+            <span class="tg-badge">TELEGRAM APP</span>
+          </div>
+        </div>
+        <button id="tgShareBtn" class="icon-btn tg-share-btn" title="Chia sẻ Telegram cho bạn bè" style="display:none">🚀</button>
+
         <div class="stat-badge">
           <span class="lbl">Dòng Thưởng</span>
           <span class="val glow-gold">CHỈ HÀNG GIỮA (ROW 1)</span>
@@ -109,8 +121,11 @@
 
           <!-- Meters (Balance, Total Bet, Win) -->
           <div class="cabinet-meters">
-            <div class="meter-box">
-              <span class="meter-lbl">SỐ DƯ (BALANCE)</span>
+            <div class="meter-box meter-balance-box">
+              <div class="meter-lbl-row">
+                <span class="meter-lbl">SỐ DƯ (BALANCE)</span>
+                <button id="btnQuickTopUp" class="quick-topup-btn" title="Nạp lại 10,000 Xu miễn phí">💰 +10K XU</button>
+              </div>
               <div class="meter-val" id="meterBalance">10,000.00</div>
             </div>
             <div class="meter-box">
