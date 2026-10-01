@@ -5308,42 +5308,39 @@ body.is-telegram-app .brand-text .subtext {
   color: #ff5252;
 }
 
-/* NUMBER CELLS LOCK PILL & AURA */
+/* NUMBER CELLS LOCK PILL & AURA - ONLY SHOWN ON SELECTED/LOCKED NUMBERS */
 .num-lock-pill {
-  display: none;
+  display: none !important;
   position: absolute;
   top: 3px;
   left: 4px;
-  background: rgba(255, 215, 0, 0.2);
-  border: 1px solid rgba(255, 215, 0, 0.5);
-  color: #ffd700;
+  background: linear-gradient(135deg, #ffd700 0%, #ff8f00 100%);
+  color: #000;
+  border: 1px solid #ffffff;
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.85);
   font-size: 0.52rem;
   font-weight: 900;
-  padding: 1px 4px;
-  border-radius: 3px;
-  line-height: 1;
+  padding: 1px 5px;
+  border-radius: 4px;
+  line-height: 1.1;
   letter-spacing: 0.3px;
   pointer-events: auto;
   cursor: pointer;
   z-index: 4;
-}
-
-.fortune-mode-active .num-lock-pill {
-  display: block;
+  white-space: nowrap;
 }
 
 .bet-cell.num-cell.is-locked-fortune {
   border-color: #ffd700 !important;
-  background: linear-gradient(145deg, rgba(255, 215, 0, 0.18) 0%, rgba(255, 145, 0, 0.08) 100%) !important;
-  box-shadow: 0 0 16px rgba(255, 215, 0, 0.45), inset 0 0 12px rgba(255, 215, 0, 0.2) !important;
+  background: linear-gradient(145deg, rgba(255, 215, 0, 0.22) 0%, rgba(255, 145, 0, 0.1) 100%) !important;
+  box-shadow: 0 0 16px rgba(255, 215, 0, 0.5), inset 0 0 12px rgba(255, 215, 0, 0.25) !important;
   transform: translateY(-2px);
 }
 
 .bet-cell.num-cell.is-locked-fortune .num-lock-pill {
-  background: linear-gradient(135deg, #ffd700 0%, #ff8f00 100%);
-  color: #000;
-  border-color: #fff;
-  box-shadow: 0 0 6px #ffd700;
+  display: inline-flex !important;
+  align-items: center;
+  gap: 2px;
 }
 
 

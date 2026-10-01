@@ -2604,9 +2604,14 @@ function renderFortuneLockState() {
       cell.classList.toggle("is-locked-fortune", isLocked);
     }
     if (pill) {
-      pill.style.display = isFortune ? "inline-block" : "none";
-      pill.textContent = isLocked ? "⚡ ĐÃ KHÓA" : "+ KHÓA";
-      pill.title = isLocked ? `Bấm để hủy khóa Số ${num}` : `Bấm để khóa Số ${num}`;
+      if (isFortune && isLocked) {
+        pill.style.display = "inline-flex";
+        pill.textContent = "⚡ ĐÃ CHỌN";
+        pill.title = `Bấm để hủy chọn Số ${num}`;
+      } else {
+        pill.style.display = "none";
+        pill.textContent = "";
+      }
     }
   }
 }
