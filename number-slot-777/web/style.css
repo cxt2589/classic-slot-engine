@@ -5952,26 +5952,28 @@ body.chat-drawer-open .nav-tabs.is-docked-bottom {
   transform: scale(0.92);
 }
 
-/* Fullscreen Floating Emojis Layer (Zero size container so it never intercepts mouse wheel) */
+/* Fullscreen Floating Emojis Layer (Always floats above chat drawer and modals) */
 .floating-emojis-layer {
   position: fixed;
   bottom: 0;
   left: 0;
-  width: 0;
+  width: 100%;
   height: 0;
   overflow: visible;
   pointer-events: none;
-  z-index: 999999;
+  z-index: 10000010 !important;
 }
 
 .floating-emoji-item {
   position: absolute;
-  bottom: 120px;
-  font-size: clamp(2rem, 5.5vw, 2.9rem);
+  bottom: 90px;
+  font-size: clamp(2.2rem, 6vw, 3.2rem);
   line-height: 1;
-  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.7));
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.75));
   animation: floatEmojiUp 2.3s cubic-bezier(0.22, 1, 0.36, 1) forwards;
   pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 @keyframes floatEmojiUp {

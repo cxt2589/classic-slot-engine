@@ -44,6 +44,7 @@ const state = {
   liveUserBetPlaced: false,
   lastShareSlip: null,
   chatMessagesCache: [],
+  seenReactionIds: new Set(),
   activeRedPacketIdsSpawned: new Set(),
   lastSeenJackpotId: null
 };
@@ -3133,6 +3134,7 @@ function startLivePolling() {
   if (state.livePollInterval) clearInterval(state.livePollInterval);
   if (state.liveCountdownInterval) clearInterval(state.liveCountdownInterval);
 
+  syncLiveRoomState();
   state.livePollInterval = setInterval(syncLiveRoomState, 1500);
   state.liveCountdownInterval = setInterval(tickLiveCountdown, 1000);
 }
@@ -3147,6 +3149,7 @@ function stopLivePolling() {
     state.liveCountdownInterval = null;
   }
   // Vẫn duy trì polling nhẹ (2.5s) cho chế độ CÁ NHÂN để người chơi luôn nhận Mưa Lì Xì và thông báo toàn server!
+  syncLiveRoomState();
   state.livePollInterval = setInterval(syncLiveRoomState, 2500);
 }
 
@@ -3237,6 +3240,25 @@ async function syncLiveRoomState() {
         }
         updateMeters();
       }
+    }
+
+    // Đồng bộ và hiển thị tin nhắn phòng chat
+    if (data.recent_messages && Array.isArray(data.recent_messages)) {
+      renderChatMessages(data.recent_messages);
+    }
+
+    // Đồng bộ và kích hoạt hiệu ứng thả cảm xúc từ mọi người chơi trong phòng
+    if (data.recent_reactions && Array.isArray(data.recent_reactions)) {
+      const now = Date.now();
+      data.recent_reactions.forEach(rx => {
+        if (!state.seenReactionIds.has(rx.id)) {
+          state.seenReactionIds.add(rx.id);
+          // Chỉ spawn nếu cảm xúc mới xuất hiện trong vòng 4.5s gần nhất để tránh spam dồn ứ
+          if ((now - (rx.time || 0)) < 4500) {
+            spawnFloatingEmoji(rx.emoji);
+          }
+        }
+      });
     }
 
   } catch (err) {
@@ -3502,6 +3524,25 @@ async function placeLiveBetAction() {
 
 async function sendChatMessage(text) {
   try {
+    telegramEngine.haptic("medium");
+    soundEngine.init();
+    soundEngine.playChip();
+
+    // Optimistic UI: hiển thị ngay tin nhắn của người dùng trong khung chat không cần chờ mạng
+    const tempMsg = {
+      id: "local-" + Date.now() + "-" + Math.random().toString(36).substr(2, 4),
+      user_id: getLiveUserId(),
+      username: getLiveUserName(),
+      avatar: telegramEngine.tg?.initDataUnsafe?.user?.photo_url ? "⭐️" : "👤",
+      text: text,
+      type: "chat",
+      time: Date.now()
+    };
+    if (state.chatMessagesCache) {
+      state.chatMessagesCache.push(tempMsg);
+      renderChatMessages(state.chatMessagesCache);
+    }
+
     const res = await fetch("/api/live/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -3516,7 +3557,9 @@ async function sendChatMessage(text) {
     if (json.status === "success") {
       syncLiveRoomState();
     }
-  } catch (e) {}
+  } catch (e) {
+    console.error("Send chat error:", e);
+  }
 }
 
 async function sendReaction(emoji, originX) {
@@ -3525,12 +3568,18 @@ async function sendReaction(emoji, originX) {
     soundEngine.init();
     soundEngine.playChip();
     telegramEngine.haptic("light");
-    await fetch("/api/live/reaction", {
+    const res = await fetch("/api/live/reaction", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ emoji })
     });
-  } catch (e) {}
+    const json = await res.json();
+    if (json.status === "success" && json.data) {
+      state.seenReactionIds.add(json.data.id);
+    }
+  } catch (e) {
+    console.error("Send reaction error:", e);
+  }
 }
 
 function spawnFloatingEmoji(emoji, originX) {
@@ -3588,17 +3637,28 @@ function shareWinSlipAction() {
   });
 }
 
+let lastRenderedChatMsgId = "";
+let lastRenderedChatCount = 0;
+
 function renderChatMessages(messages) {
   if (!dom.chatMessagesContainer || !messages) return;
+  state.chatMessagesCache = messages;
   // Sắp xếp tin nhắn: tin cũ ở trên, tin mới nhất ở dưới đáy
-  const sorted = [...messages].sort((a, b) => (a.time || 0) - (b.time || 0));
+  const sorted = [...messages].sort((a, b) => (Number(a.time) || 0) - (Number(b.time) || 0));
+  const latestId = sorted.length > 0 ? sorted[sorted.length - 1].id : "";
+  if (sorted.length === lastRenderedChatCount && latestId === lastRenderedChatMsgId) {
+    return;
+  }
+  lastRenderedChatCount = sorted.length;
+  lastRenderedChatMsgId = latestId;
 
   dom.chatMessagesContainer.innerHTML = sorted.map(msg => {
     const isSys = msg.type === "system";
     const isWinShare = msg.type === "win_share" || !!msg.slip;
     const isRedPacket = msg.type === "red_packet" || !!msg.packet_id;
     const isClaimNotice = msg.type === "red_packet_claim" || !!msg.claim_info;
-    const timeStr = msg.time ? new Date(msg.time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "";
+    const timeNum = Number(msg.time) || 0;
+    const timeStr = timeNum > 1000000000 ? new Date(timeNum).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "Vừa xong";
     let slipHtml = "";
     if (msg.slip) {
       slipHtml = `

@@ -169,6 +169,14 @@ async function getKVChatMessages(env) {
       }
     } catch (e) {}
   }
+  if (!liveRoomState.chatMessages || liveRoomState.chatMessages.length === 0 || (liveRoomState.chatMessages[0].time && liveRoomState.chatMessages[0].time < 1000000000)) {
+    const now = Date.now();
+    liveRoomState.chatMessages = [
+      { id: "msg-1", user_id: "sys", username: "HỆ THỐNG", avatar: "🤖", text: "Chào mừng các cao thủ đến với Phòng Trực Tiếp Lucky Numbers 777! Phiên đồng bộ 30s 🎉", type: "system", time: now - 45000 },
+      { id: "msg-2", user_id: "bot-1", username: "Dragon99", avatar: "🐲", text: "Cầu đang bệt Tài anh em ơi, theo nhanh kẻo lỡ! 🎯", type: "chat", time: now - 30000 },
+      { id: "msg-3", user_id: "bot-2", username: "PhátTài88", avatar: "💰", text: "Vừa húp Tứ Quý 8, phòng hôm nay đỏ thật sự!", type: "chat", time: now - 15000 }
+    ];
+  }
   return liveRoomState.chatMessages;
 }
 
