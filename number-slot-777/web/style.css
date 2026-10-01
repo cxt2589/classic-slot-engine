@@ -6502,9 +6502,7 @@ body.is-telegram-app .brand-text .subtext {
 .red-packet-rain-layer.active {
   pointer-events: auto;
   opacity: 1;
-  background: rgba(8, 12, 24, 0.65);
-  backdrop-filter: blur(2.5px);
-  -webkit-backdrop-filter: blur(2.5px);
+  background: rgba(6, 10, 22, 0.72);
 }
 
 /* Banner hướng dẫn lễ hội trên đỉnh */
@@ -6596,16 +6594,35 @@ body.is-telegram-app .brand-text .subtext {
   padding: 4px 10px;
 }
 
-/* Bao lì xì rơi: Kích thước lớn, viền vàng kim, có hitbox mở rộng cực nhạy */
-.falling-red-packet {
+/* KIẾN TRÚC 2 LỚP: .falling-track (rơi GPU 60fps) + .red-packet-body (lắc lư & nổ mượt mà không nhấp nháy) */
+.falling-track {
   position: absolute;
-  top: -80px;
+  top: -85px;
   width: 60px;
   height: 76px;
+  pointer-events: none;
+  will-change: transform;
+  animation: fallTrackLinear linear forwards;
+  z-index: 5;
+}
+
+@keyframes fallTrackLinear {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(0, 110vh, 0);
+  }
+}
+
+.red-packet-body {
+  position: relative;
+  width: 100%;
+  height: 100%;
   background: linear-gradient(145deg, #ff1744 0%, #b71c1c 100%);
   border: 2px solid #ffd700;
   border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(220, 38, 38, 0.65), 0 0 14px rgba(255, 215, 0, 0.6);
+  box-shadow: 0 6px 18px rgba(220, 38, 38, 0.5), 0 0 10px rgba(255, 215, 0, 0.5);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -6615,13 +6632,13 @@ body.is-telegram-app .brand-text .subtext {
   user-select: none;
   -webkit-user-select: none;
   touch-action: manipulation;
-  transition: transform 0.12s ease-out, opacity 0.2s ease;
-  animation: fallDownSway linear forwards;
-  z-index: 5;
+  animation: packetSway 1.8s ease-in-out infinite alternate;
+  will-change: transform, opacity;
+  transition: transform 0.15s ease, opacity 0.25s ease;
 }
 
-/* Mở rộng vùng cảm ứng thêm 25px mỗi hướng (Hitbox thực tế ~110px x 126px) */
-.falling-red-packet::before {
+/* Hitbox mở rộng 25px mọi hướng */
+.red-packet-body::before {
   content: "";
   position: absolute;
   top: -25px;
@@ -6630,58 +6647,47 @@ body.is-telegram-app .brand-text .subtext {
   right: -25px;
   border-radius: 20px;
   cursor: pointer;
-  z-index: 6;
 }
 
-.falling-red-packet:hover {
-  filter: brightness(1.2) drop-shadow(0 0 16px rgba(255, 215, 0, 0.85));
+.red-packet-body:hover {
+  filter: brightness(1.2) drop-shadow(0 0 14px rgba(255, 215, 0, 0.85));
 }
 
-.falling-red-packet:active {
-  filter: brightness(1.35) drop-shadow(0 0 24px #ffd700);
+.red-packet-body:active {
+  filter: brightness(1.35) drop-shadow(0 0 20px #ffd700);
 }
 
-.falling-red-packet.claimed {
+@keyframes packetSway {
+  0% {
+    transform: rotate(-7deg);
+  }
+  100% {
+    transform: rotate(7deg);
+  }
+}
+
+/* Khi người chơi chạm vào bao lì xì: NỔ TUNG & BIẾN MẤT TẠI CHỖ KHÔNG HỀ NHẤP NHÁY */
+.red-packet-body.claimed {
   animation: none !important;
   pointer-events: none !important;
+  transform: scale(1.45) !important;
   opacity: 0 !important;
-  filter: brightness(1.6) drop-shadow(0 0 28px #ffd700) !important;
-  transform: scale(1.6) !important;
-  transition: transform 0.35s ease-out, opacity 0.35s ease-out !important;
+  filter: brightness(2) drop-shadow(0 0 25px #ffd700) !important;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease-out !important;
 }
 
-.falling-red-packet .rp-icon {
+.red-packet-body .rp-icon {
   font-size: 1.8rem;
-  filter: drop-shadow(0 2px 5px rgba(0,0,0,0.45));
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
 }
 
-.falling-red-packet .rp-text {
+.red-packet-body .rp-text {
   font-size: 0.62rem;
   color: #ffd700;
   font-weight: 900;
   font-family: var(--font-display);
   letter-spacing: 0.8px;
   text-shadow: 0 1px 2px rgba(0,0,0,0.7);
-}
-
-@keyframes fallDownSway {
-  0% {
-    transform: translateY(0) rotate(0deg);
-    opacity: 1;
-  }
-  25% {
-    transform: translateY(28vh) rotate(10deg);
-  }
-  50% {
-    transform: translateY(55vh) rotate(-10deg);
-  }
-  75% {
-    transform: translateY(82vh) rotate(8deg);
-  }
-  100% {
-    transform: translateY(105vh) rotate(-6deg);
-    opacity: 0.8;
-  }
 }
 
 /* Nút nhận lì xì trực tiếp trong khung Chat */

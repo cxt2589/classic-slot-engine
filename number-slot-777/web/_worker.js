@@ -1308,6 +1308,28 @@ function getLiveRoundInfo() {
       const freshReactions = reactions.filter(r => (now - r.time) < 15000);
       const activePackets = redPackets.filter(p => (now - p.created_at) < 35000);
 
+      // Quét tự động hoàn tiền lộc chưa có người nhận cho người phát (sau 35s)
+      let userLastRefund = null;
+      let packetsChanged = false;
+      for (const p of redPackets) {
+        if (!p.is_refunded && (now - p.created_at) >= 35000) {
+          p.is_refunded = true;
+          packetsChanged = true;
+          if (p.remaining_amount > 0 && p.sender_id === userId) {
+            session.balance += p.remaining_amount;
+            userLastRefund = {
+              packet_id: p.id,
+              amount: p.remaining_amount,
+              claimed_count: Object.keys(p.claimed_by || {}).length,
+              total_amount: p.total_amount
+            };
+          }
+        }
+      }
+      if (packetsChanged) {
+        await saveKVRedPackets(env, redPackets);
+      }
+
       // Số người online (ước lượng ngẫu nhiên sinh động quanh 130-170)
       const baseOnline = 145 + (Math.sin(liveRound.cycle_index) * 23 | 0);
       const onlineCount = Math.max(80, baseOnline + communityStats.total_players);
@@ -1324,6 +1346,7 @@ function getLiveRoundInfo() {
           active_red_packets: activePackets,
           user_current_bet: currentBetsMap[userId] || null,
           user_last_settlement: userLastSettlement,
+          user_last_redpacket_refund: userLastRefund,
           user_balance: Math.round(session.balance * 100) / 100,
           config: {
             live_room: adminConfig.live_room,
@@ -1488,8 +1511,12 @@ function getLiveRoundInfo() {
           sender_id: userId,
           sender_name: userName,
           total_amount: sendAmt,
+          remaining_amount: sendAmt,
+          max_claims: Math.min(10, Math.max(3, Math.floor(sendAmt / 50))),
+          claimed_by: {},
           created_at: Date.now(),
-          claimed_by: {}
+          expires_at: Date.now() + 35000,
+          is_refunded: false
         };
 
         const curPackets = await getKVRedPackets(env);
@@ -1501,6 +1528,7 @@ function getLiveRoundInfo() {
         const chatNotice = {
           id: "msg-rp-" + Date.now() + "-" + Math.random().toString(36).substr(2, 4),
           user_id: "sys",
+          sender_id: userId,
           username: "HỆ THỐNG",
           avatar: "🧧",
           text: `🧧 ${userName} vừa PHÁT LỘC +${sendAmt.toLocaleString()} Xu cho cả phòng! Mau chạm vào bao lì xì để nhặt! 🎉`,
@@ -1541,15 +1569,42 @@ function getLiveRoundInfo() {
           return jsonRes({ detail: "Bao lì xì đã hết hạn hoặc không tồn tại!" }, 400);
         }
 
+        // Người phát không thể tự nhận lộc của chính mình
+        if (packet.sender_id === userId) {
+          return jsonRes({ detail: "Bạn là người phát lộc, không thể tự nhận lì xì của chính mình!", is_sender: true }, 400);
+        }
+
+        // Kiểm tra xem gói đã hết lượt nhận hoặc hết tiền chưa
+        const currentClaimCount = Object.keys(packet.claimed_by || {}).length;
+        const maxClaims = packet.max_claims || 10;
+        if ((packet.remaining_amount !== undefined && packet.remaining_amount <= 0) || currentClaimCount >= maxClaims) {
+          return jsonRes({ detail: "Gói lì xì này đã được nhận hết!", out_of_stock: true }, 400);
+        }
+
         if (packet.claimed_by && packet.claimed_by[userId]) {
           return jsonRes({ detail: "Bạn đã nhận lộc từ bao này rồi!", already_claimed: true }, 400);
         }
 
-        // Tính số xu lộc may mắn ngẫu nhiên tương xứng với quy mô bao lì xì
-        const total = packet.total_amount || 200;
-        const minL = Math.max(15, Math.floor(total * 0.05));
-        const maxL = Math.max(minL + 10, Math.floor(total * 0.20));
-        const luckyAmount = Math.floor(Math.random() * (maxL - minL + 1)) + minL;
+        // Thuật toán chia lộc Double Average chuẩn công bằng
+        const claimsLeft = Math.max(1, maxClaims - currentClaimCount);
+        const remAmt = (packet.remaining_amount !== undefined) ? packet.remaining_amount : (packet.total_amount || 200);
+        let luckyAmount = 15;
+
+        if (claimsLeft === 1) {
+          luckyAmount = remAmt;
+        } else {
+          const avg = remAmt / claimsLeft;
+          const maxPossible = Math.min(remAmt - (claimsLeft - 1) * 5, Math.floor(avg * 2));
+          const minPossible = Math.max(5, Math.floor((packet.total_amount || 200) * 0.04));
+          const safeMin = Math.min(minPossible, maxPossible);
+          luckyAmount = Math.floor(Math.random() * (maxPossible - safeMin + 1)) + safeMin;
+        }
+
+        luckyAmount = Math.max(1, Math.min(remAmt, luckyAmount));
+        if (packet.remaining_amount !== undefined) {
+          packet.remaining_amount = Math.max(0, packet.remaining_amount - luckyAmount);
+        }
+
         session.balance += luckyAmount;
         session.total_won += luckyAmount;
 
