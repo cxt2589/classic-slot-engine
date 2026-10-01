@@ -329,6 +329,15 @@ const dom = {
   btnSendRedPacket: document.getElementById("btnSendRedPacket"),
   btnDrawerInvite: document.getElementById("btnDrawerInvite"),
 
+  // Modal Phát Lộc Toàn Phòng
+  modalSendRedPacket: document.getElementById("modalSendRedPacket"),
+  btnCloseRedPacketModal: document.getElementById("btnCloseRedPacketModal"),
+  btnCancelSendRedPacket: document.getElementById("btnCancelSendRedPacket"),
+  btnConfirmSendRedPacket: document.getElementById("btnConfirmSendRedPacket"),
+  rpModalBalanceVal: document.getElementById("rpModalBalanceVal"),
+  inputCustomRedPacket: document.getElementById("inputCustomRedPacket"),
+  rpPresetChips: document.querySelectorAll(".rp-preset-chip"),
+
   // Red Packet Rain & Global Alert Layer
   redPacketRainLayer: document.getElementById("redPacketRainLayer"),
   globalJackpotAlert: document.getElementById("globalJackpotAlert"),
@@ -459,6 +468,7 @@ async function init() {
   await loadAdminStatus(true); // silent fetch to load max bets
   renderInitialReels();
   startGlobalMarqueePolling();
+  stopLivePolling(); // Khởi động polling nền (2.5s) ngay từ đầu để chế độ CÁ NHÂN vẫn nhận Mưa Lì Xì và thông báo toàn phòng!
 }
 
 function switchTabTo(tabKey) {
@@ -2911,15 +2921,76 @@ function setupLiveRoomControls() {
     dom.btnQuickShareTelegram.addEventListener("click", handleShareWinToTelegram);
   }
 
-  // Send red packet button in drawer
+  // Modal Phát Lộc Toàn Phòng
   if (dom.btnSendRedPacket) {
-    dom.btnSendRedPacket.addEventListener("click", () => sendRedPacketAction(200));
+    dom.btnSendRedPacket.addEventListener("click", openSendRedPacketModal);
+  }
+  if (dom.btnCloseRedPacketModal) {
+    dom.btnCloseRedPacketModal.addEventListener("click", closeSendRedPacketModal);
+  }
+  if (dom.btnCancelSendRedPacket) {
+    dom.btnCancelSendRedPacket.addEventListener("click", closeSendRedPacketModal);
+  }
+  if (dom.modalSendRedPacket) {
+    dom.modalSendRedPacket.addEventListener("click", (e) => {
+      if (e.target === dom.modalSendRedPacket) closeSendRedPacketModal();
+    });
+  }
+  if (dom.rpPresetChips) {
+    dom.rpPresetChips.forEach(chip => {
+      chip.addEventListener("click", () => {
+        dom.rpPresetChips.forEach(c => c.classList.remove("active"));
+        chip.classList.add("active");
+        if (dom.inputCustomRedPacket) {
+          dom.inputCustomRedPacket.value = chip.dataset.amount;
+        }
+      });
+    });
+  }
+  if (dom.inputCustomRedPacket) {
+    dom.inputCustomRedPacket.addEventListener("input", () => {
+      const val = dom.inputCustomRedPacket.value;
+      if (dom.rpPresetChips) {
+        dom.rpPresetChips.forEach(c => c.classList.toggle("active", c.dataset.amount === val));
+      }
+    });
+  }
+  if (dom.btnConfirmSendRedPacket) {
+    dom.btnConfirmSendRedPacket.addEventListener("click", () => {
+      const val = parseInt(dom.inputCustomRedPacket?.value) || 200;
+      if (val < 100 || val > 50000) {
+        alert("Số Xu phát lộc phải từ 100 đến 50,000 Xu!");
+        return;
+      }
+      closeSendRedPacketModal();
+      sendRedPacketAction(val);
+    });
   }
 
   // Save admin live room config
   if (dom.btnSaveLiveRoomConfig) {
     dom.btnSaveLiveRoomConfig.addEventListener("click", saveLiveRoomConfigAction);
   }
+}
+
+function openSendRedPacketModal() {
+  if (!dom.modalSendRedPacket) return;
+  telegramEngine.haptic("medium");
+  if (dom.rpModalBalanceVal) {
+    dom.rpModalBalanceVal.textContent = (state.session?.balance || 0).toLocaleString() + " Xu";
+  }
+  if (dom.inputCustomRedPacket) {
+    dom.inputCustomRedPacket.value = 200;
+  }
+  if (dom.rpPresetChips) {
+    dom.rpPresetChips.forEach(c => c.classList.toggle("active", c.dataset.amount === "200"));
+  }
+  dom.modalSendRedPacket.style.display = "flex";
+}
+
+function closeSendRedPacketModal() {
+  if (!dom.modalSendRedPacket) return;
+  dom.modalSendRedPacket.style.display = "none";
 }
 
 function switchGameplayMode(mode) {
@@ -3036,6 +3107,8 @@ function stopLivePolling() {
     clearInterval(state.liveCountdownInterval);
     state.liveCountdownInterval = null;
   }
+  // Vẫn duy trì polling nhẹ (2.5s) cho chế độ CÁ NHÂN để người chơi luôn nhận Mưa Lì Xì và thông báo toàn server!
+  state.livePollInterval = setInterval(syncLiveRoomState, 2500);
 }
 
 function tickLiveCountdown() {
@@ -3070,33 +3143,21 @@ async function syncLiveRoomState() {
     if (dom.drawerOnlineCount) dom.drawerOnlineCount.textContent = data.online_count;
     if (dom.chatFloatingBadge) dom.chatFloatingBadge.textContent = `${data.online_count}`;
 
-    // Update Round UI
-    updateLiveRoundUI(data.round, data.user_current_bet);
+    // Cập nhật giao diện bàn cược trực tiếp CHỈ KHI đang ở chế độ live
+    if (state.gamePlayMode === "live") {
+      updateLiveRoundUI(data.round, data.user_current_bet);
 
-    // Update Chat Messages
-    if (data.recent_messages) {
-      renderChatMessages(data.recent_messages);
-    }
-
-    // Spawn new reactions
-    if (data.recent_reactions && data.recent_reactions.length > 0) {
-      const latestRx = data.recent_reactions[0];
-      if (latestRx && (!state.lastRxId || state.lastRxId !== latestRx.id)) {
-        state.lastRxId = latestRx.id;
-        spawnFloatingEmoji(latestRx.emoji);
+      // Process user settlement of previous round
+      if (data.user_last_settlement) {
+        handleLiveSettlement(data.user_last_settlement, data.user_balance);
       }
-    }
 
-    // Process user settlement of previous round
-    if (data.user_last_settlement) {
-      handleLiveSettlement(data.user_last_settlement, data.user_balance);
-    }
-
-    // Cập nhật thống kê cược cộng đồng cả phòng
-    if (data.community_stats) {
-      if (dom.commPlayerCount) dom.commPlayerCount.textContent = data.community_stats.total_players || 0;
-      if (dom.commTotalWagered) dom.commTotalWagered.textContent = (data.community_stats.total_wagered || 0).toLocaleString();
-      renderCommunityDoorBets(data.community_stats.door_totals || {});
+      // Cập nhật thống kê cược cộng đồng cả phòng
+      if (data.community_stats) {
+        if (dom.commPlayerCount) dom.commPlayerCount.textContent = data.community_stats.total_players || 0;
+        if (dom.commTotalWagered) dom.commTotalWagered.textContent = (data.community_stats.total_wagered || 0).toLocaleString();
+        renderCommunityDoorBets(data.community_stats.door_totals || {});
+      }
     }
 
     // Cập nhật bảng vàng chạy chữ & thông báo nổ hũ toàn phòng
@@ -3699,7 +3760,6 @@ function triggerRedPacketRain(packet) {
 
     el.addEventListener("pointerdown", handleClaim, { passive: false });
     el.addEventListener("touchstart", handleClaim, { passive: false });
-    el.addEventListener("click", handleClaim);
 
     dom.redPacketRainLayer.appendChild(el);
   }
@@ -3715,8 +3775,7 @@ async function claimRedPacketAction(packetId, el) {
   if (el && el.dataset && el.dataset.claimed) return;
   if (el && el.dataset) el.dataset.claimed = "true";
   if (el && el.classList && el.classList.contains("falling-red-packet")) {
-    el.style.transform = "scale(1.5) rotate(15deg)";
-    el.style.opacity = "0";
+    el.classList.add("claimed");
   }
 
   try {

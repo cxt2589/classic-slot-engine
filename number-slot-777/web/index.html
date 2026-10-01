@@ -6,7 +6,7 @@
   <meta name="format-detection" content="telephone=no">
   <title>Lucky Numbers 777 - Classic 5x3 Number Slot</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <link rel="stylesheet" href="/static/style.css?v=20261001_live6">
+  <link rel="stylesheet" href="/static/style.css?v=20261001_live7">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600;1,700&family=Orbitron:wght@600;700;800;900&display=swap&subset=vietnamese" rel="stylesheet">
@@ -1774,7 +1774,7 @@ Content-Type: application/json
 
       <!-- Chat Utility Bar: Phát Lộc Cả Phòng & Mời Bạn Bè -->
       <div class="chat-utility-bar">
-        <button type="button" class="chat-util-btn redpacket-btn" id="btnSendRedPacket" title="Phát lộc 200 Xu cho cả phòng">🧧 PHÁT LỘC (200 Xu)</button>
+        <button type="button" class="chat-util-btn redpacket-btn" id="btnSendRedPacket" title="Tùy chọn số Xu phát lộc cho cả phòng">🧧 PHÁT LỘC</button>
         <button type="button" class="chat-util-btn invite-btn" id="btnDrawerInvite" title="Mời bạn bè vào phòng chat và cược chung">👥 MỜI BẠN BÈ</button>
       </div>
 
@@ -1783,6 +1783,59 @@ Content-Type: application/json
         <input type="text" id="chatInput" placeholder="Nhắn tin với mọi người trong phòng..." maxlength="120" autocomplete="off">
         <button type="submit" class="chat-submit-btn" id="btnSubmitChat">GỬI</button>
       </form>
+    </div>
+  </div>
+
+  <!-- MODAL CHỌN SỐ XU PHÁT LỘC TOÀN HỆ THỐNG -->
+  <div class="modal-backdrop-custom" id="modalSendRedPacket" style="display:none">
+    <div class="modal-card-custom rp-send-dialog">
+      <div class="modal-header-custom">
+        <div class="mhc-title">
+          <span class="mhc-icon">🧧</span>
+          <div>
+            <h3>PHÁT LỘC TOÀN PHÒNG</h3>
+            <span class="mhc-sub">Tặng lộc cho tất cả người chơi đang online</span>
+          </div>
+        </div>
+        <button type="button" class="modal-close-custom" id="btnCloseRedPacketModal">✕</button>
+      </div>
+
+      <div class="modal-body-custom">
+        <div class="rp-user-balance-bar">
+          <span class="rub-lbl">Số dư hiện tại của bạn:</span>
+          <strong class="rub-val glow-gold" id="rpModalBalanceVal">10,000 Xu</strong>
+        </div>
+
+        <div class="rp-select-section">
+          <label class="rp-field-lbl">Chọn nhanh mức phát lộc:</label>
+          <div class="rp-preset-grid">
+            <button type="button" class="rp-preset-chip" data-amount="100">100 Xu</button>
+            <button type="button" class="rp-preset-chip active" data-amount="200">200 Xu</button>
+            <button type="button" class="rp-preset-chip" data-amount="500">500 Xu</button>
+            <button type="button" class="rp-preset-chip" data-amount="1000">1,000 Xu</button>
+            <button type="button" class="rp-preset-chip" data-amount="2000">2,000 Xu</button>
+            <button type="button" class="rp-preset-chip" data-amount="5000">5,000 Xu</button>
+          </div>
+        </div>
+
+        <div class="rp-custom-section">
+          <label class="rp-field-lbl" for="inputCustomRedPacket">Hoặc nhập số Xu tùy chỉnh:</label>
+          <div class="rp-input-box">
+            <input type="number" id="inputCustomRedPacket" min="100" max="50000" step="50" value="200">
+            <span class="rp-input-unit">Xu</span>
+          </div>
+          <span class="rp-input-hint">Tối thiểu: 100 Xu • Tối đa: 50,000 Xu</span>
+        </div>
+
+        <div class="rp-policy-box">
+          ✨ Cơn mưa bao lì xì đỏ rực sẽ rơi trên màn hình của <strong>tất cả người chơi</strong> (cả chế độ Cá Nhân & Trực Tiếp). Người chơi bấm vào bao lì xì sẽ nhận ngẫu nhiên một phần lộc từ gói quà của bạn!
+        </div>
+      </div>
+
+      <div class="modal-footer-custom">
+        <button type="button" class="btn-dialog-cancel" id="btnCancelSendRedPacket">HỦY</button>
+        <button type="button" class="btn-dialog-confirm" id="btnConfirmSendRedPacket">🧧 XÁC NHẬN PHÁT LỘC</button>
+      </div>
     </div>
   </div>
 
@@ -1797,6 +1850,6 @@ Content-Type: application/json
     <div class="gja-amt glow-gold" id="gjaAmt">+50,000 Xu</div>
   </div>
 
-  <script src="/static/app.js?v=20261001_live6"></script>
+  <script src="/static/app.js?v=20261001_live7"></script>
 </body>
 </html>

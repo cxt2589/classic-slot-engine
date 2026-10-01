@@ -1475,7 +1475,7 @@ function getLiveRoundInfo() {
         const body = await request.json();
         const userId = body.user_id || "guest";
         const userName = body.username || "Khách";
-        const sendAmt = Math.max(100, Math.min(10000, Number(body.amount) || 200));
+        const sendAmt = Math.max(100, Math.min(100000, Number(body.amount) || 200));
 
         if (session.balance < sendAmt) {
           return jsonRes({ detail: "Số dư không đủ để phát lộc (cần tối thiểu " + sendAmt + " Xu)!" }, 400);
@@ -1545,8 +1545,11 @@ function getLiveRoundInfo() {
           return jsonRes({ detail: "Bạn đã nhận lộc từ bao này rồi!", already_claimed: true }, 400);
         }
 
-        // Tính số xu lộc may mắn ngẫu nhiên từ 15 đến 50 xu
-        const luckyAmount = Math.floor(Math.random() * 35) + 15;
+        // Tính số xu lộc may mắn ngẫu nhiên tương xứng với quy mô bao lì xì
+        const total = packet.total_amount || 200;
+        const minL = Math.max(15, Math.floor(total * 0.05));
+        const maxL = Math.max(minL + 10, Math.floor(total * 0.20));
+        const luckyAmount = Math.floor(Math.random() * (maxL - minL + 1)) + minL;
         session.balance += luckyAmount;
         session.total_won += luckyAmount;
 
