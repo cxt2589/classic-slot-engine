@@ -32,8 +32,9 @@ button, input, select, textarea, optgroup {
 
 html {
   -webkit-text-size-adjust: 100%;
-  overscroll-behavior-y: none;
   overflow-x: hidden;
+  overflow-y: auto;
+  scroll-behavior: smooth;
   width: 100%;
   max-width: 100vw;
 }
@@ -47,14 +48,11 @@ body {
   font-family: var(--font-body);
   min-height: 100vh;
   min-height: var(--tg-viewport-stable-height, 100dvh);
-  overscroll-behavior-y: none;
   overflow-x: hidden;
+  overflow-y: visible;
   width: 100%;
   max-width: 100vw;
   -webkit-tap-highlight-color: transparent;
-  user-select: none;
-  -webkit-user-select: none;
-  touch-action: manipulation;
 }
 
 .app-container {
@@ -67,6 +65,7 @@ body {
   min-height: 100vh;
   min-height: var(--tg-viewport-stable-height, 100dvh);
   overflow-x: hidden;
+  overflow-y: visible;
 }
 
 /* TOP NAVIGATION */
@@ -5931,16 +5930,16 @@ body.is-telegram-app .brand-text .subtext {
   transform: scale(0.92);
 }
 
-/* Fullscreen Floating Emojis Layer */
+/* Fullscreen Floating Emojis Layer (Zero size container so it never intercepts mouse wheel) */
 .floating-emojis-layer {
   position: fixed;
-  top: 0;
+  bottom: 0;
   left: 0;
-  width: 100vw;
-  height: 100vh;
+  width: 0;
+  height: 0;
+  overflow: visible;
   pointer-events: none;
   z-index: 999999;
-  overflow: hidden;
 }
 
 .floating-emoji-item {
@@ -5985,12 +5984,17 @@ body.is-telegram-app .brand-text .subtext {
   -webkit-backdrop-filter: blur(5px);
   z-index: 99999;
   opacity: 0;
+  visibility: hidden;
+  display: none;
+  cursor: pointer;
   pointer-events: none;
-  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.3s;
 }
 
 .chat-drawer-backdrop.open {
+  display: flex;
   opacity: 1;
+  visibility: visible;
   pointer-events: auto;
 }
 
@@ -6001,6 +6005,7 @@ body.is-telegram-app .brand-text .subtext {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  cursor: default;
 }
 
 /* Desktop & Tablet: Slide in from right */
@@ -6144,10 +6149,24 @@ body.is-telegram-app .brand-text .subtext {
   border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
+.chat-msg-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+
 .chat-msg-author {
   font-weight: 800;
   color: #00e5ff;
-  margin-right: 6px;
+}
+
+.chat-msg-time {
+  font-size: 0.62rem;
+  color: #718096;
+  font-family: var(--font-numbers);
+  font-weight: 500;
 }
 
 .chat-msg-text {

@@ -40,6 +40,7 @@ const state = {
   livePollInterval: null,
   liveCountdownInterval: null,
   liveLastSpunRoundId: null,
+  liveLastAutoBetRoundId: null,
   liveUserBetPlaced: false,
   lastShareSlip: null,
   chatMessagesCache: []
@@ -888,7 +889,23 @@ function setupActions() {
     telegramEngine.haptic("medium");
     dom.btnAuto.classList.toggle("active", state.isAutoSpin);
     dom.btnAuto.textContent = state.isAutoSpin ? "🔄 AUTO (ON)" : "🔄 AUTO (OFF)";
-    if (state.isAutoSpin && !state.isSpinning) triggerSpin();
+
+    if (state.isAutoSpin) {
+      if (state.gamePlayMode === "live") {
+        showToast("🤖 Đã BẬT Tự Động Cược theo từng phiên trực tiếp!", "gold");
+        // Nếu phiên hiện tại đang mở cược và chưa đặt cược, tự động cược ngay
+        if (state.liveRoundData && state.liveRoundData.phase === "betting" && state.liveLastAutoBetRoundId !== state.liveRoundData.round_id) {
+          state.liveLastAutoBetRoundId = state.liveRoundData.round_id;
+          placeLiveBetAction();
+        }
+      } else {
+        if (!state.isSpinning) triggerSpin();
+      }
+    } else {
+      if (state.gamePlayMode === "live") {
+        showToast("⏹️ Đã TẮT Tự Động Cược nhóm", "info");
+      }
+    }
   });
 
   dom.btnSpin.addEventListener("click", () => {
@@ -2768,11 +2785,30 @@ function setupLiveRoomControls() {
   }
   if (dom.chatDrawerBackdrop) {
     dom.chatDrawerBackdrop.addEventListener("click", (e) => {
+      if (e.target === dom.chatDrawerBackdrop || (dom.chatDrawerPanel && !dom.chatDrawerPanel.contains(e.target))) {
+        closeChatDrawer();
+      }
+    });
+    dom.chatDrawerBackdrop.addEventListener("touchend", (e) => {
       if (e.target === dom.chatDrawerBackdrop) {
+        e.preventDefault();
         closeChatDrawer();
       }
     });
   }
+
+  if (dom.chatDrawerPanel) {
+    dom.chatDrawerPanel.addEventListener("click", (e) => {
+      e.stopPropagation();
+    });
+  }
+
+  // Keyboard Escape to close chat drawer on desktop
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && dom.chatDrawerBackdrop && dom.chatDrawerBackdrop.classList.contains("open")) {
+      closeChatDrawer();
+    }
+  });
 
   // Chat toggle legacy fallback
   if (dom.chatHeaderToggle) {
@@ -3048,6 +3084,11 @@ function updateLiveRoundUI(round, userBet) {
       if (dom.liveBetStatus) dom.liveBetStatus.textContent = `✅ Đã đặt cược ${userBet.total_bet} Xu`;
     } else {
       if (dom.liveBetStatus) dom.liveBetStatus.textContent = "Chưa đặt cược phiên này";
+      // Chế độ AUTO ở chơi nhóm: Tự động đặt cược khi sang phiên mới
+      if (state.isAutoSpin && !state.isSpinning && state.liveLastAutoBetRoundId !== round.round_id) {
+        state.liveLastAutoBetRoundId = round.round_id;
+        placeLiveBetAction();
+      }
     }
   } else if (round.phase === "spinning") {
     if (dom.livePhaseText) dom.livePhaseText.textContent = "ĐANG QUAY CUỘN";
@@ -3231,6 +3272,11 @@ async function placeLiveBetAction() {
   if (state.session && state.session.balance < totalBet) {
     telegramEngine.haptic("error");
     alert("Số dư của bạn không đủ cho tổng cược!");
+    state.isAutoSpin = false;
+    if (dom.btnAuto) {
+      dom.btnAuto.classList.remove("active");
+      dom.btnAuto.textContent = "🔄 AUTO (OFF)";
+    }
     return;
   }
 
@@ -3257,6 +3303,13 @@ async function placeLiveBetAction() {
     } else {
       telegramEngine.haptic("error");
       showToast(`⚠️ ${json.detail || "Không thể đặt cược phiên này"}`, true);
+      if (json.detail && (json.detail.includes("Số dư") || json.detail.includes("ít nhất"))) {
+        state.isAutoSpin = false;
+        if (dom.btnAuto) {
+          dom.btnAuto.classList.remove("active");
+          dom.btnAuto.textContent = "🔄 AUTO (OFF)";
+        }
+      }
     }
   } catch (err) {
     console.error("Live bet error:", err);
@@ -3353,9 +3406,13 @@ function shareWinSlipAction() {
 
 function renderChatMessages(messages) {
   if (!dom.chatMessagesContainer || !messages) return;
-  dom.chatMessagesContainer.innerHTML = messages.map(msg => {
+  // Sắp xếp tin nhắn: tin cũ ở trên, tin mới nhất ở dưới đáy
+  const sorted = [...messages].sort((a, b) => (a.time || 0) - (b.time || 0));
+
+  dom.chatMessagesContainer.innerHTML = sorted.map(msg => {
     const isSys = msg.type === "system";
     const isWinShare = msg.type === "win_share" || !!msg.slip;
+    const timeStr = msg.time ? new Date(msg.time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "";
     let slipHtml = "";
     if (msg.slip) {
       slipHtml = `
@@ -3369,7 +3426,10 @@ function renderChatMessages(messages) {
       <div class="chat-msg-row ${isSys ? "system" : ""} ${isWinShare ? "win-share" : ""}">
         <span class="chat-msg-avatar">${msg.avatar || "👤"}</span>
         <div class="chat-msg-content">
-          <span class="chat-msg-author">${msg.username || "Thành viên"}:</span>
+          <div class="chat-msg-header">
+            <span class="chat-msg-author">${msg.username || "Thành viên"}</span>
+            ${timeStr ? `<span class="chat-msg-time">${timeStr}</span>` : ""}
+          </div>
           <span class="chat-msg-text">${msg.text || ""}</span>
           ${slipHtml}
         </div>
@@ -3377,7 +3437,7 @@ function renderChatMessages(messages) {
     `;
   }).join("");
 
-  // Smooth scroll to latest
+  // Tự động cuộn xuống đáy để xem tin nhắn mới nhất
   dom.chatMessagesContainer.scrollTop = dom.chatMessagesContainer.scrollHeight;
 }
 

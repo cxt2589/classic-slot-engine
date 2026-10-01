@@ -159,6 +159,69 @@ const liveRoomState = {
   settledRounds: {} // "roundId_userId" -> true
 };
 
+async function getKVChatMessages(env) {
+  if (env && env.LUCKY_ROOM) {
+    try {
+      const stored = await env.LUCKY_ROOM.get("live_chat_messages", { type: "json" });
+      if (Array.isArray(stored) && stored.length > 0) {
+        liveRoomState.chatMessages = stored;
+        return stored;
+      }
+    } catch (e) {}
+  }
+  return liveRoomState.chatMessages;
+}
+
+async function saveKVChatMessages(env, messages) {
+  if (env && env.LUCKY_ROOM) {
+    try {
+      await env.LUCKY_ROOM.put("live_chat_messages", JSON.stringify(messages));
+    } catch (e) {}
+  }
+}
+
+async function getKVReactions(env) {
+  if (env && env.LUCKY_ROOM) {
+    try {
+      const stored = await env.LUCKY_ROOM.get("live_recent_reactions", { type: "json" });
+      if (Array.isArray(stored)) {
+        liveRoomState.recentReactions = stored;
+        return stored;
+      }
+    } catch (e) {}
+  }
+  return liveRoomState.recentReactions;
+}
+
+async function saveKVReactions(env, reactions) {
+  if (env && env.LUCKY_ROOM) {
+    try {
+      await env.LUCKY_ROOM.put("live_recent_reactions", JSON.stringify(reactions));
+    } catch (e) {}
+  }
+}
+
+async function getKVBigWins(env) {
+  if (env && env.LUCKY_ROOM) {
+    try {
+      const stored = await env.LUCKY_ROOM.get("live_big_wins", { type: "json" });
+      if (Array.isArray(stored) && stored.length > 0) {
+        liveRoomState.bigWins = stored;
+        return stored;
+      }
+    } catch (e) {}
+  }
+  return liveRoomState.bigWins;
+}
+
+async function saveKVBigWins(env, wins) {
+  if (env && env.LUCKY_ROOM) {
+    try {
+      await env.LUCKY_ROOM.put("live_big_wins", JSON.stringify(wins));
+    } catch (e) {}
+  }
+}
+
 function ensureSession() {
   if (!session) {
     session = {
@@ -782,8 +845,29 @@ function buildGridFromStops(sList) {
   return g;
 }
 
+function mulberry32(a) {
+  return function() {
+    let t = a += 0x6D2B79F5;
+    t = Math.imul(t ^ t >>> 15, t | 1);
+    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
 function generateLiveOutcome(roundId) {
-  let stops = NUMBER_REEL_STRIPS.map(strip => getRandomStop(strip.length));
+  let randFn = () => {
+    const arr = new Uint32Array(1);
+    crypto.getRandomValues(arr);
+    return arr[0] / 4294967296;
+  };
+
+  // Nếu là phiên live (LRxxx), sinh kết quả đồng nhất tuyệt đối trên mọi máy chủ Cloudflare Edge toàn cầu
+  if (roundId && typeof roundId === "string" && roundId.startsWith("LR")) {
+    const seed = parseInt(roundId.replace(/\D/g, "")) || 12345;
+    randFn = mulberry32(seed);
+  }
+
+  let stops = NUMBER_REEL_STRIPS.map(strip => Math.floor(randFn() * strip.length));
   let grid = buildGridFromStops(stops);
   let center_row = grid[1];
   let analysis = analyzeCenterRow(center_row);
@@ -1095,9 +1179,20 @@ function getLiveRoundInfo() {
       const settleKey = `${prevRoundId}_${userId}`;
       let userLastSettlement = null;
 
+      // Đồng bộ cược phiên trước từ KV nếu isolate mới khởi động
+      if (!liveRoomState.roundBets[prevRoundId]?.[userId] && env && env.LUCKY_ROOM) {
+        try {
+          const prevKvBet = await env.LUCKY_ROOM.get(`bet_${prevRoundId}_${userId}`, { type: "json" });
+          if (prevKvBet) {
+            if (!liveRoomState.roundBets[prevRoundId]) liveRoomState.roundBets[prevRoundId] = {};
+            liveRoomState.roundBets[prevRoundId][userId] = prevKvBet;
+          }
+        } catch (e) {}
+      }
+
       if (!liveRoomState.settledRounds[settleKey] && liveRoomState.roundBets[prevRoundId]?.[userId]) {
         const userPrevBet = liveRoomState.roundBets[prevRoundId][userId];
-        const prevOutcome = liveRoomState.roundOutcomes[prevRoundId];
+        const prevOutcome = liveRoomState.roundOutcomes[prevRoundId] || generateLiveOutcome(prevRoundId);
         if (prevOutcome) {
           const payoutResult = calculateSpinPayout(
             userPrevBet.bets,
@@ -1111,28 +1206,35 @@ function getLiveRoundInfo() {
             session.balance += payoutResult.total_won;
             session.total_won += payoutResult.total_won;
 
-            // Đăng tin thắng vào chat room
+            // Đăng tin thắng vào chat room & lưu KV
             const winText = `🎉 ${userName} vừa thắng +${payoutResult.total_won.toLocaleString()} Xu ở phiên ${prevRoundId}!`;
-            liveRoomState.chatMessages.unshift({
-              id: "msg-win-" + Date.now(),
+            const currentMsgs = await getKVChatMessages(env);
+            const winMsg = {
+              id: "msg-win-" + Date.now() + "-" + Math.random().toString(36).substr(2, 4),
               user_id: "sys",
               username: "HỆ THỐNG",
               avatar: "🏆",
               text: winText,
               type: "system",
               time: Date.now()
-            });
+            };
+            const updatedMsgs = [winMsg, ...currentMsgs].slice(0, 50);
+            liveRoomState.chatMessages = updatedMsgs;
+            await saveKVChatMessages(env, updatedMsgs);
 
-            // Nếu thắng lớn >= 1000 xu hoặc >= 5x, thêm vào bigWins
+            // Nếu thắng lớn >= 1000 xu hoặc >= 5x, thêm vào bigWins & lưu KV
             if (payoutResult.total_won >= 1000 || payoutResult.total_won >= userPrevBet.total_bet * 5) {
-              liveRoomState.bigWins.unshift({
-                id: "bw-" + Date.now(),
+              const currentBigWins = await getKVBigWins(env);
+              const bwObj = {
+                id: "bw-" + Date.now() + "-" + Math.random().toString(36).substr(2, 4),
                 username: userName,
                 amount: payoutResult.total_won,
                 hand: prevOutcome.analysis.hand_title_vi,
                 time: Date.now()
-              });
-              if (liveRoomState.bigWins.length > 20) liveRoomState.bigWins.pop();
+              };
+              const updatedBigWins = [bwObj, ...currentBigWins].slice(0, 20);
+              liveRoomState.bigWins = updatedBigWins;
+              await saveKVBigWins(env, updatedBigWins);
             }
           }
 
@@ -1150,6 +1252,17 @@ function getLiveRoundInfo() {
         }
       }
 
+      // Kiểm tra cược hiện tại của user trong KV nếu chưa có trong memory
+      if (!liveRoomState.roundBets[liveRound.round_id]?.[userId] && env && env.LUCKY_ROOM) {
+        try {
+          const currentKvBet = await env.LUCKY_ROOM.get(`bet_${liveRound.round_id}_${userId}`, { type: "json" });
+          if (currentKvBet) {
+            if (!liveRoomState.roundBets[liveRound.round_id]) liveRoomState.roundBets[liveRound.round_id] = {};
+            liveRoomState.roundBets[liveRound.round_id][userId] = currentKvBet;
+          }
+        } catch (e) {}
+      }
+
       // Tổng hợp cược cộng đồng của round hiện tại
       const currentBetsMap = liveRoomState.roundBets[liveRound.round_id] || {};
       const communityStats = {
@@ -1164,14 +1277,14 @@ function getLiveRoundInfo() {
         }
       }
 
-      // Giữ tối đa 50 messages
-      if (liveRoomState.chatMessages.length > 50) {
-        liveRoomState.chatMessages = liveRoomState.chatMessages.slice(0, 50);
-      }
+      // Đồng bộ tin nhắn, reactions và big wins qua KV
+      const messages = await getKVChatMessages(env);
+      const reactions = await getKVReactions(env);
+      const bigWins = await getKVBigWins(env);
 
-      // Giữ reactions 10s gần nhất
+      // Giữ reactions 15s gần nhất
       const now = Date.now();
-      liveRoomState.recentReactions = liveRoomState.recentReactions.filter(r => (now - r.time) < 10000);
+      const freshReactions = reactions.filter(r => (now - r.time) < 15000);
 
       // Số người online (ước lượng ngẫu nhiên sinh động quanh 130-170)
       const baseOnline = 145 + (Math.sin(liveRound.cycle_index) * 23 | 0);
@@ -1183,9 +1296,9 @@ function getLiveRoundInfo() {
           round: liveRound,
           community_stats: communityStats,
           online_count: onlineCount,
-          recent_messages: liveRoomState.chatMessages.slice(0, 30),
-          recent_reactions: liveRoomState.recentReactions.slice(0, 20),
-          big_wins: liveRoomState.bigWins.slice(0, 10),
+          recent_messages: messages.slice(0, 40),
+          recent_reactions: freshReactions.slice(0, 20),
+          big_wins: bigWins.slice(0, 10),
           user_current_bet: currentBetsMap[userId] || null,
           user_last_settlement: userLastSettlement,
           user_balance: Math.round(session.balance * 100) / 100,
@@ -1255,7 +1368,7 @@ function getLiveRoundInfo() {
       if (!liveRoomState.roundBets[liveRound.round_id]) {
         liveRoomState.roundBets[liveRound.round_id] = {};
       }
-      liveRoomState.roundBets[liveRound.round_id][userId] = {
+      const placedBetObj = {
         user_id: userId,
         username: userName,
         bets,
@@ -1264,13 +1377,21 @@ function getLiveRoundInfo() {
         total_bet: totalBet,
         timestamp: Date.now()
       };
+      liveRoomState.roundBets[liveRound.round_id][userId] = placedBetObj;
+
+      // Lưu vào Cloudflare KV để đồng bộ tức thì trên toàn cầu
+      if (env && env.LUCKY_ROOM) {
+        try {
+          await env.LUCKY_ROOM.put(`bet_${liveRound.round_id}_${userId}`, JSON.stringify(placedBetObj), { expirationTtl: 300 });
+        } catch (e) {}
+      }
 
       return jsonRes({
         status: "success",
         message: "Đặt cược phiên Live thành công!",
         data: {
           round_id: liveRound.round_id,
-          placed_bet: liveRoomState.roundBets[liveRound.round_id][userId],
+          placed_bet: placedBetObj,
           balance: Math.round(session.balance * 100) / 100
         }
       });
@@ -1295,10 +1416,10 @@ function getLiveRoundInfo() {
           time: Date.now()
         };
 
-        liveRoomState.chatMessages.unshift(msgObj);
-        if (liveRoomState.chatMessages.length > 50) {
-          liveRoomState.chatMessages.pop();
-        }
+        const currentMessages = await getKVChatMessages(env);
+        const updatedMessages = [msgObj, ...currentMessages.filter(m => m.id !== msgObj.id)].slice(0, 50);
+        liveRoomState.chatMessages = updatedMessages;
+        await saveKVChatMessages(env, updatedMessages);
 
         return jsonRes({ status: "success", data: msgObj });
       } catch (err) {
@@ -1315,10 +1436,11 @@ function getLiveRoundInfo() {
           emoji,
           time: Date.now()
         };
-        liveRoomState.recentReactions.unshift(rxObj);
-        if (liveRoomState.recentReactions.length > 30) {
-          liveRoomState.recentReactions.pop();
-        }
+        const currentReactions = await getKVReactions(env);
+        const now = Date.now();
+        const fresh = [rxObj, ...currentReactions.filter(r => (now - r.time) < 15000)].slice(0, 30);
+        liveRoomState.recentReactions = fresh;
+        await saveKVReactions(env, fresh);
         return jsonRes({ status: "success", data: rxObj });
       } catch (err) {
         return jsonRes({ detail: "Lỗi thả cảm xúc" }, 400);

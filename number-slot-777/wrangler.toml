@@ -1,3 +1,7 @@
 name = "lucky-numbers-777"
 compatibility_date = "2026-09-26"
 pages_build_output_dir = "./web"
+
+[[kv_namespaces]]
+binding = "LUCKY_ROOM"
+id = "528906194d58451c9252e599a9a38ecc"
