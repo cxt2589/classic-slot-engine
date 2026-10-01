@@ -119,6 +119,24 @@ function initSampleHistory(count = 35) {
 
 let session = null;
 
+let adminConfig = {
+  allow_sanh_chuan: false, // Mặc định KHÓA để an toàn vốn tuyệt đối cho nhà cái
+  allow_ngu_quy: false,    // Mặc định KHÓA để an toàn vốn tuyệt đối cho nhà cái
+  jackpot_pool: 35000.0,   // Quỹ tích lũy hũ ban đầu (Xu)
+  target_jackpot_pool: 100000.0, // Ngưỡng an toàn tối thiểu để mở nổ hũ (đủ trả cược 20 xu x 5000)
+  jackpot_rate_general: 0.02, // 2% từ tất cả các cửa cược khác tự động trích nạp vào Quỹ Hũ
+  total_jackpot_paid: 0.0, // Tổng tiền đã trả thưởng cho Sảnh Chuẩn / Ngũ Quý
+  blocked_sanh_chuan_count: 0, // Đếm số lần hệ thống đã chặn Sảnh Chuẩn thành công
+  blocked_ngu_quy_count: 0,    // Đếm số lần hệ thống đã chặn Ngũ Quý thành công
+  max_bets: {
+    SANH_CHUAN: 20,
+    NGU_QUY: 20,
+    TU_QUY: 100,
+    CU_LU: 200,
+    DEFAULT: 5000
+  }
+};
+
 function ensureSession() {
   if (!session) {
     session = {
@@ -132,6 +150,7 @@ function ensureSession() {
   }
   return session;
 }
+
 
 const OPENAPI_SPEC = {
   openapi: "3.0.2",
@@ -643,24 +662,76 @@ export default {
       if (totalBet <= 0) return jsonRes({ detail: "Vui lòng đặt cược ít nhất 1 cửa!" }, 400);
       if (session.balance < totalBet) return jsonRes({ detail: "Số dư không đủ!" }, 400);
 
+      // Kiểm tra giới hạn mức cược (Max Bet) cho từng cửa
+      for (const [betKey, wagerVal] of Object.entries(bets)) {
+        const wager = Number(wagerVal);
+        if (wager <= 0) continue;
+        const limit = adminConfig.max_bets[betKey] !== undefined ? adminConfig.max_bets[betKey] : adminConfig.max_bets.DEFAULT;
+        if (wager > limit) {
+          const doorName = betKey === "SANH_CHUAN" ? "Sảnh Chuẩn" : (betKey === "NGU_QUY" ? "Ngũ Quý" : betKey);
+          return jsonRes({ detail: `Cửa [${doorName}] giới hạn cược tối đa ${limit} Xu (Bạn đang cược ${wager} Xu)!` }, 400);
+        }
+      }
+
       session.balance -= totalBet;
       session.total_wagered += totalBet;
       session.total_spins++;
 
+      // Trích nạp Quỹ Hũ Tích Lũy (Jackpot Reserve Pool):
+      // 100% tiền cược từ Sảnh Chuẩn & Ngũ Quý + 2% từ tất cả các cửa cược khác
+      let jackpotContribution = 0;
+      for (const [betKey, wagerVal] of Object.entries(bets)) {
+        const wager = Number(wagerVal);
+        if (wager <= 0) continue;
+        if (betKey === "SANH_CHUAN" || betKey === "NGU_QUY") {
+          jackpotContribution += wager;
+        } else {
+          jackpotContribution += (wager * adminConfig.jackpot_rate_general);
+        }
+      }
+      adminConfig.jackpot_pool = Math.round((adminConfig.jackpot_pool + jackpotContribution) * 100) / 100;
+
       // Stops and Grid: stops (0..8) represent center row numbers
-      const stops = NUMBER_REEL_STRIPS.map(strip => getRandomStop(strip.length));
-      const grid = [[], [], []];
-      for (let c = 0; c < 5; c++) {
-        const strip = NUMBER_REEL_STRIPS[c];
-        const len = strip.length;
-        const stop = stops[c] % len;
-        grid[0][c] = strip[(stop - 1 + len) % len]; // Top row (Center - 1 cyclically)
-        grid[1][c] = strip[stop];                    // Center row (Row 1)
-        grid[2][c] = strip[(stop + 1) % len];        // Bottom row (Center + 1 cyclically)
+      let stops = NUMBER_REEL_STRIPS.map(strip => getRandomStop(strip.length));
+
+      function buildGrid(sList) {
+        const g = [[], [], []];
+        for (let c = 0; c < 5; c++) {
+          const strip = NUMBER_REEL_STRIPS[c];
+          const len = strip.length;
+          const stop = sList[c] % len;
+          g[0][c] = strip[(stop - 1 + len) % len]; // Top row (Center - 1 cyclically)
+          g[1][c] = strip[stop];                    // Center row (Row 1)
+          g[2][c] = strip[(stop + 1) % len];        // Bottom row (Center + 1 cyclically)
+        }
+        return g;
       }
 
-      const center_row = grid[1];
-      const analysis = analyzeCenterRow(center_row);
+      let grid = buildGrid(stops);
+      let center_row = grid[1];
+      let analysis = analyzeCenterRow(center_row);
+
+      // RNG Killswitch Guard: Khóa Sảnh Chuẩn và Ngũ Quý nếu Hậu Đài chưa BẬT mở
+      let rerollNeeded = false;
+      if (analysis.is_sanh_chuan && !adminConfig.allow_sanh_chuan) {
+        // Phá vỡ thế Sảnh Chuẩn bằng cách dịch chuyển stop ở cột thứ 3
+        stops[2] = (stops[2] + 2) % NUMBER_REEL_STRIPS[2].length;
+        rerollNeeded = true;
+        adminConfig.blocked_sanh_chuan_count++;
+      }
+
+      if (analysis.is_ngu_quy && !adminConfig.allow_ngu_quy) {
+        // Phá vỡ thế Ngũ Quý bằng cách dịch chuyển stop ở cột thứ 5
+        stops[4] = (stops[4] + 1) % NUMBER_REEL_STRIPS[4].length;
+        rerollNeeded = true;
+        adminConfig.blocked_ngu_quy_count++;
+      }
+
+      if (rerollNeeded) {
+        grid = buildGrid(stops);
+        center_row = grid[1];
+        analysis = analyzeCenterRow(center_row);
+      }
 
       // Evaluate bets
       const winningItems = [];
@@ -695,9 +766,15 @@ export default {
         } else if (betKey === "SANH" && analysis.is_sanh) {
           mult = BET_PAYOUTS.SANH; reason = "Sảnh (5 số liên tiếp)";
         } else if (betKey === "SANH_CHUAN" && analysis.is_sanh_chuan) {
-          mult = BET_PAYOUTS.SANH_CHUAN; reason = "👑 Sảnh Chuẩn (1-2-3-4-5)";
+          mult = BET_PAYOUTS.SANH_CHUAN; reason = "👑 Sảnh Chuẩn (1-2-3-4-5) - NỔ HŨ LỚN!";
+          const prize = Math.round(wager * mult * 100) / 100;
+          adminConfig.total_jackpot_paid += prize;
+          adminConfig.jackpot_pool = Math.max(0, Math.round((adminConfig.jackpot_pool - prize) * 100) / 100);
         } else if (betKey === "NGU_QUY" && analysis.is_ngu_quy) {
-          mult = BET_PAYOUTS.NGU_QUY; reason = "Ngũ Quý (5 số giống nhau)";
+          mult = BET_PAYOUTS.NGU_QUY; reason = "Ngũ Quý (5 số giống nhau) - NỔ HŨ LỚN!";
+          const prize = Math.round(wager * mult * 100) / 100;
+          adminConfig.total_jackpot_paid += prize;
+          adminConfig.jackpot_pool = Math.max(0, Math.round((adminConfig.jackpot_pool - prize) * 100) / 100);
         } else if (betKey === "TU_QUY" && (analysis.is_tu_quy || analysis.is_ngu_quy)) {
           mult = BET_PAYOUTS.TU_QUY; reason = "Tứ Quý";
         } else if (betKey === "CU_LU" && analysis.is_cu_lu) {
@@ -767,9 +844,79 @@ export default {
             total_won: totalWon,
             net_profit: Math.round((totalWon - totalBet) * 100) / 100,
             winning_items: winningItems
+          },
+          admin_info: {
+            allow_sanh_chuan: adminConfig.allow_sanh_chuan,
+            allow_ngu_quy: adminConfig.allow_ngu_quy,
+            jackpot_pool: adminConfig.jackpot_pool,
+            target_jackpot_pool: adminConfig.target_jackpot_pool,
+            max_bets: adminConfig.max_bets
           }
         }
       });
+    }
+
+    if (url.pathname === "/api/admin/status" && request.method === "GET") {
+      const houseTurnover = session.total_wagered;
+      const housePayout = session.total_won;
+      const netProfit = Math.round((houseTurnover - housePayout) * 100) / 100;
+      const profitMarginPct = houseTurnover > 0 ? Math.round((netProfit / houseTurnover) * 10000) / 100 : 0;
+      const poolRatio = adminConfig.target_jackpot_pool > 0 ? Math.min(100, Math.round((adminConfig.jackpot_pool / adminConfig.target_jackpot_pool) * 10000) / 100) : 100;
+
+      return jsonRes({
+        status: "success",
+        data: {
+          config: adminConfig,
+          finance: {
+            total_turnover: houseTurnover,
+            total_payout: housePayout,
+            net_profit: netProfit,
+            profit_margin_pct: profitMarginPct,
+            total_spins: session.total_spins,
+            player_balance: session.balance
+          },
+          jackpot: {
+            current_pool: adminConfig.jackpot_pool,
+            target_pool: adminConfig.target_jackpot_pool,
+            pool_ratio_pct: poolRatio,
+            is_ready: adminConfig.jackpot_pool >= adminConfig.target_jackpot_pool,
+            total_paid: adminConfig.total_jackpot_paid,
+            blocked_sanh_chuan: adminConfig.blocked_sanh_chuan_count,
+            blocked_ngu_quy: adminConfig.blocked_ngu_quy_count
+          }
+        }
+      });
+    }
+
+    if (url.pathname === "/api/admin/config" && request.method === "POST") {
+      try {
+        const body = await request.json();
+        if (typeof body.allow_sanh_chuan === "boolean") {
+          adminConfig.allow_sanh_chuan = body.allow_sanh_chuan;
+        }
+        if (typeof body.allow_ngu_quy === "boolean") {
+          adminConfig.allow_ngu_quy = body.allow_ngu_quy;
+        }
+        if (typeof body.target_jackpot_pool === "number" && body.target_jackpot_pool >= 0) {
+          adminConfig.target_jackpot_pool = body.target_jackpot_pool;
+        }
+        if (typeof body.add_jackpot_amount === "number") {
+          adminConfig.jackpot_pool = Math.max(0, Math.round((adminConfig.jackpot_pool + body.add_jackpot_amount) * 100) / 100);
+        }
+        if (typeof body.set_jackpot_amount === "number" && body.set_jackpot_amount >= 0) {
+          adminConfig.jackpot_pool = Math.round(body.set_jackpot_amount * 100) / 100;
+        }
+        if (body.max_bets && typeof body.max_bets === "object") {
+          if (body.max_bets.SANH_CHUAN !== undefined) adminConfig.max_bets.SANH_CHUAN = Number(body.max_bets.SANH_CHUAN);
+          if (body.max_bets.NGU_QUY !== undefined) adminConfig.max_bets.NGU_QUY = Number(body.max_bets.NGU_QUY);
+          if (body.max_bets.TU_QUY !== undefined) adminConfig.max_bets.TU_QUY = Number(body.max_bets.TU_QUY);
+          if (body.max_bets.CU_LU !== undefined) adminConfig.max_bets.CU_LU = Number(body.max_bets.CU_LU);
+          if (body.max_bets.DEFAULT !== undefined) adminConfig.max_bets.DEFAULT = Number(body.max_bets.DEFAULT);
+        }
+        return jsonRes({ status: "success", message: "Cập nhật cấu hình hậu đài thành công", data: adminConfig });
+      } catch (err) {
+        return jsonRes({ detail: "Dữ liệu không hợp lệ: " + err.message }, 400);
+      }
     }
 
     if (url.pathname === "/api/simulate" && request.method === "POST") {

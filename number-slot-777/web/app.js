@@ -21,6 +21,15 @@ const state = {
   simCategoryFilter: "ALL",
   lastSimData: null,
   currentGrid: null,
+  adminData: null,
+  maxBets: {
+    SANH_CHUAN: 20,
+    NGU_QUY: 20,
+    TU_QUY: 100,
+    CU_LU: 200,
+    DEFAULT: 5000
+  },
+  toastTimer: null
 };
 
 // Web Audio API Synthesizer
@@ -363,7 +372,9 @@ async function init() {
   setupBettingBoard();
   setupActions();
   setupSoiKeoControls();
+  setupAdminControls();
   await loadSession();
+  await loadAdminStatus(true); // silent fetch to load max bets
   renderInitialReels();
 }
 
@@ -384,6 +395,8 @@ function switchTabTo(tabKey) {
     if (!state.lastSimData) {
       setTimeout(runSimulation, 50);
     }
+  } else if (tabKey === "admin") {
+    setTimeout(loadAdminStatus, 50);
   }
 }
 
@@ -618,7 +631,8 @@ function setupBettingBoard() {
         soundEngine.playChip();
         telegramEngine.haptic("medium");
         for (const k in state.placedBets) {
-          state.placedBets[k] *= 2;
+          const limit = (state.maxBets && state.maxBets[k] !== undefined) ? state.maxBets[k] : (state.maxBets?.DEFAULT || 5000);
+          state.placedBets[k] = Math.min(state.placedBets[k] * 2, limit);
         }
         renderPlacedChips();
         updateMeters();
@@ -649,8 +663,21 @@ function setupBettingBoard() {
       soundEngine.playChip();
       telegramEngine.haptic("light");
 
+      const limit = (state.maxBets && state.maxBets[betKey] !== undefined) ? state.maxBets[betKey] : (state.maxBets?.DEFAULT || 5000);
+
       if (state.betInteractionMode === "add") {
-        state.placedBets[betKey] = (state.placedBets[betKey] || 0) + state.selectedChip;
+        const cur = state.placedBets[betKey] || 0;
+        if (cur >= limit) {
+          telegramEngine.haptic("warning");
+          const doorName = betKey === "SANH_CHUAN" ? "Sảnh Chuẩn" : (betKey === "NGU_QUY" ? "Ngũ Quý" : betKey);
+          showToast(`⚠️ [${doorName}] giới hạn cược tối đa ${limit} Xu!`, true);
+          return;
+        }
+        const next = Math.min(cur + state.selectedChip, limit);
+        if (next === limit && cur + state.selectedChip > limit) {
+          showToast(`⚡ Tự động căn chỉnh về mức cược tối đa: ${limit} Xu`);
+        }
+        state.placedBets[betKey] = next;
       } else if (state.betInteractionMode === "sub") {
         const cur = state.placedBets[betKey] || 0;
         const next = cur - state.selectedChip;
@@ -735,7 +762,8 @@ function setupActions() {
       soundEngine.playChip();
       telegramEngine.haptic("medium");
       for (const k in state.placedBets) {
-        state.placedBets[k] *= 2;
+        const limit = (state.maxBets && state.maxBets[k] !== undefined) ? state.maxBets[k] : (state.maxBets?.DEFAULT || 5000);
+        state.placedBets[k] = Math.min(state.placedBets[k] * 2, limit);
       }
       renderPlacedChips();
       updateMeters();
@@ -853,8 +881,12 @@ async function triggerSpin() {
       throw new Error(json.detail || "Spin error");
     }
 
-    const { session, grid, center_row, analysis, payout } = json.data;
+    const { session, grid, center_row, analysis, payout, admin_info } = json.data;
     state.session = session;
+    if (admin_info) {
+      if (admin_info.max_bets) state.maxBets = admin_info.max_bets;
+      updateMaxBetBadges();
+    }
 
     // Previous 3 rows grid
     const prevGrid = state.currentGrid || [
@@ -948,6 +980,13 @@ async function triggerSpin() {
 
   } catch (err) {
     console.error("Spin error:", err);
+    telegramEngine.haptic("error");
+    showToast(`⚠️ ${err.message || "Lỗi khi quay thưởng!"}`, true);
+    state.isAutoSpin = false;
+    if (dom.btnAuto) {
+      dom.btnAuto.classList.remove("active");
+      dom.btnAuto.textContent = "🔄 AUTO (OFF)";
+    }
     for (let c = 0; c < 5; c++) {
       const strip = document.getElementById(`reel-${c}`);
       if (strip) {
@@ -1941,4 +1980,326 @@ function renderHistoryTable(data) {
   });
 }
 
+function showToast(message, isError = false) {
+  let toast = document.getElementById("appToast");
+  if (!toast) {
+    toast = document.createElement("div");
+    toast.id = "appToast";
+    toast.className = "app-floating-toast";
+    document.body.appendChild(toast);
+  }
+  toast.textContent = message;
+  toast.style.background = isError ? "rgba(213, 0, 0, 0.95)" : "rgba(19, 23, 38, 0.95)";
+  toast.style.borderColor = isError ? "#ff5252" : "#ffd700";
+  toast.style.boxShadow = isError ? "0 4px 20px rgba(255, 23, 68, 0.6)" : "0 4px 20px rgba(255, 215, 0, 0.4)";
+  toast.classList.add("show");
+  if (state.toastTimer) clearTimeout(state.toastTimer);
+  state.toastTimer = setTimeout(() => {
+    toast.classList.remove("show");
+  }, 2500);
+}
+
+function setupAdminControls() {
+  const btnRefresh = document.getElementById("btnRefreshAdmin");
+  if (btnRefresh) {
+    btnRefresh.addEventListener("click", () => {
+      soundEngine.playChip();
+      telegramEngine.haptic("medium");
+      loadAdminStatus();
+    });
+  }
+
+  // Toggle Sảnh Chuẩn
+  const toggleSanhChuan = document.getElementById("toggleSanhChuan");
+  if (toggleSanhChuan) {
+    toggleSanhChuan.addEventListener("change", async () => {
+      soundEngine.playChip();
+      telegramEngine.haptic("medium");
+      const isAllowed = toggleSanhChuan.checked;
+      try {
+        const res = await fetch("/api/admin/config", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ allow_sanh_chuan: isAllowed })
+        });
+        const json = await res.json();
+        if (json.status === "success") {
+          showToast(isAllowed ? "🟢 ĐÃ MỞ: Sảnh Chuẩn sẽ nổ theo RNG tự nhiên!" : "🔒 ĐÃ KHÓA: Sảnh Chuẩn đã bị triệt tiêu 100%!");
+          loadAdminStatus();
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    });
+  }
+
+  // Toggle Ngũ Quý
+  const toggleNguQuy = document.getElementById("toggleNguQuy");
+  if (toggleNguQuy) {
+    toggleNguQuy.addEventListener("change", async () => {
+      soundEngine.playChip();
+      telegramEngine.haptic("medium");
+      const isAllowed = toggleNguQuy.checked;
+      try {
+        const res = await fetch("/api/admin/config", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ allow_ngu_quy: isAllowed })
+        });
+        const json = await res.json();
+        if (json.status === "success") {
+          showToast(isAllowed ? "🟢 ĐÃ MỞ: Ngũ Quý sẽ nổ theo RNG tự nhiên!" : "🔒 ĐÃ KHÓA: Ngũ Quý đã bị triệt tiêu 100%!");
+          loadAdminStatus();
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    });
+  }
+
+  // Quick Pool Buttons
+  const btnAdd10k = document.getElementById("btnAdminAdd10k");
+  if (btnAdd10k) {
+    btnAdd10k.addEventListener("click", () => updateJackpotPool({ add_jackpot_amount: 10000 }));
+  }
+
+  const btnAdd50k = document.getElementById("btnAdminAdd50k");
+  if (btnAdd50k) {
+    btnAdd50k.addEventListener("click", () => updateJackpotPool({ add_jackpot_amount: 50000 }));
+  }
+
+  const btnSetTarget = document.getElementById("btnAdminSetTarget");
+  if (btnSetTarget) {
+    btnSetTarget.addEventListener("click", () => updateJackpotPool({ set_jackpot_amount: 100000 }));
+  }
+
+  const btnResetPool = document.getElementById("btnAdminResetPool");
+  if (btnResetPool) {
+    btnResetPool.addEventListener("click", () => updateJackpotPool({ set_jackpot_amount: 20000 }));
+  }
+
+  // Save Max Bets
+  const btnSaveMaxBets = document.getElementById("btnSaveMaxBets");
+  if (btnSaveMaxBets) {
+    btnSaveMaxBets.addEventListener("click", async () => {
+      soundEngine.playChip();
+      telegramEngine.haptic("success");
+
+      const sanhChuan = parseInt(document.getElementById("inputMaxSanhChuan")?.value) || 20;
+      const nguQuy = parseInt(document.getElementById("inputMaxNguQuy")?.value) || 20;
+      const tuQuy = parseInt(document.getElementById("inputMaxTuQuy")?.value) || 100;
+      const cuLu = parseInt(document.getElementById("inputMaxCuLu")?.value) || 200;
+      const def = parseInt(document.getElementById("inputMaxDefault")?.value) || 5000;
+
+      try {
+        const res = await fetch("/api/admin/config", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            max_bets: {
+              SANH_CHUAN: sanhChuan,
+              NGU_QUY: nguQuy,
+              TU_QUY: tuQuy,
+              CU_LU: cuLu,
+              DEFAULT: def
+            }
+          })
+        });
+        const json = await res.json();
+        if (json.status === "success") {
+          state.maxBets = json.data.max_bets;
+          updateMaxBetBadges();
+          const msgEl = document.getElementById("saveMaxBetMsg");
+          if (msgEl) {
+            msgEl.textContent = "✅ Đã lưu cấu hình hạn mức thành công!";
+            setTimeout(() => { msgEl.textContent = ""; }, 3000);
+          }
+          showToast("✅ Đã cập nhật hạn mức cược tối đa!");
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    });
+  }
+}
+
+async function updateJackpotPool(payload) {
+  soundEngine.playChip();
+  telegramEngine.haptic("medium");
+  try {
+    const res = await fetch("/api/admin/config", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    const json = await res.json();
+    if (json.status === "success") {
+      showToast("💰 Đã cập nhật số dư Quỹ Hũ thành công!");
+      loadAdminStatus();
+    }
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+async function loadAdminStatus(silent = false) {
+  try {
+    const res = await fetch("/api/admin/status");
+    const json = await res.json();
+    if (json.status === "success") {
+      state.adminData = json.data;
+      if (json.data.config?.max_bets) {
+        state.maxBets = json.data.config.max_bets;
+        updateMaxBetBadges();
+      }
+      if (!silent) {
+        renderAdminStatus(json.data);
+      }
+    }
+  } catch (err) {
+    console.error("Failed to load admin status:", err);
+  }
+}
+
+function updateMaxBetBadges() {
+  if (!state.maxBets) return;
+  const badgeSanh = document.getElementById("badge-max-SANH_CHUAN");
+  if (badgeSanh) badgeSanh.textContent = `MAX: ${state.maxBets.SANH_CHUAN || 20}`;
+
+  const badgeNgu = document.getElementById("badge-max-NGU_QUY");
+  if (badgeNgu) badgeNgu.textContent = `MAX: ${state.maxBets.NGU_QUY || 20}`;
+
+  const badgeTu = document.getElementById("badge-max-TU_QUY");
+  if (badgeTu) badgeTu.textContent = `MAX: ${state.maxBets.TU_QUY || 100}`;
+
+  const badgeCu = document.getElementById("badge-max-CU_LU");
+  if (badgeCu) badgeCu.textContent = `MAX: ${state.maxBets.CU_LU || 200}`;
+}
+
+function renderAdminStatus(data) {
+  if (!data) return;
+
+  const { finance, jackpot, config } = data;
+
+  // 1. Finance KPIs
+  const elTurnover = document.getElementById("admTurnover");
+  if (elTurnover) elTurnover.textContent = finance.total_turnover.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  const elPayout = document.getElementById("admPayout");
+  if (elPayout) elPayout.textContent = finance.total_payout.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  const elProfit = document.getElementById("admProfit");
+  if (elProfit) {
+    elProfit.textContent = `${finance.net_profit >= 0 ? "+" : ""}${finance.net_profit.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    elProfit.style.color = finance.net_profit >= 0 ? "#00e676" : "#ff5252";
+  }
+
+  const elMargin = document.getElementById("admProfitMargin");
+  if (elMargin) elMargin.textContent = `Margin: ${finance.profit_margin_pct.toFixed(2)}%`;
+
+  const elSpins = document.getElementById("admSpins");
+  if (elSpins) elSpins.textContent = finance.total_spins.toLocaleString("en-US");
+
+  // 2. Jackpot Pool
+  const elPoolCurrent = document.getElementById("admPoolCurrent");
+  if (elPoolCurrent) elPoolCurrent.textContent = `${jackpot.current_pool.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Xu`;
+
+  const elPoolTarget = document.getElementById("admPoolTarget");
+  if (elPoolTarget) elPoolTarget.textContent = `${jackpot.target_pool.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+  const elPoolBar = document.getElementById("admPoolBar");
+  if (elPoolBar) elPoolBar.style.width = `${Math.min(100, Math.max(2, jackpot.pool_ratio_pct))}%`;
+
+  const elPoolPct = document.getElementById("admPoolPct");
+  if (elPoolPct) elPoolPct.textContent = `${jackpot.pool_ratio_pct.toFixed(1)}%`;
+
+  const elPoolBadge = document.getElementById("admPoolSafetyBadge");
+  const elPoolSafetyText = document.getElementById("admPoolSafetyText");
+  const elPoolAdvise = document.getElementById("admPoolAdvise");
+
+  if (jackpot.is_ready) {
+    if (elPoolBadge) elPoolBadge.className = "adm-status-pill ready";
+    if (elPoolSafetyText) elPoolSafetyText.textContent = "🟢 ĐÃ ĐỦ QUỸ AN TOÀN (CÓ THỂ BẬT NỔ)";
+    if (elPoolAdvise) elPoolAdvise.innerHTML = "✨ Quỹ đã đạt mức bảo chứng an toàn. Nhà cái có thể chủ động bật mở công tắc nổ hũ tự nhiên!";
+  } else {
+    if (elPoolBadge) elPoolBadge.className = "adm-status-pill";
+    const diff = Math.max(0, jackpot.target_pool - jackpot.current_pool);
+    if (elPoolSafetyText) elPoolSafetyText.textContent = "🔒 CHƯA ĐỦ QUỸ AN TOÀN (KHUYẾN NGHỊ KHÓA)";
+    if (elPoolAdvise) elPoolAdvise.innerHTML = `💡 Cần tích lũy thêm <strong>${diff.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Xu</strong> để đạt ngưỡng an toàn 100K.`;
+  }
+
+  const elBlockedSanh = document.getElementById("admBlockedSanhChuan");
+  if (elBlockedSanh) elBlockedSanh.textContent = jackpot.blocked_sanh_chuan || 0;
+
+  const elBlockedNgu = document.getElementById("admBlockedNguQuy");
+  if (elBlockedNgu) elBlockedNgu.textContent = jackpot.blocked_ngu_quy || 0;
+
+  const elPaidJackpot = document.getElementById("admTotalJackpotPaid");
+  if (elPaidJackpot) elPaidJackpot.textContent = (jackpot.total_paid || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  // 3. Switches
+  const cardSanh = document.getElementById("cardSanhChuan");
+  const toggleSanh = document.getElementById("toggleSanhChuan");
+  const badgeSanh = document.getElementById("badgeSanhChuan");
+  const descSanh = document.getElementById("descSanhChuan");
+
+  if (toggleSanh) toggleSanh.checked = !!config.allow_sanh_chuan;
+  if (config.allow_sanh_chuan) {
+    if (cardSanh) cardSanh.classList.add("unlocked");
+    if (badgeSanh) {
+      badgeSanh.className = "sw-current-badge unlocked";
+      badgeSanh.innerHTML = `<span class="sw-badge-icon">🟢</span><span class="sw-badge-txt">ĐANG MỞ (RNG TỰ NHIÊN)</span>`;
+    }
+    if (descSanh) descSanh.textContent = "Hệ thống đang mở. Cho phép trúng tự nhiên theo RNG GLI-19.";
+  } else {
+    if (cardSanh) cardSanh.classList.remove("unlocked");
+    if (badgeSanh) {
+      badgeSanh.className = "sw-current-badge locked";
+      badgeSanh.innerHTML = `<span class="sw-badge-icon">🔒</span><span class="sw-badge-txt">ĐANG KHÓA (0% NỔ)</span>`;
+    }
+    if (descSanh) descSanh.textContent = "Hệ thống đang khóa. Tuyệt đối 0% ra kết quả này.";
+  }
+
+  const cardNgu = document.getElementById("cardNguQuy");
+  const toggleNgu = document.getElementById("toggleNguQuy");
+  const badgeNgu = document.getElementById("badgeNguQuy");
+  const descNgu = document.getElementById("descNguQuy");
+
+  if (toggleNgu) toggleNgu.checked = !!config.allow_ngu_quy;
+  if (config.allow_ngu_quy) {
+    if (cardNgu) cardNgu.classList.add("unlocked");
+    if (badgeNgu) {
+      badgeNgu.className = "sw-current-badge unlocked";
+      badgeNgu.innerHTML = `<span class="sw-badge-icon">🟢</span><span class="sw-badge-txt">ĐANG MỞ (RNG TỰ NHIÊN)</span>`;
+    }
+    if (descNgu) descNgu.textContent = "Hệ thống đang mở. Cho phép trúng tự nhiên theo RNG GLI-19.";
+  } else {
+    if (cardNgu) cardNgu.classList.remove("unlocked");
+    if (badgeNgu) {
+      badgeNgu.className = "sw-current-badge locked";
+      badgeNgu.innerHTML = `<span class="sw-badge-icon">🔒</span><span class="sw-badge-txt">ĐANG KHÓA (0% NỔ)</span>`;
+    }
+    if (descNgu) descNgu.textContent = "Hệ thống đang khóa. Tuyệt đối 0% ra kết quả này.";
+  }
+
+  // 4. Max bet inputs (populate if user is not actively editing)
+  if (config.max_bets) {
+    const inputSanh = document.getElementById("inputMaxSanhChuan");
+    if (inputSanh && document.activeElement !== inputSanh) inputSanh.value = config.max_bets.SANH_CHUAN || 20;
+
+    const inputNgu = document.getElementById("inputMaxNguQuy");
+    if (inputNgu && document.activeElement !== inputNgu) inputNgu.value = config.max_bets.NGU_QUY || 20;
+
+    const inputTu = document.getElementById("inputMaxTuQuy");
+    if (inputTu && document.activeElement !== inputTu) inputTu.value = config.max_bets.TU_QUY || 100;
+
+    const inputCu = document.getElementById("inputMaxCuLu");
+    if (inputCu && document.activeElement !== inputCu) inputCu.value = config.max_bets.CU_LU || 200;
+
+    const inputDef = document.getElementById("inputMaxDefault");
+    if (inputDef && document.activeElement !== inputDef) inputDef.value = config.max_bets.DEFAULT || 5000;
+  }
+}
+
 window.addEventListener("DOMContentLoaded", init);
+

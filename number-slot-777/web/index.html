@@ -50,6 +50,11 @@
             <span class="tab-label">Kiến Trúc & API</span>
             <span class="tab-label-short">API Docs</span>
           </button>
+          <button class="tab-btn" data-tab="admin">
+            <span class="tab-icon">⚙️</span>
+            <span class="tab-label">Hậu Đài (Admin)</span>
+            <span class="tab-label-short">Hậu Đài</span>
+          </button>
         </nav>
       </div>
 
@@ -272,6 +277,7 @@
                 <div class="chip-placed hidden" id="chip-SANH">0</div>
               </div>
               <div class="bet-cell jackpot-cell" data-bet="SANH_CHUAN">
+                <span class="bet-max-badge" id="badge-max-SANH_CHUAN">MAX: 20</span>
                 <span class="bet-name">👑 SẢNH CHUẨN (1-2-3-4-5)</span>
                 <span class="bet-odds">x5,000.0</span>
                 <div class="chip-placed hidden" id="chip-SANH_CHUAN">0</div>
@@ -282,16 +288,19 @@
             <div class="bet-section-title">5. TỔ HỢP SỐ POKER</div>
             <div class="bet-row six-cols">
               <div class="bet-cell jackpot-cell" data-bet="NGU_QUY">
+                <span class="bet-max-badge" id="badge-max-NGU_QUY">MAX: 20</span>
                 <span class="bet-name">NGŨ QUÝ</span>
                 <span class="bet-odds">x5000</span>
                 <div class="chip-placed hidden" id="chip-NGU_QUY">0</div>
               </div>
               <div class="bet-cell" data-bet="TU_QUY">
+                <span class="bet-max-badge" id="badge-max-TU_QUY">MAX: 100</span>
                 <span class="bet-name">TỨ QUÝ</span>
                 <span class="bet-odds">x140</span>
                 <div class="chip-placed hidden" id="chip-TU_QUY">0</div>
               </div>
               <div class="bet-cell" data-bet="CU_LU">
+                <span class="bet-max-badge" id="badge-max-CU_LU">MAX: 200</span>
                 <span class="bet-name">CÙ LŨ</span>
                 <span class="bet-odds">x90</span>
                 <div class="chip-placed hidden" id="chip-CU_LU">0</div>
@@ -1202,6 +1211,294 @@ Content-Type: application/json
             </div>
           </div>
           <a href="/docs" target="_blank" class="seb-btn">🚀 MỞ SWAGGER UI TẠI /docs</a>
+        </div>
+      </div>
+    </main>
+
+    <!-- TAB 5: HẬU ĐÀI (ADMIN CONTROL PANEL & RISK ENGINE) -->
+    <main id="tab-admin" class="tab-content">
+      <div class="admin-dashboard-container">
+        <!-- Admin Header -->
+        <div class="admin-header-bar">
+          <div class="adm-title-group">
+            <div class="adm-badge-role">🛡️ HẬU ĐÀI QUẢN TRỊ VIÊN</div>
+            <h2>TRUNG TÂM KIỂM SOÁT RỦI RO & BẢO TOÀN VỐN SÀN</h2>
+            <p>Theo dõi trực quan dòng tiền người chơi, Quỹ Dự Phòng Hũ Jackpot (Reserve Pool) và Bộ Khóa RNG Killswitch Sảnh Chuẩn & Ngũ Quý</p>
+          </div>
+          <div class="adm-header-actions">
+            <button id="btnRefreshAdmin" class="adm-refresh-btn">🔄 LÀM MỚI DỮ LIỆU</button>
+            <div class="adm-live-ping"><span class="ping-dot"></span> HỆ THỐNG TRỰC TUYẾN 24/7</div>
+          </div>
+        </div>
+
+        <!-- 1. REAL-TIME HOUSE FINANCES -->
+        <div class="adm-section">
+          <div class="adm-section-header">
+            <h3>📈 1. CHỈ SỐ TÀI CHÍNH THỰC TẾ CỦA NHÀ CÁI</h3>
+            <span class="adm-sub-header">Dữ liệu doanh thu & trả thưởng ghi nhận trực tiếp từ phiên chơi hiện tại</span>
+          </div>
+
+          <div class="adm-kpi-grid">
+            <div class="adm-kpi-card">
+              <div class="adm-kpi-lbl">TỔNG CƯỢC NGƯỜI CHƠI (TURNOVER)</div>
+              <div class="adm-kpi-val glow-cyan" id="admTurnover">0.00</div>
+              <div class="adm-kpi-hint">Tổng số tiền người chơi đã đặt cược</div>
+            </div>
+
+            <div class="adm-kpi-card">
+              <div class="adm-kpi-lbl">TỔNG TIỀN ĐÃ TRẢ THƯỞNG (PAYOUT)</div>
+              <div class="adm-kpi-val" id="admPayout">0.00</div>
+              <div class="adm-kpi-hint">Tổng tiền thắng đã xuất cho người chơi</div>
+            </div>
+
+            <div class="adm-kpi-card adm-kpi-profit">
+              <div class="adm-kpi-lbl">LỢI NHUẬN RÒNG NHÀ CÁI (NET PROFIT)</div>
+              <div class="adm-kpi-val glow-gold" id="admProfit">0.00</div>
+              <div class="adm-kpi-badge" id="admProfitMargin">Margin: 0.00%</div>
+            </div>
+
+            <div class="adm-kpi-card">
+              <div class="adm-kpi-lbl">TỔNG SỐ LƯỢT QUAY (SPINS)</div>
+              <div class="adm-kpi-val" id="admSpins">0</div>
+              <div class="adm-kpi-hint">Số vòng quay đã hoàn thành</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. JACKPOT RESERVE POOL ACCUMULATION -->
+        <div class="adm-section">
+          <div class="adm-section-header">
+            <h3>🏆 2. QUỸ TÍCH LŨY DỰ PHÒNG HŨ JACKPOT (RESERVE POOL)</h3>
+            <div class="adm-status-pill" id="admPoolSafetyBadge">
+              <span class="status-indicator-dot"></span>
+              <span id="admPoolSafetyText">🔒 CHƯA ĐỦ QUỸ AN TOÀN (KHUYẾN NGHỊ KHÓA)</span>
+            </div>
+          </div>
+
+          <div class="adm-pool-card">
+            <div class="adm-pool-top-row">
+              <div class="adm-pool-metric">
+                <span class="lbl">SỐ DƯ QUỸ TÍCH LŨY HIỆN CÓ:</span>
+                <div class="adm-pool-large glow-gold" id="admPoolCurrent">35,000.00 Xu</div>
+              </div>
+              <div class="adm-pool-metric right">
+                <span class="lbl">MỐC QUỸ AN TOÀN MỤC TIÊU:</span>
+                <div class="adm-target-large"><span id="admPoolTarget">100,000.00</span> Xu</div>
+                <span class="sub-target">Bảo chứng đủ 100% trả x5,000 cho cược tối đa 20 Xu</span>
+              </div>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="adm-progress-container">
+              <div class="adm-progress-track">
+                <div class="adm-progress-fill" id="admPoolBar" style="width: 35%">
+                  <span class="adm-progress-glow"></span>
+                </div>
+              </div>
+              <div class="adm-progress-meta">
+                <span>Tiến độ tích lũy: <strong id="admPoolPct">35.0%</strong></span>
+                <span id="admPoolAdvise">💡 Cần thêm <strong>65,000.00 Xu</strong> để đạt ngưỡng an toàn</span>
+              </div>
+            </div>
+
+            <!-- Pool Accumulation Mechanism Details -->
+            <div class="adm-pool-specs-grid">
+              <div class="spec-item">
+                <span class="s-icon">📥</span>
+                <div class="s-text">
+                  <div class="s-lbl">Cơ chế tự động trích nạp quỹ:</div>
+                  <div class="s-val">100% tiền cược Sảnh Chuẩn & Ngũ Quý + 2% từ tất cả các cửa khác</div>
+                </div>
+              </div>
+              <div class="spec-item">
+                <span class="s-icon">🛡️</span>
+                <div class="s-text">
+                  <div class="s-lbl">Đã chặn nổ khi khóa:</div>
+                  <div class="s-val">Sảnh Chuẩn: <strong id="admBlockedSanhChuan" class="glow-cyan">0</strong> lần | Ngũ Quý: <strong id="admBlockedNguQuy" class="glow-cyan">0</strong> lần</div>
+                </div>
+              </div>
+              <div class="spec-item">
+                <span class="s-icon">💸</span>
+                <div class="s-text">
+                  <div class="s-lbl">Tổng tiền Jackpot đã chi trả:</div>
+                  <div class="s-val"><strong id="admTotalJackpotPaid">0.00</strong> Xu</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Quick Pool Capital Actions -->
+            <div class="adm-pool-actions-bar">
+              <span class="action-lbl">Bơm vốn mồi / Điều chỉnh quỹ nhanh:</span>
+              <div class="action-btn-group">
+                <button class="adm-act-btn" id="btnAdminAdd10k">+10,000 Xu</button>
+                <button class="adm-act-btn" id="btnAdminAdd50k">+50,000 Xu</button>
+                <button class="adm-act-btn gold" id="btnAdminSetTarget">Đặt Đạt 100K (An Toàn)</button>
+                <button class="adm-act-btn outline" id="btnAdminResetPool">Đặt Lại 20K</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. RNG KILLSWITCH ENGINE (BẬT / TẮT KẾT QUẢ SẢNH CHUẨN & NGŨ QUÝ) -->
+        <div class="adm-section">
+          <div class="adm-section-header">
+            <h3>⚡ 3. BỘ CÔNG TẮC RNG KILLSWITCH (BẬT / TẮT KẾT QUẢ)</h3>
+            <span class="adm-sub-header">Nhà cái chủ động theo dõi quỹ và gạt công tắc để khóa hoặc mở nổ tự nhiên</span>
+          </div>
+
+          <div class="adm-switches-grid">
+            <!-- SWITCH 1: SẢNH CHUẨN -->
+            <div class="adm-switch-card" id="cardSanhChuan">
+              <div class="sw-card-head">
+                <div class="sw-identity">
+                  <span class="sw-icon">👑</span>
+                  <div>
+                    <h4>SẢNH CHUẨN (1-2-3-4-5)</h4>
+                    <span class="sw-multiplier">Hệ số nhân thưởng: <strong>x5,000.0</strong></span>
+                  </div>
+                </div>
+                <div class="sw-current-badge locked" id="badgeSanhChuan">
+                  <span class="sw-badge-icon">🔒</span>
+                  <span class="sw-badge-txt">ĐANG KHÓA (0% NỔ)</span>
+                </div>
+              </div>
+
+              <div class="sw-toggle-action-row">
+                <div class="sw-toggle-label">
+                  <span class="main-toggle-lbl">Trạng thái phát kết quả:</span>
+                  <span class="sub-toggle-lbl" id="descSanhChuan">Hệ thống đang khóa. Tuyệt đối 0% ra kết quả này.</span>
+                </div>
+                <label class="modern-switch">
+                  <input type="checkbox" id="toggleSanhChuan">
+                  <span class="modern-slider"></span>
+                </label>
+              </div>
+
+              <div class="sw-guard-info">
+                <strong>🛡️ Cơ chế bảo vệ ngầm:</strong> Khi công tắc TẮT (Khóa), nếu thuật toán RNG ngẫu nhiên sinh ra dãy 1-2-3-4-5, máy chủ sẽ lập tức thay đổi vị trí cuộn số ở cột thứ 3 để phá sảnh trước khi gửi dữ liệu về điện thoại người chơi. Tiền cược của người chơi vẫn được thu vào Quỹ.
+              </div>
+            </div>
+
+            <!-- SWITCH 2: NGŨ QUÝ -->
+            <div class="adm-switch-card" id="cardNguQuy">
+              <div class="sw-card-head">
+                <div class="sw-identity">
+                  <span class="sw-icon">🌟</span>
+                  <div>
+                    <h4>NGŨ QUÝ (5 SỐ GIỐNG NHAU)</h4>
+                    <span class="sw-multiplier">Hệ số nhân thưởng: <strong>x5,000.0</strong></span>
+                  </div>
+                </div>
+                <div class="sw-current-badge locked" id="badgeNguQuy">
+                  <span class="sw-badge-icon">🔒</span>
+                  <span class="sw-badge-txt">ĐANG KHÓA (0% NỔ)</span>
+                </div>
+              </div>
+
+              <div class="sw-toggle-action-row">
+                <div class="sw-toggle-label">
+                  <span class="main-toggle-lbl">Trạng thái phát kết quả:</span>
+                  <span class="sub-toggle-lbl" id="descNguQuy">Hệ thống đang khóa. Tuyệt đối 0% ra kết quả này.</span>
+                </div>
+                <label class="modern-switch">
+                  <input type="checkbox" id="toggleNguQuy">
+                  <span class="modern-slider"></span>
+                </label>
+              </div>
+
+              <div class="sw-guard-info">
+                <strong>🛡️ Cơ chế bảo vệ ngầm:</strong> Khi công tắc TẮT (Khóa), nếu thuật toán RNG ngẫu nhiên sinh ra 5 con số giống nhau, máy chủ sẽ tự động đổi con số ở cột thứ 5 để biến thành Tứ Quý hoặc Sám Cô trước khi trả kết quả. Tránh nguy cơ cháy vốn cho nhà cái.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. MAX BET LIMITS CONFIGURATION -->
+        <div class="adm-section">
+          <div class="adm-section-header">
+            <h3>⚖️ 4. QUẢN LÝ HẠN MỨC CƯỢC TỐI ĐA (MAX BET LIMITS)</h3>
+            <span class="adm-sub-header">Ngăn chặn người chơi cược quá lớn vào các cửa có hệ số nhân x5,000</span>
+          </div>
+
+          <div class="adm-limits-card">
+            <div class="adm-limits-grid">
+              <div class="limit-input-group">
+                <label for="inputMaxSanhChuan">👑 Sảnh Chuẩn (x5,000):</label>
+                <div class="input-unit-wrap">
+                  <input type="number" id="inputMaxSanhChuan" value="20" min="1" max="1000" step="1">
+                  <span class="unit">Xu</span>
+                </div>
+                <span class="limit-note">Mặc định: 20 Xu (Thắng tối đa: 100,000 Xu)</span>
+              </div>
+
+              <div class="limit-input-group">
+                <label for="inputMaxNguQuy">🌟 Ngũ Quý (x5,000):</label>
+                <div class="input-unit-wrap">
+                  <input type="number" id="inputMaxNguQuy" value="20" min="1" max="1000" step="1">
+                  <span class="unit">Xu</span>
+                </div>
+                <span class="limit-note">Mặc định: 20 Xu (Thắng tối đa: 100,000 Xu)</span>
+              </div>
+
+              <div class="limit-input-group">
+                <label for="inputMaxTuQuy">🃏 Tứ Quý (x140 - x156):</label>
+                <div class="input-unit-wrap">
+                  <input type="number" id="inputMaxTuQuy" value="100" min="1" max="5000" step="10">
+                  <span class="unit">Xu</span>
+                </div>
+                <span class="limit-note">Mặc định: 100 Xu</span>
+              </div>
+
+              <div class="limit-input-group">
+                <label for="inputMaxCuLu">🃏 Cù Lũ (x78 - x90):</label>
+                <div class="input-unit-wrap">
+                  <input type="number" id="inputMaxCuLu" value="200" min="1" max="10000" step="10">
+                  <span class="unit">Xu</span>
+                </div>
+                <span class="limit-note">Mặc định: 200 Xu</span>
+              </div>
+
+              <div class="limit-input-group">
+                <label for="inputMaxDefault">🎯 Cửa Phổ Thông Khác:</label>
+                <div class="input-unit-wrap">
+                  <input type="number" id="inputMaxDefault" value="5000" min="100" max="50000" step="100">
+                  <span class="unit">Xu</span>
+                </div>
+                <span class="limit-note">Tài/Xỉu, Chẵn/Lẻ, Số Đơn...</span>
+              </div>
+            </div>
+
+            <div class="adm-limits-footer">
+              <button id="btnSaveMaxBets" class="adm-save-btn">💾 LƯU CẤU HÌNH HẠN MỨC</button>
+              <span id="saveMaxBetMsg" class="adm-save-msg"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5. RISK MANAGEMENT PROTOCOL GUIDELINE -->
+        <div class="adm-section">
+          <div class="adm-section-header">
+            <h3>📖 5. NGUYÊN TẮC VẬN HÀNH BẢO TOÀN VỐN (OPERATIONAL GUIDE)</h3>
+          </div>
+
+          <div class="adm-guide-box">
+            <div class="guide-col">
+              <h4>🎯 Khi Nào Nên Khóa?</h4>
+              <ul>
+                <li>• <strong>Giai đoạn đầu vận hành:</strong> Khi Quỹ Tích Lũy Hũ chưa đạt mốc an toàn (dưới 100,000 Xu), luôn giữ công tắc ở trạng thái <strong>TẮT (KHÓA)</strong>.</li>
+                <li>• <strong>Khi có người chơi gom cược bất thường:</strong> Khóa tạm thời để kiểm soát rủi ro dòng tiền.</li>
+                <li>• Tiền cược của người chơi vào 2 cửa này vẫn tích tụ nguyên vẹn 100% vào Quỹ, tạo nguồn lực tích lũy vững chắc.</li>
+              </ul>
+            </div>
+            <div class="guide-col">
+              <h4>🟢 Khi Nào Nên Mở?</h4>
+              <ul>
+                <li>• <strong>Khi Quỹ đã tích lũy vượt 100,000 Xu:</strong> Nhà cái bật công tắc sang <strong>MỞ (XANH)</strong>. Khi đó kết quả sẽ ra hoàn toàn tự nhiên theo xác suất RNG toán học GLI-19.</li>
+                <li>• Xác suất tự nhiên của Ngũ Quý là <strong>1/6,561</strong> vòng quay và Sảnh Chuẩn là <strong>1/11,810</strong> vòng quay.</li>
+                <li>• Khi có người chơi may mắn nổ hũ, số tiền trả thưởng (tối đa 20 x 5,000 = 100,000 Xu) sẽ được chi trả trực tiếp từ Quỹ Tích Lũy mà không ảnh hưởng tới quỹ vốn lưu động của sàn.</li>
+              </ul>
+            </div>
+          </div>
         </div>
       </div>
     </main>
