@@ -295,11 +295,22 @@ const dom = {
   liveRoundHint: document.getElementById("liveRoundHint"),
   liveBetStatus: document.getElementById("liveBetStatus"),
 
-  // Live Chat & Social
-  liveChatPanel: document.getElementById("liveChatPanel"),
-  chatHeaderToggle: document.getElementById("chatHeaderToggle"),
-  btnToggleChat: document.getElementById("btnToggleChat"),
-  chatUnreadCount: document.getElementById("chatUnreadCount"),
+  // Live Chat, Social Suite & Drawer
+  shareWinContainer: document.getElementById("shareWinContainer"),
+  btnQuickShareWin: document.getElementById("btnQuickShareWin"),
+  quickShareWinText: document.getElementById("quickShareWinText"),
+  cabinetSocialBar: document.getElementById("cabinetSocialBar"),
+  btnOpenChatDock: document.getElementById("btnOpenChatDock"),
+  chatFloatingBadge: document.getElementById("chatFloatingBadge"),
+  rxPillBtns: document.querySelectorAll(".rx-pill-btn"),
+
+  // Floating Chat FAB & Drawer Modal
+  btnFixedChatFab: document.getElementById("btnFixedChatFab"),
+  chatFabBadge: document.getElementById("chatFabBadge"),
+  chatDrawerBackdrop: document.getElementById("chatDrawerBackdrop"),
+  chatDrawerPanel: document.getElementById("chatDrawerPanel"),
+  btnCloseChatDrawer: document.getElementById("btnCloseChatDrawer"),
+  drawerOnlineCount: document.getElementById("drawerOnlineCount"),
   floatingEmojisLayer: document.getElementById("floatingEmojisLayer"),
   chatMessagesContainer: document.getElementById("chatMessagesContainer"),
   chatForm: document.getElementById("chatForm"),
@@ -935,6 +946,7 @@ async function triggerSpin() {
   }
 
   if (state.isSpinning) return;
+  if (dom.shareWinContainer) dom.shareWinContainer.style.display = "none";
 
   // If no bets placed, default to BASE_SPIN: 10
   if (Object.keys(state.placedBets).length === 0) {
@@ -1128,6 +1140,16 @@ function handleResults(center_row, analysis, payout) {
       amount: totalWon,
       hand: analysis.hand_title_vi
     };
+    if (dom.shareWinContainer) {
+      dom.shareWinContainer.style.display = "block";
+      if (dom.quickShareWinText) {
+        dom.quickShareWinText.textContent = `KHOE CHIẾN TÍCH (+${totalWon.toLocaleString()} Xu) LÊN PHÒNG CHAT`;
+      }
+    }
+  } else {
+    if (dom.shareWinContainer) {
+      dom.shareWinContainer.style.display = "none";
+    }
   }
 
   // Render winning pills
@@ -2732,7 +2754,27 @@ function setupLiveRoomControls() {
     dom.btnModeLive.addEventListener("click", () => switchGameplayMode("live"));
   }
 
-  // Chat toggle
+  // Open Chat Drawer from Cabinet Dock Button & Floating FAB
+  if (dom.btnOpenChatDock) {
+    dom.btnOpenChatDock.addEventListener("click", openChatDrawer);
+  }
+  if (dom.btnFixedChatFab) {
+    dom.btnFixedChatFab.addEventListener("click", openChatDrawer);
+  }
+
+  // Close Chat Drawer
+  if (dom.btnCloseChatDrawer) {
+    dom.btnCloseChatDrawer.addEventListener("click", closeChatDrawer);
+  }
+  if (dom.chatDrawerBackdrop) {
+    dom.chatDrawerBackdrop.addEventListener("click", (e) => {
+      if (e.target === dom.chatDrawerBackdrop) {
+        closeChatDrawer();
+      }
+    });
+  }
+
+  // Chat toggle legacy fallback
   if (dom.chatHeaderToggle) {
     dom.chatHeaderToggle.addEventListener("click", toggleLiveChat);
   }
@@ -2764,19 +2806,38 @@ function setupLiveRoomControls() {
     });
   }
 
-  // Reaction buttons
-  if (dom.rxBtns) {
-    dom.rxBtns.forEach(btn => {
-      btn.addEventListener("click", () => {
+  // Quick reactions strip on cabinet
+  if (dom.rxPillBtns) {
+    dom.rxPillBtns.forEach(btn => {
+      btn.addEventListener("click", (e) => {
         const emoji = btn.dataset.emoji;
         if (emoji) {
-          sendReaction(emoji);
+          sendReaction(emoji, e.clientX);
         }
       });
     });
   }
 
-  // Share win slip button
+  // Reaction buttons inside chat drawer
+  if (dom.rxBtns) {
+    dom.rxBtns.forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        const emoji = btn.dataset.emoji;
+        if (emoji) {
+          sendReaction(emoji, e.clientX);
+        }
+      });
+    });
+  }
+
+  // Quick share win button on cabinet
+  if (dom.btnQuickShareWin) {
+    dom.btnQuickShareWin.addEventListener("click", () => {
+      shareWinSlipAction();
+    });
+  }
+
+  // Legacy share win slip button
   if (dom.btnShareWinSlip) {
     dom.btnShareWinSlip.addEventListener("click", () => {
       shareWinSlipAction();
@@ -2800,7 +2861,6 @@ function switchGameplayMode(mode) {
   if (dom.btnModeLive) dom.btnModeLive.classList.toggle("active", isLive);
 
   if (dom.liveRoundBanner) dom.liveRoundBanner.style.display = isLive ? "block" : "none";
-  if (dom.liveChatPanel) dom.liveChatPanel.style.display = isLive ? "block" : "none";
   if (dom.liveRoomOnlinePill) dom.liveRoomOnlinePill.style.display = isLive ? "flex" : "none";
 
   const spinMain = dom.btnSpin ? dom.btnSpin.querySelector(".spin-main") : null;
@@ -2820,13 +2880,30 @@ function switchGameplayMode(mode) {
   }
 }
 
-function toggleLiveChat() {
-  if (!dom.liveChatPanel) return;
-  const isCollapsed = dom.liveChatPanel.classList.toggle("collapsed");
-  if (dom.btnToggleChat) {
-    dom.btnToggleChat.textContent = isCollapsed ? "▲ MỞ CHAT" : "▼ THU GỌN";
+function openChatDrawer() {
+  if (!dom.chatDrawerBackdrop) return;
+  dom.chatDrawerBackdrop.classList.add("open");
+  document.body.classList.add("chat-drawer-open");
+  telegramEngine.haptic("medium");
+  if (dom.chatMessagesContainer) {
+    dom.chatMessagesContainer.scrollTop = dom.chatMessagesContainer.scrollHeight;
   }
+}
+
+function closeChatDrawer() {
+  if (!dom.chatDrawerBackdrop) return;
+  dom.chatDrawerBackdrop.classList.remove("open");
+  document.body.classList.remove("chat-drawer-open");
   telegramEngine.haptic("light");
+}
+
+function toggleLiveChat() {
+  if (!dom.chatDrawerBackdrop) return;
+  if (dom.chatDrawerBackdrop.classList.contains("open")) {
+    closeChatDrawer();
+  } else {
+    openChatDrawer();
+  }
 }
 
 let marqueePollTimer = null;
@@ -2841,6 +2918,11 @@ async function fetchMarqueeData() {
     const res = await fetch(`/api/live/state?user_id=${getLiveUserId()}&username=${encodeURIComponent(getLiveUserName())}`);
     const json = await res.json();
     if (json.status === "success" && json.data) {
+      if (json.data.online_count) {
+        if (dom.liveOnlineCount) dom.liveOnlineCount.textContent = json.data.online_count;
+        if (dom.drawerOnlineCount) dom.drawerOnlineCount.textContent = json.data.online_count;
+        if (dom.chatFloatingBadge) dom.chatFloatingBadge.textContent = `${json.data.online_count}`;
+      }
       if (json.data.big_wins && json.data.big_wins.length > 0) {
         updateGlobalMarquee(json.data.big_wins);
       }
@@ -2912,6 +2994,8 @@ async function syncLiveRoomState() {
 
     // Update online count
     if (dom.liveOnlineCount) dom.liveOnlineCount.textContent = data.online_count;
+    if (dom.drawerOnlineCount) dom.drawerOnlineCount.textContent = data.online_count;
+    if (dom.chatFloatingBadge) dom.chatFloatingBadge.textContent = `${data.online_count}`;
 
     // Update Round UI
     updateLiveRoundUI(data.round, data.user_current_bet);
@@ -3115,6 +3199,13 @@ function handleLiveSettlement(settlement, newBalance) {
       hand: settlement.analysis?.hand_title_vi || "Thắng cược"
     };
 
+    if (dom.shareWinContainer) {
+      dom.shareWinContainer.style.display = "block";
+      if (dom.quickShareWinText) {
+        dom.quickShareWinText.textContent = `KHOE CHIẾN TÍCH (+${payout.total_won.toLocaleString()} Xu) LÊN PHÒNG CHAT`;
+      }
+    }
+
     if (payout.total_won >= (payout.total_bet || 10) * 5 && dom.winBanner) {
       soundEngine.playBigWin();
       telegramEngine.haptic("warning");
@@ -3191,9 +3282,9 @@ async function sendChatMessage(text) {
   } catch (e) {}
 }
 
-async function sendReaction(emoji) {
+async function sendReaction(emoji, originX) {
   try {
-    spawnFloatingEmoji(emoji);
+    spawnFloatingEmoji(emoji, originX);
     soundEngine.init();
     soundEngine.playChip();
     telegramEngine.haptic("light");
@@ -3205,15 +3296,21 @@ async function sendReaction(emoji) {
   } catch (e) {}
 }
 
-function spawnFloatingEmoji(emoji) {
+function spawnFloatingEmoji(emoji, originX) {
   if (!dom.floatingEmojisLayer) return;
   const span = document.createElement("span");
   span.className = "floating-emoji-item";
   span.textContent = emoji;
-  const randomLeft = 20 + Math.random() * 80;
-  span.style.left = `${randomLeft}px`;
+
+  let leftPercent;
+  if (originX !== undefined && typeof originX === "number" && originX > 0) {
+    leftPercent = Math.max(8, Math.min(88, (originX / window.innerWidth) * 100));
+  } else {
+    leftPercent = 12 + Math.random() * 76;
+  }
+  span.style.left = `${leftPercent}%`;
   dom.floatingEmojisLayer.appendChild(span);
-  setTimeout(() => span.remove(), 2200);
+  setTimeout(() => span.remove(), 2400);
 }
 
 function shareWinSlipAction() {
@@ -3223,10 +3320,13 @@ function shareWinSlipAction() {
     return;
   }
 
-  // Open chat panel if collapsed
-  if (dom.liveChatPanel && dom.liveChatPanel.classList.contains("collapsed")) {
-    toggleLiveChat();
-  }
+  // Open modern chat drawer
+  openChatDrawer();
+
+  // Burst celebratory emojis
+  spawnFloatingEmoji("💰");
+  setTimeout(() => spawnFloatingEmoji("🎉"), 150);
+  setTimeout(() => spawnFloatingEmoji("👑"), 300);
 
   const shareText = `🔥 Vừa húp trọn +${slip.amount.toLocaleString()} Xu (${slip.hand}) ở phiên ${slip.round_id}!`;
   fetch("/api/live/chat", {
@@ -3244,6 +3344,9 @@ function shareWinSlipAction() {
     soundEngine.playWinTone();
     telegramEngine.haptic("success");
     showToast("📢 Đã khoe chiến tích rực rỡ lên phòng chat!", "gold");
+    if (dom.shareWinContainer) {
+      dom.shareWinContainer.style.display = "none";
+    }
     syncLiveRoomState();
   });
 }
@@ -3273,6 +3376,9 @@ function renderChatMessages(messages) {
       </div>
     `;
   }).join("");
+
+  // Smooth scroll to latest
+  dom.chatMessagesContainer.scrollTop = dom.chatMessagesContainer.scrollHeight;
 }
 
 async function saveLiveRoomConfigAction() {

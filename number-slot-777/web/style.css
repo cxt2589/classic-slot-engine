@@ -33,6 +33,9 @@ button, input, select, textarea, optgroup {
 html {
   -webkit-text-size-adjust: 100%;
   overscroll-behavior-y: none;
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100vw;
 }
 
 body {
@@ -45,6 +48,9 @@ body {
   min-height: 100vh;
   min-height: var(--tg-viewport-stable-height, 100dvh);
   overscroll-behavior-y: none;
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100vw;
   -webkit-tap-highlight-color: transparent;
   user-select: none;
   -webkit-user-select: none;
@@ -53,12 +59,14 @@ body {
 
 .app-container {
   max-width: 1440px;
+  width: 100%;
   margin: 0 auto;
   padding: 0 16px;
   display: flex;
   flex-direction: column;
   min-height: 100vh;
   min-height: var(--tg-viewport-stable-height, 100dvh);
+  overflow-x: hidden;
 }
 
 /* TOP NAVIGATION */
@@ -450,10 +458,13 @@ body.is-telegram-app .brand-text .subtext {
 
 .reels-container {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 4px;
   padding: var(--reels-pad);
   background: #080910;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .reel-col {
@@ -463,6 +474,9 @@ body.is-telegram-app .brand-text .subtext {
   height: calc(var(--slot-cell-h) * 3); /* 3 visible rows */
   overflow: hidden;
   position: relative;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .strip {
@@ -4041,17 +4055,57 @@ body.is-telegram-app .brand-text .subtext {
 /* NARROW MOBILE (<= 480px) */
 @media (max-width: 480px) {
   :root {
-    --slot-cell-h: 80px;
+    --slot-cell-h: clamp(62px, 16.5vw, 76px);
     --reels-pad: 4px;
-    --slot-num-size: 2.1rem;
+    --slot-num-size: clamp(1.75rem, 5.5vw, 2.1rem);
+  }
+
+  .slot-cabinet, .betting-board {
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+    box-sizing: border-box;
   }
 
   .reels-container {
     gap: 3px;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .cabinet-action-bar {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 4px;
+  }
+
+  .sec-btn {
+    font-size: clamp(0.55rem, 2.2vw, 0.62rem);
+    padding: 0 1px;
+    height: 36px;
+    min-height: 36px;
+  }
+
+  .cabinet-social-bar {
+    padding: 6px 8px;
+    gap: 6px;
+  }
+
+  .rx-pill-btn {
+    font-size: 1.05rem;
+    padding: 3px 5px;
+  }
+
+  .open-chat-dock-btn {
+    padding: 5px 8px;
+    font-size: 0.66rem;
+  }
+
+  .quick-share-win-btn {
+    font-size: 0.74rem;
+    padding: 8px 10px;
   }
 
   .brand-text h1 {
-    font-size: 1.05rem;
+    font-size: 1.02rem;
   }
 
   .tg-user-pill {
@@ -4074,9 +4128,9 @@ body.is-telegram-app .brand-text .subtext {
 /* COMPACT / SMALL MOBILE (IPHONE SE, SMALL ANDROIDS <= 380px) */
 @media (max-width: 380px) {
   :root {
-    --slot-cell-h: 72px;
+    --slot-cell-h: clamp(52px, 14.5vw, 66px);
     --reels-pad: 3px;
-    --slot-num-size: 1.85rem;
+    --slot-num-size: clamp(1.5rem, 4.8vw, 1.85rem);
   }
 
   .app-container {
@@ -4086,10 +4140,19 @@ body.is-telegram-app .brand-text .subtext {
   .slot-cabinet, .betting-board {
     padding: 8px 4px;
     border-radius: 8px;
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+    box-sizing: border-box;
+  }
+
+  .reels-container {
+    gap: 2px;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 
   .brand-text h1 {
-    font-size: 0.92rem;
+    font-size: 0.88rem;
     letter-spacing: 0;
   }
 
@@ -4099,8 +4162,8 @@ body.is-telegram-app .brand-text .subtext {
   }
 
   .tg-user-name {
-    max-width: 60px;
-    font-size: 0.62rem;
+    max-width: 55px;
+    font-size: 0.6rem;
   }
 
   .icon-btn {
@@ -4110,9 +4173,9 @@ body.is-telegram-app .brand-text .subtext {
   }
 
   .bet-chip {
-    width: 28px;
-    height: 28px;
-    font-size: 0.65rem;
+    width: 27px;
+    height: 27px;
+    font-size: 0.62rem;
   }
 
   .marker-text {
@@ -4126,11 +4189,17 @@ body.is-telegram-app .brand-text .subtext {
     font-size: 0.8rem;
   }
 
+  .cabinet-action-bar {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 3px;
+  }
+
   .sec-btn {
-    height: 34px;
-    min-height: 34px;
-    max-height: 34px;
-    font-size: 0.58rem;
+    height: 32px;
+    min-height: 32px;
+    max-height: 32px;
+    font-size: 0.52rem;
+    padding: 0 1px;
   }
 
   .spin-btn {
@@ -4144,6 +4213,35 @@ body.is-telegram-app .brand-text .subtext {
 
   .spin-sub {
     font-size: 0.56rem;
+  }
+
+  .cabinet-social-bar {
+    padding: 4px 6px;
+    gap: 4px;
+  }
+
+  .rx-pill-btn {
+    font-size: 0.95rem;
+    padding: 2px 4px;
+  }
+
+  .open-chat-dock-btn {
+    padding: 4px 6px;
+    font-size: 0.6rem;
+  }
+
+  .dock-chat-lbl {
+    display: none;
+  }
+
+  .dock-chat-badge {
+    font-size: 0.56rem;
+    padding: 1px 4px;
+  }
+
+  .quick-share-win-btn {
+    font-size: 0.68rem;
+    padding: 6px 8px;
   }
 
   .res-tag {
@@ -5661,116 +5759,360 @@ body.is-telegram-app .brand-text .subtext {
   font-weight: 800;
 }
 
-/* 7.4 Floating Live Room Chat Panel */
-.live-chat-panel {
-  margin-top: 18px;
-  background: linear-gradient(145deg, #0f1424 0%, #080b14 100%);
-  border: 1px solid rgba(255, 215, 0, 0.25);
-  border-radius: 14px;
-  overflow: hidden;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
-  position: relative;
-  transition: all 0.3s ease;
+/* 7.4 Cabinet Social Bar & Quick Reactions (Directly under Slot Machine) */
+.cabinet-social-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 8px 10px;
+  background: rgba(14, 18, 32, 0.92);
+  border: 1px solid rgba(255, 215, 0, 0.22);
+  border-radius: 10px;
+  box-shadow: inset 0 1px 4px rgba(255, 255, 255, 0.05);
 }
 
-.live-chat-panel.collapsed .chat-body {
+.quick-reactions-strip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.quick-reactions-strip::-webkit-scrollbar {
   display: none;
 }
 
-.chat-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 16px;
-  background: rgba(18, 24, 42, 0.95);
-  border-bottom: 1px solid rgba(255, 215, 0, 0.15);
+.rx-pill-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  font-size: 1.15rem;
+  padding: 4px 7px;
+  line-height: 1;
   cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
   user-select: none;
+  flex-shrink: 0;
 }
 
-.chat-title {
-  display: flex;
+.rx-pill-btn:hover {
+  transform: scale(1.22);
+  background: rgba(255, 215, 0, 0.18);
+  border-color: rgba(255, 215, 0, 0.5);
+}
+
+.rx-pill-btn:active {
+  transform: scale(0.92);
+}
+
+.open-chat-dock-btn {
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  background: linear-gradient(135deg, rgba(0, 229, 255, 0.15) 0%, rgba(0, 150, 255, 0.1) 100%);
+  border: 1px solid rgba(0, 229, 255, 0.4);
+  color: #00e5ff;
   font-family: var(--font-display);
-  font-size: 0.85rem;
+  font-size: 0.72rem;
   font-weight: 800;
-  color: #e2e8f0;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
 }
 
-.chat-icon {
-  font-size: 1.1rem;
+.open-chat-dock-btn:hover {
+  background: linear-gradient(135deg, rgba(0, 229, 255, 0.3) 0%, rgba(0, 150, 255, 0.2) 100%);
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.35);
+  transform: translateY(-1px);
 }
 
-.chat-badge {
-  background: #ff1744;
-  color: #fff;
-  font-size: 0.65rem;
+.dock-chat-badge {
+  background: #00e676;
+  color: #070913;
+  font-size: 0.62rem;
   font-weight: 900;
-  padding: 1px 6px;
+  padding: 1px 5px;
   border-radius: 10px;
 }
 
-.chat-toggle-btn {
-  background: rgba(255, 215, 0, 0.1);
-  border: 1px solid rgba(255, 215, 0, 0.3);
-  color: #ffd700;
-  font-size: 0.72rem;
-  font-weight: 800;
-  padding: 4px 10px;
-  border-radius: 6px;
+/* Quick Share Win Slip Container */
+.share-win-container {
+  margin-top: 8px;
+  width: 100%;
+}
+
+.quick-share-win-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #ff8f00 0%, #ff6f00 40%, #e65100 100%);
+  border: 1.5px solid #ffd700;
+  border-radius: 10px;
+  color: #ffffff;
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  font-weight: 900;
+  padding: 10px 14px;
   cursor: pointer;
+  box-shadow: 0 4px 16px rgba(255, 111, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  animation: winSharePulse 1.6s infinite alternate;
+  transition: transform 0.15s ease, filter 0.15s ease;
 }
 
-.chat-body {
-  position: relative;
-  padding: 12px 14px;
+.quick-share-win-btn:hover {
+  transform: scale(1.02);
+  filter: brightness(1.15);
 }
 
-/* Floating Emoji Layer */
-.floating-emojis-layer {
-  position: absolute;
-  bottom: 80px;
+.quick-share-win-btn:active {
+  transform: scale(0.98);
+}
+
+@keyframes winSharePulse {
+  0% {
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.4), 0 4px 14px rgba(255, 111, 0, 0.4);
+  }
+  100% {
+    box-shadow: 0 0 22px rgba(255, 215, 0, 0.85), 0 6px 22px rgba(255, 111, 0, 0.7);
+  }
+}
+
+/* Fixed Floating Chat FAB Button */
+.fixed-chat-fab {
+  position: fixed;
+  bottom: 24px;
   right: 20px;
-  width: 120px;
-  height: 220px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #161c32 0%, #0c1020 100%);
+  border: 2px solid #ffd700;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.75), 0 0 15px rgba(255, 215, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 9998;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.fixed-chat-fab .fab-icon {
+  font-size: 1.5rem;
+}
+
+.fixed-chat-fab .fab-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: #ff1744;
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 0.55rem;
+  font-weight: 900;
+  padding: 2px 5px;
+  border-radius: 10px;
+  border: 1px solid #fff;
+  animation: onlinePulse 1.8s infinite;
+}
+
+.fixed-chat-fab:hover {
+  transform: scale(1.1);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.85), 0 0 22px rgba(255, 215, 0, 0.7);
+}
+
+.fixed-chat-fab:active {
+  transform: scale(0.92);
+}
+
+/* Fullscreen Floating Emojis Layer */
+.floating-emojis-layer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
   pointer-events: none;
-  overflow: visible;
-  z-index: 50;
+  z-index: 999999;
+  overflow: hidden;
 }
 
 .floating-emoji-item {
   position: absolute;
-  bottom: 0;
-  font-size: 1.8rem;
-  animation: floatUpAnim 2.2s ease-out forwards;
-  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.6));
+  bottom: 120px;
+  font-size: clamp(2rem, 5.5vw, 2.9rem);
+  line-height: 1;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.7));
+  animation: floatEmojiUp 2.3s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  pointer-events: none;
 }
 
-@keyframes floatUpAnim {
+@keyframes floatEmojiUp {
   0% {
-    transform: translateY(0) scale(0.6) rotate(0deg);
-    opacity: 0.9;
+    transform: translateY(0) scale(0.35) rotate(0deg);
+    opacity: 0;
   }
-  50% {
-    transform: translateY(-90px) scale(1.2) rotate(15deg);
+  15% {
+    transform: translateY(-40px) scale(1.25) rotate(-6deg);
     opacity: 1;
   }
+  45% {
+    transform: translateY(-160px) scale(1.1) rotate(6deg);
+    opacity: 0.95;
+  }
+  75% {
+    transform: translateY(-310px) scale(0.95) rotate(-4deg);
+    opacity: 0.75;
+  }
   100% {
-    transform: translateY(-200px) scale(0.8) rotate(-15deg);
+    transform: translateY(-450px) scale(0.7) rotate(0deg);
     opacity: 0;
   }
 }
 
-/* Chat Messages Stream */
-.chat-messages-container {
-  max-height: 200px;
-  overflow-y: auto;
+/* Modern Slide-In Chat Drawer & Backdrop */
+.chat-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(4, 6, 12, 0.68);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  z-index: 99999;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.chat-drawer-backdrop.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.chat-drawer-panel {
+  position: absolute;
+  background: #0d1120;
+  box-shadow: 0 0 35px rgba(0, 0, 0, 0.85);
   display: flex;
-  flex-direction: column-reverse; /* newest at bottom */
-  gap: 8px;
-  padding-right: 4px;
-  margin-bottom: 10px;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Desktop & Tablet: Slide in from right */
+@media (min-width: 641px) {
+  .chat-drawer-panel {
+    top: 0;
+    right: 0;
+    width: 400px;
+    max-width: 90vw;
+    height: 100%;
+    border-left: 1.5px solid rgba(255, 215, 0, 0.35);
+    transform: translateX(100%);
+    transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .chat-drawer-backdrop.open .chat-drawer-panel {
+    transform: translateX(0);
+  }
+}
+
+/* Mobile: Bottom sheet slide up */
+@media (max-width: 640px) {
+  .chat-drawer-panel {
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: 80vh;
+    max-height: 85vh;
+    border-radius: 20px 20px 0 0;
+    border-top: 1.5px solid rgba(255, 215, 0, 0.4);
+    transform: translateY(100%);
+    transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .chat-drawer-backdrop.open .chat-drawer-panel {
+    transform: translateY(0);
+  }
+}
+
+.chat-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: rgba(18, 24, 42, 0.95);
+  border-bottom: 1px solid rgba(255, 215, 0, 0.18);
+  flex-shrink: 0;
+}
+
+.drawer-header-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.drawer-header-icon {
+  font-size: 1.35rem;
+}
+
+.drawer-header-title {
+  font-family: var(--font-display);
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: #ffd700;
+  letter-spacing: 0.5px;
+}
+
+.drawer-header-sub {
+  font-size: 0.68rem;
+  color: #a0aec0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.online-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #00e676;
+  box-shadow: 0 0 6px #00e676;
+}
+
+.drawer-close-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #e2e8f0;
+  font-size: 1.1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.drawer-close-btn:hover {
+  background: rgba(255, 23, 68, 0.25);
+  border-color: #ff1744;
+  color: #ff5252;
+}
+
+/* Chat Messages Container */
+.chat-messages-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  scrollbar-width: thin;
 }
 
 .chat-messages-container::-webkit-scrollbar {
@@ -5790,16 +6132,16 @@ body.is-telegram-app .brand-text .subtext {
 }
 
 .chat-msg-avatar {
-  font-size: 1rem;
+  font-size: 1.15rem;
   line-height: 1;
 }
 
 .chat-msg-content {
   flex: 1;
   background: rgba(255, 255, 255, 0.04);
-  padding: 5px 10px;
+  padding: 6px 10px;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .chat-msg-author {
@@ -5823,43 +6165,45 @@ body.is-telegram-app .brand-text .subtext {
 
 /* Win Share Slip Card in Chat */
 .chat-msg-row.win-share .chat-msg-content {
-  background: linear-gradient(135deg, rgba(255, 215, 0, 0.15) 0%, rgba(255, 143, 0, 0.08) 100%);
-  border: 1px solid #ffd700;
-  box-shadow: 0 0 10px rgba(255, 215, 0, 0.2);
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.16) 0%, rgba(255, 143, 0, 0.08) 100%);
+  border: 1.5px solid #ffd700;
+  box-shadow: 0 0 12px rgba(255, 215, 0, 0.22);
 }
 
 .chat-win-slip {
   display: flex;
   flex-direction: column;
   gap: 3px;
-  margin-top: 4px;
+  margin-top: 5px;
   padding: 6px 8px;
-  background: rgba(0, 0, 0, 0.35);
+  background: rgba(0, 0, 0, 0.4);
   border-radius: 6px;
+  border-left: 3px solid #ffd700;
 }
 
 .cws-title {
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   color: #ffd700;
   font-weight: 800;
 }
 
 .cws-amt {
   font-family: var(--font-numbers);
-  font-size: 1.1rem;
+  font-size: 1.15rem;
   font-weight: 900;
   color: #76ff03;
 }
 
-/* Quick Canned Messages Bar */
+/* Quick Canned Messages Bar inside Drawer */
 .chat-canned-bar {
   display: flex;
   gap: 6px;
   overflow-x: auto;
-  padding-bottom: 6px;
-  margin-bottom: 8px;
+  padding: 8px 12px 4px 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+  scrollbar-width: none;
 }
-
 .chat-canned-bar::-webkit-scrollbar {
   display: none;
 }
@@ -5873,7 +6217,8 @@ body.is-telegram-app .brand-text .subtext {
   border-radius: 14px;
   white-space: nowrap;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
 }
 
 .canned-btn:hover {
@@ -5882,55 +6227,58 @@ body.is-telegram-app .brand-text .subtext {
   color: #ffd700;
 }
 
-/* Reaction Emoji Toolbar */
+/* Reactions Toolbar inside Drawer */
 .chat-reactions-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 10px;
-  padding: 4px 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 6px 12px;
+  flex-shrink: 0;
 }
 
 .rx-label {
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   color: #718096;
   font-weight: 700;
 }
 
 .rx-btn-group {
   display: flex;
-  gap: 8px;
+  gap: 6px;
 }
 
 .rx-btn {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  font-size: 1.15rem;
-  border-radius: 8px;
-  padding: 3px 6px;
+  font-size: 1.1rem;
+  border-radius: 6px;
+  padding: 3px 5px;
   cursor: pointer;
   transition: transform 0.15s ease, background 0.15s ease;
   line-height: 1;
 }
 
 .rx-btn:hover {
-  transform: scale(1.25);
+  transform: scale(1.2);
   background: rgba(255, 215, 0, 0.2);
 }
 
-/* Chat Input Form */
+/* Chat Input Form inside Drawer */
 .chat-form {
   display: flex;
   gap: 8px;
+  padding: 8px 12px 14px 12px;
+  background: rgba(14, 18, 32, 0.95);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
 }
 
 .chat-form input {
   flex: 1;
-  background: rgba(0, 0, 0, 0.45);
+  background: rgba(0, 0, 0, 0.5);
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 8px;
-  padding: 8px 12px;
+  padding: 9px 12px;
   font-size: 0.8rem;
   color: #e2e8f0;
   outline: none;

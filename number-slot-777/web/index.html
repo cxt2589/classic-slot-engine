@@ -6,7 +6,7 @@
   <meta name="format-detection" content="telephone=no">
   <title>Lucky Numbers 777 - Classic 5x3 Number Slot</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <link rel="stylesheet" href="/static/style.css?v=20261001_live1">
+  <link rel="stylesheet" href="/static/style.css?v=20261001_live3">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600;1,700&family=Orbitron:wght@600;700;800;900&display=swap&subset=vietnamese" rel="stylesheet">
@@ -93,44 +93,38 @@
 
     <!-- TAB 1: GAMEPLAY -->
     <main id="tab-game" class="tab-content active">
-      <!-- GAMEPLAY MODE SWITCHER (CHƠI ĐƠN VS PHÒNG TRỰC TIẾP) -->
+      <!-- GAMEPLAY MODE SWITCHER & LIVE INDICATOR (COMPACT BAR) -->
       <div class="game-mode-bar">
         <div class="mode-switch-group">
           <button class="mode-switch-btn active" id="btnModeSolo" data-mode="solo">
             <span class="m-icon">👤</span>
-            <div class="m-text">
-              <span class="m-title">CHƠI ĐƠN (SOLO SPIN)</span>
-              <span class="m-sub">Tự quay ngay • Không phải chờ</span>
-            </div>
+            <span class="m-title">CHƠI ĐƠN</span>
           </button>
           <button class="mode-switch-btn" id="btnModeLive" data-mode="live">
             <span class="m-icon">👥</span>
-            <div class="m-text">
-              <span class="m-title">PHÒNG TRỰC TIẾP (LIVE ROOM)</span>
-              <span class="m-sub live-pill-pulse">🔴 Phiên Đồng Bộ <span id="modeLiveSecLbl">30s</span></span>
-            </div>
+            <span class="m-title">TRỰC TIẾP <span class="live-dot-pulse">🔴</span> <span id="modeLiveSecLbl">30s</span></span>
           </button>
         </div>
 
         <div class="live-room-online-pill" id="liveRoomOnlinePill" style="display:none">
           <span class="online-indicator"></span>
-          <span class="online-txt"><strong id="liveOnlineCount">148</strong> người đang tham gia</span>
+          <span class="online-txt"><strong id="liveOnlineCount">148</strong> đang cược</span>
         </div>
       </div>
 
-      <!-- LIVE ROUND COUNTDOWN BANNER (ĐỒNG HỒ PHIÊN ĐỒNG BỘ 30S) -->
+      <!-- LIVE ROUND COUNTDOWN BANNER (COMPACT NEON STRIP) -->
       <div class="live-round-banner" id="liveRoundBanner" style="display:none">
         <div class="lr-head">
           <div class="lr-round-info">
-            <span class="lr-tag">PHIÊN ĐỒNG BỘ:</span>
+            <span class="lr-tag">PHIÊN:</span>
             <strong class="lr-round-id glow-gold" id="liveRoundId">LR-10820</strong>
           </div>
           <div class="lr-phase-badge betting" id="livePhaseBadge">
             <span class="lr-phase-dot"></span>
-            <span id="livePhaseText">ĐANG MỞ CƯỢC</span>
+            <span id="livePhaseText">ĐANG CƯỢC</span>
           </div>
           <div class="lr-countdown-box">
-            <span class="lr-cd-lbl">THỜI GIAN CÒN LẠI</span>
+            <span class="lr-cd-lbl">CÒN</span>
             <span class="lr-cd-val glow-gold" id="liveTimerVal">30s</span>
           </div>
         </div>
@@ -140,7 +134,7 @@
         </div>
 
         <div class="lr-foot">
-          <span class="lr-hint" id="liveRoundHint">⏳ Hãy chọn chip đặt cược trước khi hết thời gian đếm ngược!</span>
+          <span class="lr-hint" id="liveRoundHint">⏳ Hãy đặt cược trước khi hết thời gian!</span>
           <span class="lr-bet-status glow-cyan" id="liveBetStatus">Chưa đặt cược phiên này</span>
         </div>
       </div>
@@ -226,6 +220,32 @@
           <!-- Winning Items Detail Breakdown -->
           <div class="win-pills-list" id="winPillsList">
             <!-- Dynamically populated -->
+          </div>
+
+          <!-- Khoe Chiến Tích Thắng Cược (Quick Share Win) -->
+          <div class="share-win-container" id="shareWinContainer" style="display:none">
+            <button id="btnQuickShareWin" class="quick-share-win-btn animate-glow" title="Khoe chiến tích thắng cược vào phòng chat">
+              <span class="share-btn-icon">📢</span>
+              <span class="share-btn-text" id="quickShareWinText">KHOE CHIẾN TÍCH (+1,250 Xu) LÊN PHÒNG CHAT</span>
+              <span class="share-btn-sparkle">✨</span>
+            </button>
+          </div>
+
+          <!-- Social & Reaction Bar (Thao Tác Tương Tác Trực Tiếp Ngay Dưới Máy Quay) -->
+          <div class="cabinet-social-bar" id="cabinetSocialBar">
+            <div class="quick-reactions-strip" title="Thả cảm xúc trực tiếp lên màn hình">
+              <button class="rx-pill-btn" data-emoji="❤️" title="Thả Tim">❤️</button>
+              <button class="rx-pill-btn" data-emoji="🔥" title="Thả Lửa">🔥</button>
+              <button class="rx-pill-btn" data-emoji="💰" title="Thả Tiền">💰</button>
+              <button class="rx-pill-btn" data-emoji="👑" title="Thả Vương Miện">👑</button>
+              <button class="rx-pill-btn" data-emoji="🎉" title="Thả Pháo Hoa">🎉</button>
+              <button class="rx-pill-btn" data-emoji="🚀" title="Thả Tên Lửa">🚀</button>
+            </div>
+            <button class="open-chat-dock-btn" id="btnOpenChatDock" title="Mở phòng chat trực tiếp">
+              <span class="dock-chat-icon">💬</span>
+              <span class="dock-chat-lbl">CHAT PHÒNG</span>
+              <span class="dock-chat-badge" id="chatFloatingBadge">148</span>
+            </button>
           </div>
         </div>
 
@@ -845,57 +865,6 @@
         </div>
       </div>
 
-      <!-- FLOATING LIVE ROOM CHAT & REACTION SOCIAL ENGINE -->
-      <div class="live-chat-panel collapsed" id="liveChatPanel">
-        <div class="chat-header" id="chatHeaderToggle">
-          <div class="chat-title">
-            <span class="chat-icon">💬</span>
-            <span class="chat-label">PHÒNG CHAT TRỰC TIẾP</span>
-            <span class="chat-badge" id="chatUnreadCount" style="display:none">0</span>
-          </div>
-          <div class="chat-header-actions">
-            <button class="chat-toggle-btn" id="btnToggleChat" title="Thu nhỏ / Mở rộng">▲ MỞ CHAT</button>
-          </div>
-        </div>
-
-        <div class="chat-body" id="chatBody">
-          <!-- Floating Reaction Animation Container -->
-          <div class="floating-emojis-layer" id="floatingEmojisLayer"></div>
-
-          <!-- Messages Stream Container -->
-          <div class="chat-messages-container" id="chatMessagesContainer">
-            <!-- Messages dynamically populated by app.js -->
-          </div>
-
-          <!-- Quick Canned Messages Bar -->
-          <div class="chat-canned-bar">
-            <button class="canned-btn" data-msg="Húp trọn anh em ơi! 🎉">🎉 Húp trọn</button>
-            <button class="canned-btn" data-msg="Tay này bệt Tài chắc luôn! 🎯">🎯 Bệt Tài</button>
-            <button class="canned-btn" data-msg="Vào Xỉu gỡ vốn nào! 🎲">🎲 Vào Xỉu</button>
-            <button class="canned-btn" data-msg="Sắp nổ hũ Thần Tài rồi! 👑">👑 Sắp nổ hũ</button>
-            <button class="canned-btn" data-msg="Chúc mừng anh em thắng lớn! 💰">💰 Chúc mừng</button>
-          </div>
-
-          <!-- Reaction Emoji Toolbar -->
-          <div class="chat-reactions-toolbar">
-            <span class="rx-label">Thả cảm xúc:</span>
-            <div class="rx-btn-group">
-              <button class="rx-btn" data-emoji="❤️" title="Thả Tim">❤️</button>
-              <button class="rx-btn" data-emoji="🔥" title="Thả Lửa">🔥</button>
-              <button class="rx-btn" data-emoji="💰" title="Thả Tiền">💰</button>
-              <button class="rx-btn" data-emoji="👑" title="Thả Vương Miện">👑</button>
-              <button class="rx-btn" data-emoji="🎉" title="Thả Pháo Hoa">🎉</button>
-              <button class="rx-btn" data-emoji="🚀" title="Thả Tên Lửa">🚀</button>
-            </div>
-          </div>
-
-          <!-- Chat Input Form -->
-          <form class="chat-form" id="chatForm">
-            <input type="text" id="chatInput" placeholder="Nhắn tin với mọi người trong phòng..." maxlength="120" autocomplete="off">
-            <button type="submit" class="chat-submit-btn" id="btnSubmitChat">GỬI</button>
-          </form>
-        </div>
-      </div>
     </main>
 
     <!-- TAB 2: MATH SIMULATOR -->
@@ -1738,6 +1707,64 @@ Content-Type: application/json
     </footer>
   </div>
 
-  <script src="/static/app.js?v=20261001_live1"></script>
+  <!-- FLOATING FULL-SCREEN EMOJIS LAYER -->
+  <div class="floating-emojis-layer" id="floatingEmojisLayer"></div>
+
+  <!-- FIXED FLOATING CHAT BUTTON (FAB) -->
+  <button class="fixed-chat-fab" id="btnFixedChatFab" title="Mở phòng chat trực tiếp">
+    <span class="fab-icon">💬</span>
+    <span class="fab-badge" id="chatFabBadge">LIVE</span>
+  </button>
+
+  <!-- MODERN SLIDE-IN CHAT DRAWER WITH BACKDROP -->
+  <div class="chat-drawer-backdrop" id="chatDrawerBackdrop">
+    <div class="chat-drawer-panel" id="chatDrawerPanel">
+      <div class="chat-drawer-header">
+        <div class="drawer-header-info">
+          <span class="drawer-header-icon">💬</span>
+          <div>
+            <div class="drawer-header-title">PHÒNG CHAT TRỰC TIẾP</div>
+            <div class="drawer-header-sub"><span class="online-dot"></span> <span id="drawerOnlineCount">148</span> người đang tham gia</div>
+          </div>
+        </div>
+        <button class="drawer-close-btn" id="btnCloseChatDrawer" title="Đóng phòng chat">✕</button>
+      </div>
+
+      <!-- Messages Container -->
+      <div class="chat-messages-container" id="chatMessagesContainer">
+        <!-- Populated dynamically -->
+      </div>
+
+      <!-- Quick Canned Message Chips -->
+      <div class="chat-canned-bar">
+        <button class="canned-btn" data-msg="Húp trọn anh em ơi! 🎉">🎉 Húp trọn</button>
+        <button class="canned-btn" data-msg="Tay này bệt Tài chắc luôn! 🎯">🎯 Bệt Tài</button>
+        <button class="canned-btn" data-msg="Vào Xỉu gỡ vốn nào! 🎲">🎲 Vào Xỉu</button>
+        <button class="canned-btn" data-msg="Sắp nổ hũ Thần Tài rồi! 👑">👑 Sắp nổ hũ</button>
+        <button class="canned-btn" data-msg="Chúc mừng anh em thắng lớn! 💰">💰 Chúc mừng</button>
+      </div>
+
+      <!-- Drawer Reaction Emoji Bar -->
+      <div class="chat-reactions-toolbar">
+        <span class="rx-label">Thả cảm xúc:</span>
+        <div class="rx-btn-group">
+          <button class="rx-btn" data-emoji="❤️" title="Thả Tim">❤️</button>
+          <button class="rx-btn" data-emoji="🔥" title="Thả Lửa">🔥</button>
+          <button class="rx-btn" data-emoji="💰" title="Thả Tiền">💰</button>
+          <button class="rx-btn" data-emoji="👑" title="Thả Vương Miện">👑</button>
+          <button class="rx-btn" data-emoji="🎉" title="Thả Pháo Hoa">🎉</button>
+          <button class="rx-btn" data-emoji="🚀" title="Thả Tên Lửa">🚀</button>
+        </div>
+      </div>
+
+      <!-- Input Form -->
+      <form class="chat-form" id="chatForm">
+        <input type="text" id="chatInput" placeholder="Nhắn tin với mọi người trong phòng..." maxlength="120" autocomplete="off">
+        <button type="submit" class="chat-submit-btn" id="btnSubmitChat">GỬI</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="/static/app.js?v=20261001_live3"></script>
 </body>
 </html>
