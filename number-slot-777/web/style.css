@@ -5006,47 +5006,161 @@ body.is-telegram-app .brand-text .subtext {
 }
 
 .fortune-mode-selector {
-  display: flex;
-  background: #0d101c;
-  border: 1px solid #23283c;
-  border-radius: 8px;
-  padding: 3px;
-  gap: 4px;
+  display: inline-flex;
+  background: #080b15;
+  border: 1.5px solid #232d48;
+  border-radius: 30px;
+  padding: 4px;
+  gap: 6px;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.7);
+  position: relative;
+  align-items: center;
 }
 
 .fmode-tab {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  gap: 7px;
   background: transparent;
-  border: none;
-  color: #a0aec0;
+  border: 1.5px solid transparent;
+  color: #64748b;
   font-family: var(--font-display);
-  font-size: 0.72rem;
+  font-size: 0.74rem;
   font-weight: 800;
-  padding: 5px 12px;
-  border-radius: 6px;
+  padding: 6px 14px;
+  border-radius: 22px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   white-space: nowrap;
+  user-select: none;
+  position: relative;
+  opacity: 0.65;
 }
 
 .fmode-tab:hover {
-  color: #fff;
-  background: rgba(255, 255, 255, 0.06);
+  color: #e2e8f0;
+  opacity: 0.95;
+  background: rgba(255, 255, 255, 0.05);
 }
 
-.fmode-tab.active {
-  background: #1c2237;
+/* LED Indicator inside tabs */
+.fmode-led {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #475569;
+  display: inline-block;
+  transition: all 0.25s ease;
+}
+
+/* Status Badge inside tabs */
+.fmode-status-badge {
+  display: none;
+  font-size: 0.56rem;
+  font-weight: 900;
+  padding: 1px 6px;
+  border-radius: 10px;
+  letter-spacing: 0.4px;
+  line-height: 1.2;
+}
+
+/* ============================================================
+   ACTIVE STATE 1: CHẾ ĐỘ TỰ DO (CYAN NEON GLOW SÁNG BỪNG)
+   ============================================================ */
+.fmode-tab#btnFModeFree.active {
+  background: linear-gradient(135deg, #00e5ff 0%, #0099cc 100%) !important;
+  color: #020817 !important;
+  border: 1.5px solid #ffffff !important;
+  box-shadow: 0 0 18px rgba(0, 229, 255, 0.95), 0 0 35px rgba(0, 153, 204, 0.6), inset 0 1px 2px #ffffff !important;
+  font-weight: 900 !important;
+  opacity: 1 !important;
+  transform: scale(1.02);
+  animation: freeModeGlow 2.5s infinite alternate;
+}
+
+.fmode-tab#btnFModeFree.active .fmode-led {
+  background: #020817 !important;
+  box-shadow: 0 0 6px #020817;
+}
+
+.fmode-tab#btnFModeFree.active .fmode-status-badge {
+  display: inline-block;
+  background: rgba(2, 8, 23, 0.88);
   color: #00e5ff;
-  box-shadow: 0 0 10px rgba(0, 229, 255, 0.25);
+  border: 1px solid rgba(0, 229, 255, 0.6);
 }
 
-.fmode-tab.gold-btn.active {
-  background: linear-gradient(135deg, rgba(255, 215, 0, 0.25) 0%, rgba(255, 145, 0, 0.25) 100%);
-  color: #ffd700;
-  border: 1px solid rgba(255, 215, 0, 0.6);
-  box-shadow: 0 0 14px rgba(255, 215, 0, 0.4);
+/* ============================================================
+   ACTIVE STATE 2: KHÓA SỐ THẦN TÀI (GOLD AURA NEON SÁNG BỪNG)
+   ============================================================ */
+.fmode-tab#btnFModeFortune.active {
+  background: linear-gradient(135deg, #ffe066 0%, #ffb703 50%, #fb8500 100%) !important;
+  color: #020817 !important;
+  border: 1.5px solid #ffffff !important;
+  box-shadow: 0 0 25px rgba(255, 215, 0, 1), 0 0 45px rgba(251, 133, 0, 0.7), inset 0 1px 2px #ffffff !important;
+  font-weight: 900 !important;
+  opacity: 1 !important;
+  transform: scale(1.02);
+  animation: fortuneModeGlow 1.8s infinite alternate;
+}
+
+.fmode-tab#btnFModeFortune.active .fmode-led {
+  background: #ff1744 !important;
+  box-shadow: 0 0 8px #ff1744;
+  animation: ledBlink 1s infinite alternate;
+}
+
+.fmode-tab#btnFModeFortune.active .fmode-status-badge {
+  display: inline-block;
+  background: #d90429;
+  color: #ffffff;
+  box-shadow: 0 0 8px rgba(217, 4, 41, 0.8);
+}
+
+/* Animations for Active Glow */
+@keyframes freeModeGlow {
+  0% {
+    box-shadow: 0 0 14px rgba(0, 229, 255, 0.8), 0 0 24px rgba(0, 153, 204, 0.4);
+  }
+  100% {
+    box-shadow: 0 0 24px rgba(0, 229, 255, 1), 0 0 42px rgba(0, 229, 255, 0.7), inset 0 0 6px #ffffff;
+  }
+}
+
+@keyframes fortuneModeGlow {
+  0% {
+    box-shadow: 0 0 18px rgba(255, 215, 0, 0.85), 0 0 30px rgba(251, 133, 0, 0.5);
+  }
+  100% {
+    box-shadow: 0 0 28px rgba(255, 215, 0, 1), 0 0 52px rgba(255, 183, 3, 0.85), inset 0 0 8px #ffffff;
+  }
+}
+
+@keyframes ledBlink {
+  0% { opacity: 0.4; transform: scale(0.85); }
+  100% { opacity: 1; transform: scale(1.2); }
+}
+
+/* Section Header Highlights based on active mode */
+.bet-section-header-f {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 8px 12px;
+  background: rgba(13, 16, 28, 0.6);
+  border: 1px solid #1e2438;
+  border-radius: 10px;
+  transition: all 0.3s ease;
+}
+
+.bet-section-header-f.mode-fortune-active {
+  border-color: rgba(255, 215, 0, 0.7);
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.08) 0%, rgba(251, 133, 0, 0.04) 100%);
+  box-shadow: 0 0 18px rgba(255, 215, 0, 0.25);
 }
 
 /* FORTUNE LOCK CONTROL CARD */
