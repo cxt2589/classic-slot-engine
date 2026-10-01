@@ -1504,7 +1504,9 @@ function getLiveRoundInfo() {
           username: "HỆ THỐNG",
           avatar: "🧧",
           text: `🧧 ${userName} vừa PHÁT LỘC +${sendAmt.toLocaleString()} Xu cho cả phòng! Mau chạm vào bao lì xì để nhặt! 🎉`,
-          type: "system",
+          type: "red_packet",
+          packet_id: packetObj.id,
+          amount: sendAmt,
           time: Date.now()
         };
         const curMsgs = await getKVChatMessages(env);

@@ -6488,24 +6488,124 @@ body.is-telegram-app .brand-text .subtext {
   50% { opacity: 1; text-shadow: 0 0 6px rgba(0, 229, 255, 0.8); }
 }
 
-/* Red Packet Rain Layer (Mưa Lì Xì Rơi) */
+/* Red Packet Rain Layer (Mưa Lì Xì Rơi & Lớp Chặn Chạm Nhầm) */
 .red-packet-rain-layer {
   position: fixed;
   inset: 0;
   pointer-events: none;
   z-index: 999998;
   overflow: hidden;
+  opacity: 0;
+  transition: opacity 0.25s ease;
 }
 
+.red-packet-rain-layer.active {
+  pointer-events: auto;
+  opacity: 1;
+  background: rgba(8, 12, 24, 0.65);
+  backdrop-filter: blur(2.5px);
+  -webkit-backdrop-filter: blur(2.5px);
+}
+
+/* Banner hướng dẫn lễ hội trên đỉnh */
+.rp-rain-header {
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: linear-gradient(135deg, rgba(220, 38, 38, 0.95), rgba(153, 27, 27, 0.95));
+  border: 1.5px solid #ffd700;
+  border-radius: 999px;
+  padding: 8px 24px;
+  box-shadow: 0 8px 25px rgba(220, 38, 38, 0.6), 0 0 15px rgba(255, 215, 0, 0.5);
+  z-index: 10;
+  pointer-events: auto;
+  max-width: 90vw;
+  text-align: center;
+  animation: bounceInDown 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.rp-rain-title {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 900;
+  color: #ffd700;
+  letter-spacing: 0.5px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.rp-rain-sub {
+  font-size: 0.72rem;
+  color: #ffffff;
+  opacity: 0.95;
+  font-weight: 600;
+}
+
+/* Thanh bấm nhận nhanh bên dưới màn hình */
+.rp-quick-claim-wrap {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.rp-quick-claim-btn {
+  background: linear-gradient(135deg, #ffd700 0%, #ff8f00 100%);
+  color: #5c1800;
+  border: 2px solid #ffffff;
+  font-family: var(--font-display);
+  font-size: 0.94rem;
+  font-weight: 900;
+  padding: 12px 30px;
+  border-radius: 999px;
+  box-shadow: 0 8px 25px rgba(255, 215, 0, 0.65), 0 0 20px rgba(255, 143, 0, 0.5);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  animation: pulseQuickClaim 1.1s infinite alternate ease-in-out;
+  touch-action: manipulation;
+}
+
+.rp-quick-claim-btn:active {
+  transform: scale(0.95);
+}
+
+@keyframes pulseQuickClaim {
+  0% { transform: scale(1); box-shadow: 0 6px 20px rgba(255, 215, 0, 0.5); }
+  100% { transform: scale(1.06); box-shadow: 0 10px 30px rgba(255, 215, 0, 0.85), 0 0 25px rgba(255, 143, 0, 0.7); }
+}
+
+.rp-dismiss-hint {
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.75);
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 4px 10px;
+}
+
+/* Bao lì xì rơi: Kích thước lớn, viền vàng kim, có hitbox mở rộng cực nhạy */
 .falling-red-packet {
   position: absolute;
-  top: -60px;
-  width: 44px;
-  height: 54px;
-  background: linear-gradient(135deg, #ff1744 0%, #c62828 100%);
-  border: 1.5px solid #ffd700;
-  border-radius: 8px;
-  box-shadow: 0 6px 16px rgba(198, 40, 40, 0.6), 0 0 10px rgba(255, 215, 0, 0.5);
+  top: -80px;
+  width: 60px;
+  height: 76px;
+  background: linear-gradient(145deg, #ff1744 0%, #b71c1c 100%);
+  border: 2px solid #ffd700;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(220, 38, 38, 0.65), 0 0 14px rgba(255, 215, 0, 0.6);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -6513,39 +6613,89 @@ body.is-telegram-app .brand-text .subtext {
   cursor: pointer;
   pointer-events: auto;
   user-select: none;
-  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
-  animation: fallDown linear forwards;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  transition: transform 0.12s ease-out, opacity 0.2s ease;
+  animation: fallDownSway linear forwards;
+  z-index: 5;
+}
+
+/* Mở rộng vùng cảm ứng thêm 25px mỗi hướng (Hitbox thực tế ~110px x 126px) */
+.falling-red-packet::before {
+  content: "";
+  position: absolute;
+  top: -25px;
+  bottom: -25px;
+  left: -25px;
+  right: -25px;
+  border-radius: 20px;
+  cursor: pointer;
+  z-index: 6;
 }
 
 .falling-red-packet:hover {
-  transform: scale(1.18) rotate(5deg) !important;
+  transform: scale(1.15) rotate(6deg) !important;
+}
+
+.falling-red-packet:active {
+  transform: scale(1.25) !important;
 }
 
 .falling-red-packet .rp-icon {
-  font-size: 1.3rem;
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
+  font-size: 1.8rem;
+  filter: drop-shadow(0 2px 5px rgba(0,0,0,0.45));
 }
 
 .falling-red-packet .rp-text {
-  font-size: 0.54rem;
+  font-size: 0.62rem;
   color: #ffd700;
   font-weight: 900;
   font-family: var(--font-display);
-  letter-spacing: 0.5px;
+  letter-spacing: 0.8px;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.7);
 }
 
-@keyframes fallDown {
+@keyframes fallDownSway {
   0% {
     transform: translateY(0) rotate(0deg);
     opacity: 1;
   }
-  85% {
-    opacity: 1;
+  25% {
+    transform: translateY(28vh) rotate(10deg);
+  }
+  50% {
+    transform: translateY(55vh) rotate(-10deg);
+  }
+  75% {
+    transform: translateY(82vh) rotate(8deg);
   }
   100% {
-    transform: translateY(105vh) rotate(360deg);
-    opacity: 0;
+    transform: translateY(105vh) rotate(-6deg);
+    opacity: 0.8;
   }
+}
+
+/* Nút nhận lì xì trực tiếp trong khung Chat */
+.chat-claim-packet-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  padding: 6px 14px;
+  background: linear-gradient(135deg, #ffd700 0%, #ff9800 100%);
+  color: #5c1800;
+  border: 1px solid #ffffff;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.45);
+  transition: transform 0.15s ease;
+  touch-action: manipulation;
+}
+
+.chat-claim-packet-btn:active {
+  transform: scale(0.95);
 }
 
 /* Global Jackpot Celebration Alert Popup */
