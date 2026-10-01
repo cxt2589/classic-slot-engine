@@ -6,7 +6,7 @@
   <meta name="format-detection" content="telephone=no">
   <title>Lucky Numbers 777 - Classic 5x3 Number Slot</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <link rel="stylesheet" href="/static/style.css?v=20261001_fortune6">
+  <link rel="stylesheet" href="/static/style.css?v=20261001_live1">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600;1,700&family=Orbitron:wght@600;700;800;900&display=swap&subset=vietnamese" rel="stylesheet">
@@ -77,8 +77,74 @@
       </div>
     </header>
 
+    <!-- GLOBAL MARQUEE TICKER (THÔNG BÁO NỔ HŨ & THẮNG LỚN TOÀN SERVER) -->
+    <div class="global-marquee-banner" id="globalMarqueeBanner">
+      <div class="marquee-badge">🏆 BẢNG VÀNG</div>
+      <div class="marquee-track">
+        <div class="marquee-text" id="marqueeText">
+          <span>🔥 Chúc mừng <strong>VIP_8888</strong> vừa thắng lớn <strong>+25,000 Xu</strong> (Tứ Quý 7-7-7-7)!</span>
+          <span>🎉 Chúc mừng <strong>Dragon99</strong> vừa húp trọn <strong>+15,600 Xu</strong> (Tứ Quý 8-8-8-8)!</span>
+          <span>👑 Quỹ Thần Tài tích lũy đang bùng nổ: <strong class="glow-gold">35,000 Xu</strong>!</span>
+          <span>⚡ <strong>MinhBao777</strong> vừa thắng <strong>+20,500 Xu</strong> (Cầu Tài Lớn)!</span>
+          <span>💎 <strong>PhátTài88</strong> vừa ăn <strong>+12,400 Xu</strong> (Sảnh Tự Do)!</span>
+        </div>
+      </div>
+    </div>
+
     <!-- TAB 1: GAMEPLAY -->
     <main id="tab-game" class="tab-content active">
+      <!-- GAMEPLAY MODE SWITCHER (CHƠI ĐƠN VS PHÒNG TRỰC TIẾP) -->
+      <div class="game-mode-bar">
+        <div class="mode-switch-group">
+          <button class="mode-switch-btn active" id="btnModeSolo" data-mode="solo">
+            <span class="m-icon">👤</span>
+            <div class="m-text">
+              <span class="m-title">CHƠI ĐƠN (SOLO SPIN)</span>
+              <span class="m-sub">Tự quay ngay • Không phải chờ</span>
+            </div>
+          </button>
+          <button class="mode-switch-btn" id="btnModeLive" data-mode="live">
+            <span class="m-icon">👥</span>
+            <div class="m-text">
+              <span class="m-title">PHÒNG TRỰC TIẾP (LIVE ROOM)</span>
+              <span class="m-sub live-pill-pulse">🔴 Phiên Đồng Bộ <span id="modeLiveSecLbl">30s</span></span>
+            </div>
+          </button>
+        </div>
+
+        <div class="live-room-online-pill" id="liveRoomOnlinePill" style="display:none">
+          <span class="online-indicator"></span>
+          <span class="online-txt"><strong id="liveOnlineCount">148</strong> người đang tham gia</span>
+        </div>
+      </div>
+
+      <!-- LIVE ROUND COUNTDOWN BANNER (ĐỒNG HỒ PHIÊN ĐỒNG BỘ 30S) -->
+      <div class="live-round-banner" id="liveRoundBanner" style="display:none">
+        <div class="lr-head">
+          <div class="lr-round-info">
+            <span class="lr-tag">PHIÊN ĐỒNG BỘ:</span>
+            <strong class="lr-round-id glow-gold" id="liveRoundId">LR-10820</strong>
+          </div>
+          <div class="lr-phase-badge betting" id="livePhaseBadge">
+            <span class="lr-phase-dot"></span>
+            <span id="livePhaseText">ĐANG MỞ CƯỢC</span>
+          </div>
+          <div class="lr-countdown-box">
+            <span class="lr-cd-lbl">THỜI GIAN CÒN LẠI</span>
+            <span class="lr-cd-val glow-gold" id="liveTimerVal">30s</span>
+          </div>
+        </div>
+
+        <div class="lr-progress-track">
+          <div class="lr-progress-bar" id="liveProgressBar" style="width: 100%"></div>
+        </div>
+
+        <div class="lr-foot">
+          <span class="lr-hint" id="liveRoundHint">⏳ Hãy chọn chip đặt cược trước khi hết thời gian đếm ngược!</span>
+          <span class="lr-bet-status glow-cyan" id="liveBetStatus">Chưa đặt cược phiên này</span>
+        </div>
+      </div>
+
       <div class="game-layout">
         <!-- LEFT: Slot Machine Cabinet -->
         <div class="slot-cabinet">
@@ -120,7 +186,8 @@
               <div class="win-banner-title" id="winBannerTitle">BIG WIN!</div>
               <div class="win-banner-amount" id="winBannerAmount">+0.00</div>
               <div class="win-banner-desc" id="winBannerDesc"></div>
-              <div class="win-banner-hint" style="font-size:0.72rem;color:#a0aec0;margin-top:8px;font-style:italic">⚡ Chạm vào đây để đóng ngay</div>
+              <button class="win-banner-share-btn" id="btnShareWinSlip">📢 KHOE CHIẾN TÍCH LÊN PHÒNG CHAT</button>
+              <div class="win-banner-hint" style="font-size:0.72rem;color:#a0aec0;margin-top:8px;font-style:italic">⚡ Chạm vào nền để đóng</div>
             </div>
           </div>
 
@@ -775,7 +842,58 @@
                 <!-- Dynamically populated -->
               </tbody>
             </table>
+        </div>
+      </div>
+
+      <!-- FLOATING LIVE ROOM CHAT & REACTION SOCIAL ENGINE -->
+      <div class="live-chat-panel collapsed" id="liveChatPanel">
+        <div class="chat-header" id="chatHeaderToggle">
+          <div class="chat-title">
+            <span class="chat-icon">💬</span>
+            <span class="chat-label">PHÒNG CHAT TRỰC TIẾP</span>
+            <span class="chat-badge" id="chatUnreadCount" style="display:none">0</span>
           </div>
+          <div class="chat-header-actions">
+            <button class="chat-toggle-btn" id="btnToggleChat" title="Thu nhỏ / Mở rộng">▲ MỞ CHAT</button>
+          </div>
+        </div>
+
+        <div class="chat-body" id="chatBody">
+          <!-- Floating Reaction Animation Container -->
+          <div class="floating-emojis-layer" id="floatingEmojisLayer"></div>
+
+          <!-- Messages Stream Container -->
+          <div class="chat-messages-container" id="chatMessagesContainer">
+            <!-- Messages dynamically populated by app.js -->
+          </div>
+
+          <!-- Quick Canned Messages Bar -->
+          <div class="chat-canned-bar">
+            <button class="canned-btn" data-msg="Húp trọn anh em ơi! 🎉">🎉 Húp trọn</button>
+            <button class="canned-btn" data-msg="Tay này bệt Tài chắc luôn! 🎯">🎯 Bệt Tài</button>
+            <button class="canned-btn" data-msg="Vào Xỉu gỡ vốn nào! 🎲">🎲 Vào Xỉu</button>
+            <button class="canned-btn" data-msg="Sắp nổ hũ Thần Tài rồi! 👑">👑 Sắp nổ hũ</button>
+            <button class="canned-btn" data-msg="Chúc mừng anh em thắng lớn! 💰">💰 Chúc mừng</button>
+          </div>
+
+          <!-- Reaction Emoji Toolbar -->
+          <div class="chat-reactions-toolbar">
+            <span class="rx-label">Thả cảm xúc:</span>
+            <div class="rx-btn-group">
+              <button class="rx-btn" data-emoji="❤️" title="Thả Tim">❤️</button>
+              <button class="rx-btn" data-emoji="🔥" title="Thả Lửa">🔥</button>
+              <button class="rx-btn" data-emoji="💰" title="Thả Tiền">💰</button>
+              <button class="rx-btn" data-emoji="👑" title="Thả Vương Miện">👑</button>
+              <button class="rx-btn" data-emoji="🎉" title="Thả Pháo Hoa">🎉</button>
+              <button class="rx-btn" data-emoji="🚀" title="Thả Tên Lửa">🚀</button>
+            </div>
+          </div>
+
+          <!-- Chat Input Form -->
+          <form class="chat-form" id="chatForm">
+            <input type="text" id="chatInput" placeholder="Nhắn tin với mọi người trong phòng..." maxlength="120" autocomplete="off">
+            <button type="submit" class="chat-submit-btn" id="btnSubmitChat">GỬI</button>
+          </form>
         </div>
       </div>
     </main>
@@ -1538,6 +1656,50 @@ Content-Type: application/json
           </div>
         </div>
 
+        <!-- 4B. CẤU HÌNH PHÒNG TRỰC TIẾP (LIVE ROOM MULTIPLAYER) -->
+        <div class="adm-section">
+          <div class="adm-section-header">
+            <h3>👥 4B. CẤU HÌNH PHÒNG TRỰC TIẾP (LIVE MULTIPLAYER ROOM)</h3>
+            <span class="adm-sub-header">Điều chỉnh nhịp độ phiên đếm ngược và thời gian cược cho toàn thể người chơi</span>
+          </div>
+
+          <div class="adm-limits-card">
+            <div class="adm-limits-grid">
+              <div class="limit-input-group">
+                <label for="inputLiveBettingTime">⏱️ Thời Gian Chờ Cược (Mặc định 30s):</label>
+                <div class="input-unit-wrap">
+                  <input type="number" id="inputLiveBettingTime" value="30" min="10" max="180" step="5">
+                  <span class="unit">Giây</span>
+                </div>
+                <span class="limit-note">Khoảng cho phép: 10s - 180s (Khuyên dùng: 20s - 45s)</span>
+              </div>
+
+              <div class="limit-input-group">
+                <label>🌀 Thời Gian Quay Thưởng (Spin Reels):</label>
+                <div class="input-unit-wrap">
+                  <input type="number" id="inputLiveSpinTime" value="4" readonly disabled>
+                  <span class="unit">Giây</span>
+                </div>
+                <span class="limit-note">Cố định 4s (Đồng bộ nhịp cuộn 5 cột)</span>
+              </div>
+
+              <div class="limit-input-group">
+                <label>🏆 Thời Gian Trả Thưởng (Show Payout):</label>
+                <div class="input-unit-wrap">
+                  <input type="number" id="inputLivePayoutTime" value="6" readonly disabled>
+                  <span class="unit">Giây</span>
+                </div>
+                <span class="limit-note">Cố định 6s (Hiển thị nổ số & vinh danh)</span>
+              </div>
+            </div>
+
+            <div class="adm-limits-footer">
+              <button id="btnSaveLiveRoomConfig" class="adm-save-btn">💾 LƯU CẤU HÌNH PHÒNG TRỰC TIẾP</button>
+              <span id="saveLiveRoomMsg" class="adm-save-msg"></span>
+            </div>
+          </div>
+        </div>
+
         <!-- 5. RISK MANAGEMENT PROTOCOL GUIDELINE -->
         <div class="adm-section">
           <div class="adm-section-header">
@@ -1576,6 +1738,6 @@ Content-Type: application/json
     </footer>
   </div>
 
-  <script src="/static/app.js?v=20261001_fortune6"></script>
+  <script src="/static/app.js?v=20261001_live1"></script>
 </body>
 </html>

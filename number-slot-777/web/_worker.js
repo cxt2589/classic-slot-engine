@@ -128,6 +128,11 @@ let adminConfig = {
   total_jackpot_paid: 0.0, // Tổng tiền đã trả thưởng cho Sảnh Chuẩn / Ngũ Quý
   blocked_sanh_chuan_count: 0, // Đếm số lần hệ thống đã chặn Sảnh Chuẩn thành công
   blocked_ngu_quy_count: 0,    // Đếm số lần hệ thống đã chặn Ngũ Quý thành công
+  live_room: {
+    betting_time_sec: 30, // Thời gian chờ cược Chơi Nhóm mặc định 30s (có thể cấu hình trong hậu đài)
+    spin_time_sec: 4,     // Thời gian quay reels đồng bộ
+    payout_time_sec: 6    // Thời gian hiển thị kết quả & trả thưởng
+  },
   max_bets: {
     SANH_CHUAN: 20,
     NGU_QUY: 20,
@@ -135,6 +140,23 @@ let adminConfig = {
     CU_LU: 200,
     DEFAULT: 5000
   }
+};
+
+const liveRoomState = {
+  chatMessages: [
+    { id: "msg-1", user_id: "sys", username: "HỆ THỐNG", avatar: "🤖", text: "Chào mừng các cao thủ đến với Phòng Trực Tiếp Lucky Numbers 777! Phiên đồng bộ 30s 🎉", type: "system", time: Date.now() - 45000 },
+    { id: "msg-2", user_id: "bot-1", username: "Dragon99", avatar: "🐲", text: "Cầu đang bệt Tài anh em ơi, theo nhanh kẻo lỡ! 🎯", type: "chat", time: Date.now() - 30000 },
+    { id: "msg-3", user_id: "bot-2", username: "PhátTài88", avatar: "💰", text: "Vừa húp Tứ Quý 8, phòng hôm nay đỏ thật sự!", type: "chat", time: Date.now() - 15000 }
+  ],
+  recentReactions: [], // [{ id, emoji, count, time }]
+  bigWins: [
+    { id: "bw-1", username: "Dragon99", amount: 15600, hand: "Tứ Quý 8-8-8-8", time: Date.now() - 120000 },
+    { id: "bw-2", username: "ThanTaiDen", amount: 8200, hand: "Cù Lũ Thần Tài", time: Date.now() - 60000 },
+    { id: "bw-3", username: "MinhBao777", amount: 20500, hand: "Cầu Tài Lớn", time: Date.now() - 30000 }
+  ],
+  roundBets: {}, // round_id -> { user_id -> betData }
+  roundOutcomes: {}, // round_id -> outcome object
+  settledRounds: {} // "roundId_userId" -> true
 };
 
 function ensureSession() {
@@ -747,6 +769,199 @@ function checkFortuneLockMatch(betKey, analysis, lockedSet) {
   return { matched: true, reasonSuffix: "" };
 }
 
+function buildGridFromStops(sList) {
+  const g = [[], [], []];
+  for (let c = 0; c < 5; c++) {
+    const strip = NUMBER_REEL_STRIPS[c];
+    const len = strip.length;
+    const stop = sList[c] % len;
+    g[0][c] = strip[(stop - 1 + len) % len]; // Hàng trên (Center - 1)
+    g[1][c] = strip[stop];                    // Hàng giữa (Center Row 1)
+    g[2][c] = strip[(stop + 1) % len];        // Hàng dưới (Center + 1)
+  }
+  return g;
+}
+
+function generateLiveOutcome(roundId) {
+  let stops = NUMBER_REEL_STRIPS.map(strip => getRandomStop(strip.length));
+  let grid = buildGridFromStops(stops);
+  let center_row = grid[1];
+  let analysis = analyzeCenterRow(center_row);
+
+  // RNG Killswitch Guard
+  let rerollNeeded = false;
+  if (analysis.is_sanh_chuan && !adminConfig.allow_sanh_chuan) {
+    stops[2] = (stops[2] + 2) % NUMBER_REEL_STRIPS[2].length;
+    rerollNeeded = true;
+    adminConfig.blocked_sanh_chuan_count++;
+  }
+  if (analysis.is_ngu_quy && !adminConfig.allow_ngu_quy) {
+    stops[4] = (stops[4] + 1) % NUMBER_REEL_STRIPS[4].length;
+    rerollNeeded = true;
+    adminConfig.blocked_ngu_quy_count++;
+  }
+  if (rerollNeeded) {
+    grid = buildGridFromStops(stops);
+    center_row = grid[1];
+    analysis = analyzeCenterRow(center_row);
+  }
+
+  return {
+    round_id: roundId,
+    stops,
+    grid,
+    center_row,
+    analysis
+  };
+}
+
+function calculateSpinPayout(bets, bet_mode, locked_numbers, center_row, analysis) {
+  const isFortuneLock = (bet_mode === "fortune_lock" && Array.isArray(locked_numbers) && locked_numbers.length > 0);
+  const lockedSet = new Set(locked_numbers || []);
+  const winningItems = [];
+  let totalWon = 0;
+  let totalBet = 0;
+
+  for (const [betKey, wagerVal] of Object.entries(bets || {})) {
+    const wager = Number(wagerVal);
+    if (wager <= 0) continue;
+    totalBet += wager;
+
+    let mult = 0;
+    let reason = "";
+
+    if (betKey === "BASE_SPIN") {
+      mult = BASE_HAND_PAYOUTS[analysis.best_hand] || 0;
+      reason = `Trúng ${analysis.hand_title_vi}`;
+    } else if (betKey === "TAI" && analysis.is_tai) {
+      mult = BET_PAYOUTS.TAI; reason = `Tổng ${analysis.sum} > 25 (TÀI)`;
+    } else if (betKey === "XIU" && analysis.is_xiu) {
+      mult = BET_PAYOUTS.XIU; reason = `Tổng ${analysis.sum} < 25 (XỈU)`;
+    } else if (betKey === "HOA_25" && analysis.is_hoa_25) {
+      mult = BET_PAYOUTS.HOA_25; reason = "Tổng chính xác 25 điểm";
+    } else if (betKey === "CHAN" && analysis.is_chan) {
+      mult = BET_PAYOUTS.CHAN; reason = "Tổng CHẴN";
+    } else if (betKey === "LE" && analysis.is_le) {
+      mult = BET_PAYOUTS.LE; reason = "Tổng LẺ";
+    } else if (betKey === "THUNG" && analysis.is_thung) {
+      mult = BET_PAYOUTS.THUNG; reason = "Thùng (Toàn Chẵn hoặc Toàn Lẻ)";
+    } else if (betKey === "THUNG_CHAN" && analysis.is_thung_chan) {
+      mult = BET_PAYOUTS.THUNG_CHAN; reason = "Thùng Toàn Chẵn";
+    } else if (betKey === "THUNG_LE" && analysis.is_thung_le) {
+      mult = BET_PAYOUTS.THUNG_LE; reason = "Thùng Toàn Lẻ";
+    } else if (betKey === "SANH" && analysis.is_sanh) {
+      mult = BET_PAYOUTS.SANH; reason = "Sảnh (5 số liên tiếp)";
+    } else if (betKey === "SANH_CHUAN" && analysis.is_sanh_chuan) {
+      mult = BET_PAYOUTS.SANH_CHUAN; reason = "👑 Sảnh Chuẩn (1-2-3-4-5) - NỔ HŨ LỚN!";
+      const prize = Math.round(wager * mult * 100) / 100;
+      adminConfig.total_jackpot_paid += prize;
+      adminConfig.jackpot_pool = Math.max(0, Math.round((adminConfig.jackpot_pool - prize) * 100) / 100);
+    } else if (betKey === "NGU_QUY" && analysis.is_ngu_quy) {
+      mult = BET_PAYOUTS.NGU_QUY; reason = "Ngũ Quý (5 số giống nhau) - NỔ HŨ LỚN!";
+      const prize = Math.round(wager * mult * 100) / 100;
+      adminConfig.total_jackpot_paid += prize;
+      adminConfig.jackpot_pool = Math.max(0, Math.round((adminConfig.jackpot_pool - prize) * 100) / 100);
+    } else if (betKey === "TU_QUY" && (analysis.is_tu_quy || analysis.is_ngu_quy)) {
+      mult = BET_PAYOUTS.TU_QUY; reason = "Tứ Quý";
+    } else if (betKey === "CU_LU" && analysis.is_cu_lu) {
+      mult = BET_PAYOUTS.CU_LU; reason = "Cù Lũ";
+    } else if (betKey === "SAM_CO" && (analysis.is_sam_co || analysis.is_tu_quy || analysis.is_ngu_quy)) {
+      mult = BET_PAYOUTS.SAM_CO; reason = "Sám Cô";
+    } else if (betKey === "HAI_DOI" && (analysis.is_hai_doi || analysis.is_cu_lu)) {
+      mult = BET_PAYOUTS.HAI_DOI; reason = "Hai Đôi";
+    } else if (betKey === "MOT_DOI" && (analysis.is_mot_doi || analysis.is_hai_doi || analysis.is_sam_co || analysis.is_cu_lu || analysis.is_tu_quy || analysis.is_ngu_quy)) {
+      mult = BET_PAYOUTS.MOT_DOI; reason = "Một Đôi";
+    } else if (betKey.startsWith("SO_")) {
+      const num = parseInt(betKey.split("_")[1]);
+      const cnt = analysis.counts[num] || 0;
+      if (cnt > 0) {
+        mult = SINGLE_NUMBER_PAYOUTS[cnt] || 100.0;
+        reason = `Số ${num} xuất hiện ${cnt} lần`;
+      }
+    }
+
+    if (mult > 0 && isFortuneLock) {
+      const lockCheck = checkFortuneLockMatch(betKey, analysis, lockedSet);
+      if (!lockCheck.matched) {
+        mult = 0;
+      } else if (lockCheck.reasonSuffix) {
+        reason += lockCheck.reasonSuffix;
+      }
+    }
+
+    if (mult > 0) {
+      const win = Math.round(wager * mult * 100) / 100;
+      totalWon += win;
+      winningItems.push({ bet_type: betKey, wager, multiplier: mult, win_amount: win, reason_vi: reason });
+    }
+  }
+
+  totalWon = Math.round(totalWon * 100) / 100;
+  totalBet = Math.round(totalBet * 100) / 100;
+
+  return {
+    total_bet: totalBet,
+    total_won: totalWon,
+    net_profit: Math.round((totalWon - totalBet) * 100) / 100,
+    winning_items: winningItems
+  };
+}
+
+function getLiveRoundInfo() {
+  const bettingSec = Math.max(10, Math.min(180, adminConfig.live_room?.betting_time_sec || 30));
+  const spinSec = adminConfig.live_room?.spin_time_sec || 4;
+  const payoutSec = adminConfig.live_room?.payout_time_sec || 6;
+  const totalCycleSec = bettingSec + spinSec + payoutSec;
+  const totalCycleMs = totalCycleSec * 1000;
+
+  const now = Date.now();
+  const cycleIndex = Math.floor(now / totalCycleMs);
+  const roundId = "LR" + cycleIndex;
+  const cycleStartMs = cycleIndex * totalCycleMs;
+  const elapsedMs = now - cycleStartMs;
+
+  let phase = "betting";
+  let timeLeftSec = 0;
+
+  if (elapsedMs < bettingSec * 1000) {
+    phase = "betting";
+    timeLeftSec = Math.max(0, Math.ceil((bettingSec * 1000 - elapsedMs) / 1000));
+  } else if (elapsedMs < (bettingSec + spinSec) * 1000) {
+    phase = "spinning";
+    timeLeftSec = Math.max(0, Math.ceil(((bettingSec + spinSec) * 1000 - elapsedMs) / 1000));
+  } else {
+    phase = "payout";
+    timeLeftSec = Math.max(0, Math.ceil((totalCycleMs - elapsedMs) / 1000));
+  }
+
+  // Đảm bảo round này có kết quả cố định trong cache
+  if (!liveRoomState.roundOutcomes[roundId]) {
+    liveRoomState.roundOutcomes[roundId] = generateLiveOutcome(roundId);
+  }
+
+  // Giữ tối đa 10 rounds gần nhất để tiết kiệm bộ nhớ
+  const keys = Object.keys(liveRoomState.roundOutcomes);
+  if (keys.length > 10) {
+    const oldKey = keys[0];
+    delete liveRoomState.roundOutcomes[oldKey];
+    delete liveRoomState.roundBets[oldKey];
+  }
+
+  return {
+    round_id: roundId,
+    cycle_index: cycleIndex,
+    phase,
+    time_left_sec: timeLeftSec,
+    betting_duration_sec: bettingSec,
+    spin_duration_sec: spinSec,
+    payout_duration_sec: payoutSec,
+    total_cycle_sec: totalCycleSec,
+    start_time_ms: cycleStartMs,
+    // Chỉ tiết lộ kết quả khi đang spinning hoặc payout
+    outcome: (phase === "spinning" || phase === "payout") ? liveRoomState.roundOutcomes[roundId] : null
+  };
+}
+
     if (url.pathname === "/api/spin" && request.method === "POST") {
       let bets = {};
       let bet_mode = "free"; // "free" | "fortune_lock"
@@ -780,7 +995,6 @@ function checkFortuneLockMatch(betKey, analysis, lockedSet) {
       session.total_spins++;
 
       // Trích nạp Quỹ Hũ Tích Lũy (Jackpot Reserve Pool):
-      // 100% tiền cược từ Sảnh Chuẩn & Ngũ Quý + 2% từ tất cả các cửa cược khác
       let jackpotContribution = 0;
       for (const [betKey, wagerVal] of Object.entries(bets)) {
         const wager = Number(wagerVal);
@@ -793,131 +1007,28 @@ function checkFortuneLockMatch(betKey, analysis, lockedSet) {
       }
       adminConfig.jackpot_pool = Math.round((adminConfig.jackpot_pool + jackpotContribution) * 100) / 100;
 
-      // Stops and Grid: stops (0..8) represent center row numbers
-      let stops = NUMBER_REEL_STRIPS.map(strip => getRandomStop(strip.length));
+      // Sinh kết quả vòng quay
+      const spinOutcome = generateLiveOutcome("SOLO-" + session.total_spins);
+      const { stops, grid, center_row, analysis } = spinOutcome;
 
-      function buildGrid(sList) {
-        const g = [[], [], []];
-        for (let c = 0; c < 5; c++) {
-          const strip = NUMBER_REEL_STRIPS[c];
-          const len = strip.length;
-          const stop = sList[c] % len;
-          g[0][c] = strip[(stop - 1 + len) % len]; // Top row (Center - 1 cyclically)
-          g[1][c] = strip[stop];                    // Center row (Row 1)
-          g[2][c] = strip[(stop + 1) % len];        // Bottom row (Center + 1 cyclically)
-        }
-        return g;
-      }
+      // Đánh giá kết quả cược
+      const payout = calculateSpinPayout(bets, bet_mode, locked_numbers, center_row, analysis);
+      const totalWon = payout.total_won;
 
-      let grid = buildGrid(stops);
-      let center_row = grid[1];
-      let analysis = analyzeCenterRow(center_row);
-
-      // RNG Killswitch Guard: Khóa Sảnh Chuẩn và Ngũ Quý nếu Hậu Đài chưa BẬT mở
-      let rerollNeeded = false;
-      if (analysis.is_sanh_chuan && !adminConfig.allow_sanh_chuan) {
-        // Phá vỡ thế Sảnh Chuẩn bằng cách dịch chuyển stop ở cột thứ 3
-        stops[2] = (stops[2] + 2) % NUMBER_REEL_STRIPS[2].length;
-        rerollNeeded = true;
-        adminConfig.blocked_sanh_chuan_count++;
-      }
-
-      if (analysis.is_ngu_quy && !adminConfig.allow_ngu_quy) {
-        // Phá vỡ thế Ngũ Quý bằng cách dịch chuyển stop ở cột thứ 5
-        stops[4] = (stops[4] + 1) % NUMBER_REEL_STRIPS[4].length;
-        rerollNeeded = true;
-        adminConfig.blocked_ngu_quy_count++;
-      }
-
-      if (rerollNeeded) {
-        grid = buildGrid(stops);
-        center_row = grid[1];
-        analysis = analyzeCenterRow(center_row);
-      }
-
-      // Evaluate bets
-      const isFortuneLock = (bet_mode === "fortune_lock" && locked_numbers.length > 0);
-      const lockedSet = new Set(locked_numbers);
-      const winningItems = [];
-      let totalWon = 0;
-
-      for (const [betKey, wagerVal] of Object.entries(bets)) {
-        const wager = Number(wagerVal);
-        if (wager <= 0) continue;
-
-        let mult = 0;
-        let reason = "";
-
-        if (betKey === "BASE_SPIN") {
-          mult = BASE_HAND_PAYOUTS[analysis.best_hand] || 0;
-          reason = `Trúng ${analysis.hand_title_vi}`;
-        } else if (betKey === "TAI" && analysis.is_tai) {
-          mult = BET_PAYOUTS.TAI; reason = `Tổng ${analysis.sum} > 25 (TÀI)`;
-        } else if (betKey === "XIU" && analysis.is_xiu) {
-          mult = BET_PAYOUTS.XIU; reason = `Tổng ${analysis.sum} < 25 (XỈU)`;
-        } else if (betKey === "HOA_25" && analysis.is_hoa_25) {
-          mult = BET_PAYOUTS.HOA_25; reason = "Tổng chính xác 25 điểm";
-        } else if (betKey === "CHAN" && analysis.is_chan) {
-          mult = BET_PAYOUTS.CHAN; reason = "Tổng CHẴN";
-        } else if (betKey === "LE" && analysis.is_le) {
-          mult = BET_PAYOUTS.LE; reason = "Tổng LẺ";
-        } else if (betKey === "THUNG" && analysis.is_thung) {
-          mult = BET_PAYOUTS.THUNG; reason = "Thùng (Toàn Chẵn hoặc Toàn Lẻ)";
-        } else if (betKey === "THUNG_CHAN" && analysis.is_thung_chan) {
-          mult = BET_PAYOUTS.THUNG_CHAN; reason = "Thùng Toàn Chẵn";
-        } else if (betKey === "THUNG_LE" && analysis.is_thung_le) {
-          mult = BET_PAYOUTS.THUNG_LE; reason = "Thùng Toàn Lẻ";
-        } else if (betKey === "SANH" && analysis.is_sanh) {
-          mult = BET_PAYOUTS.SANH; reason = "Sảnh (5 số liên tiếp)";
-        } else if (betKey === "SANH_CHUAN" && analysis.is_sanh_chuan) {
-          mult = BET_PAYOUTS.SANH_CHUAN; reason = "👑 Sảnh Chuẩn (1-2-3-4-5) - NỔ HŨ LỚN!";
-          const prize = Math.round(wager * mult * 100) / 100;
-          adminConfig.total_jackpot_paid += prize;
-          adminConfig.jackpot_pool = Math.max(0, Math.round((adminConfig.jackpot_pool - prize) * 100) / 100);
-        } else if (betKey === "NGU_QUY" && analysis.is_ngu_quy) {
-          mult = BET_PAYOUTS.NGU_QUY; reason = "Ngũ Quý (5 số giống nhau) - NỔ HŨ LỚN!";
-          const prize = Math.round(wager * mult * 100) / 100;
-          adminConfig.total_jackpot_paid += prize;
-          adminConfig.jackpot_pool = Math.max(0, Math.round((adminConfig.jackpot_pool - prize) * 100) / 100);
-        } else if (betKey === "TU_QUY" && (analysis.is_tu_quy || analysis.is_ngu_quy)) {
-          mult = BET_PAYOUTS.TU_QUY; reason = "Tứ Quý";
-        } else if (betKey === "CU_LU" && analysis.is_cu_lu) {
-          mult = BET_PAYOUTS.CU_LU; reason = "Cù Lũ";
-        } else if (betKey === "SAM_CO" && (analysis.is_sam_co || analysis.is_tu_quy || analysis.is_ngu_quy)) {
-          mult = BET_PAYOUTS.SAM_CO; reason = "Sám Cô";
-        } else if (betKey === "HAI_DOI" && (analysis.is_hai_doi || analysis.is_cu_lu)) {
-          mult = BET_PAYOUTS.HAI_DOI; reason = "Hai Đôi";
-        } else if (betKey === "MOT_DOI" && (analysis.is_mot_doi || analysis.is_hai_doi || analysis.is_sam_co || analysis.is_cu_lu || analysis.is_tu_quy || analysis.is_ngu_quy)) {
-          mult = BET_PAYOUTS.MOT_DOI; reason = "Một Đôi";
-        } else if (betKey.startsWith("SO_")) {
-          const num = parseInt(betKey.split("_")[1]);
-          const cnt = analysis.counts[num] || 0;
-          if (cnt > 0) {
-            mult = SINGLE_NUMBER_PAYOUTS[cnt] || 100.0;
-            reason = `Số ${num} xuất hiện ${cnt} lần`;
-          }
-        }
-
-        // Kiểm tra điều kiện Khóa Số Thần Tài (Fortune Lock)
-        if (mult > 0 && isFortuneLock) {
-          const lockCheck = checkFortuneLockMatch(betKey, analysis, lockedSet);
-          if (!lockCheck.matched) {
-            mult = 0; // Không thỏa mãn số Thần Tài đã chọn
-          } else if (lockCheck.reasonSuffix) {
-            reason += lockCheck.reasonSuffix;
-          }
-        }
-
-        if (mult > 0) {
-          const win = Math.round(wager * mult * 100) / 100;
-          totalWon += win;
-          winningItems.push({ bet_type: betKey, wager, multiplier: mult, win_amount: win, reason_vi: reason });
-        }
-      }
-
-      totalWon = Math.round(totalWon * 100) / 100;
       session.balance += totalWon;
       session.total_won += totalWon;
+
+      // Nếu thắng lớn, thêm vào thông báo toàn server
+      if (totalWon >= 1000 || totalWon >= totalBet * 5) {
+        liveRoomState.bigWins.unshift({
+          id: "bw-" + Date.now(),
+          username: "Bạn (Solo)",
+          amount: totalWon,
+          hand: analysis.hand_title_vi,
+          time: Date.now()
+        });
+        if (liveRoomState.bigWins.length > 20) liveRoomState.bigWins.pop();
+      }
 
       // Add to session history
       const histEntry = {
@@ -936,7 +1047,7 @@ function checkFortuneLockMatch(betKey, analysis, lockedSet) {
         total_bet: totalBet,
         total_won: totalWon,
         net: Math.round((totalWon - totalBet) * 100) / 100,
-        fortune_lock: isFortuneLock ? { locked_numbers } : null
+        fortune_lock: (bet_mode === "fortune_lock" && locked_numbers.length > 0) ? { locked_numbers } : null
       };
       session.history.unshift(histEntry);
       if (session.history.length > 100) session.history.pop();
@@ -954,25 +1065,264 @@ function checkFortuneLockMatch(betKey, analysis, lockedSet) {
           center_row,
           stops,
           analysis,
-          payout: {
-            total_bet: totalBet,
-            total_won: totalWon,
-            net_profit: Math.round((totalWon - totalBet) * 100) / 100,
-            winning_items: winningItems
-          },
+          payout,
           fortune_lock: {
-            is_active: isFortuneLock,
-            locked_numbers: locked_numbers
+            is_active: (bet_mode === "fortune_lock" && locked_numbers.length > 0),
+            locked_numbers
           },
           admin_info: {
             allow_sanh_chuan: adminConfig.allow_sanh_chuan,
             allow_ngu_quy: adminConfig.allow_ngu_quy,
             jackpot_pool: adminConfig.jackpot_pool,
             target_jackpot_pool: adminConfig.target_jackpot_pool,
+            max_bets: adminConfig.max_bets,
+            live_room: adminConfig.live_room
+          }
+        }
+      });
+    }
+
+    // ==========================================
+    // LIVE MULTIPLAYER ROOM API ENDPOINTS
+    // ==========================================
+    if (url.pathname === "/api/live/state" && request.method === "GET") {
+      const liveRound = getLiveRoundInfo();
+      const userId = url.searchParams.get("user_id") || "guest";
+      const userName = url.searchParams.get("username") || "Khách";
+
+      // Kiểm tra xem user có cược ở phiên trước (LR_{cycleIndex - 1}) cần trả thưởng tự động không
+      const prevRoundId = "LR" + (liveRound.cycle_index - 1);
+      const settleKey = `${prevRoundId}_${userId}`;
+      let userLastSettlement = null;
+
+      if (!liveRoomState.settledRounds[settleKey] && liveRoomState.roundBets[prevRoundId]?.[userId]) {
+        const userPrevBet = liveRoomState.roundBets[prevRoundId][userId];
+        const prevOutcome = liveRoomState.roundOutcomes[prevRoundId];
+        if (prevOutcome) {
+          const payoutResult = calculateSpinPayout(
+            userPrevBet.bets,
+            userPrevBet.bet_mode,
+            userPrevBet.locked_numbers,
+            prevOutcome.center_row,
+            prevOutcome.analysis
+          );
+          
+          if (payoutResult.total_won > 0) {
+            session.balance += payoutResult.total_won;
+            session.total_won += payoutResult.total_won;
+
+            // Đăng tin thắng vào chat room
+            const winText = `🎉 ${userName} vừa thắng +${payoutResult.total_won.toLocaleString()} Xu ở phiên ${prevRoundId}!`;
+            liveRoomState.chatMessages.unshift({
+              id: "msg-win-" + Date.now(),
+              user_id: "sys",
+              username: "HỆ THỐNG",
+              avatar: "🏆",
+              text: winText,
+              type: "system",
+              time: Date.now()
+            });
+
+            // Nếu thắng lớn >= 1000 xu hoặc >= 5x, thêm vào bigWins
+            if (payoutResult.total_won >= 1000 || payoutResult.total_won >= userPrevBet.total_bet * 5) {
+              liveRoomState.bigWins.unshift({
+                id: "bw-" + Date.now(),
+                username: userName,
+                amount: payoutResult.total_won,
+                hand: prevOutcome.analysis.hand_title_vi,
+                time: Date.now()
+              });
+              if (liveRoomState.bigWins.length > 20) liveRoomState.bigWins.pop();
+            }
+          }
+
+          liveRoomState.settledRounds[settleKey] = {
+            round_id: prevRoundId,
+            payout: payoutResult,
+            time: Date.now()
+          };
+          userLastSettlement = {
+            round_id: prevRoundId,
+            payout: payoutResult,
+            center_row: prevOutcome.center_row,
+            analysis: prevOutcome.analysis
+          };
+        }
+      }
+
+      // Tổng hợp cược cộng đồng của round hiện tại
+      const currentBetsMap = liveRoomState.roundBets[liveRound.round_id] || {};
+      const communityStats = {
+        total_wagered: 0,
+        total_players: Object.keys(currentBetsMap).length,
+        door_totals: {}
+      };
+      for (const [uid, bData] of Object.entries(currentBetsMap)) {
+        communityStats.total_wagered += bData.total_bet || 0;
+        for (const [door, amt] of Object.entries(bData.bets || {})) {
+          communityStats.door_totals[door] = (communityStats.door_totals[door] || 0) + Number(amt);
+        }
+      }
+
+      // Giữ tối đa 50 messages
+      if (liveRoomState.chatMessages.length > 50) {
+        liveRoomState.chatMessages = liveRoomState.chatMessages.slice(0, 50);
+      }
+
+      // Giữ reactions 10s gần nhất
+      const now = Date.now();
+      liveRoomState.recentReactions = liveRoomState.recentReactions.filter(r => (now - r.time) < 10000);
+
+      // Số người online (ước lượng ngẫu nhiên sinh động quanh 130-170)
+      const baseOnline = 145 + (Math.sin(liveRound.cycle_index) * 23 | 0);
+      const onlineCount = Math.max(80, baseOnline + communityStats.total_players);
+
+      return jsonRes({
+        status: "success",
+        data: {
+          round: liveRound,
+          community_stats: communityStats,
+          online_count: onlineCount,
+          recent_messages: liveRoomState.chatMessages.slice(0, 30),
+          recent_reactions: liveRoomState.recentReactions.slice(0, 20),
+          big_wins: liveRoomState.bigWins.slice(0, 10),
+          user_current_bet: currentBetsMap[userId] || null,
+          user_last_settlement: userLastSettlement,
+          user_balance: Math.round(session.balance * 100) / 100,
+          config: {
+            live_room: adminConfig.live_room,
             max_bets: adminConfig.max_bets
           }
         }
       });
+    }
+
+    if (url.pathname === "/api/live/bet" && request.method === "POST") {
+      const liveRound = getLiveRoundInfo();
+      if (liveRound.phase !== "betting") {
+        return jsonRes({ detail: "Phiên cược đã khóa! Vui lòng chờ phiên tiếp theo." }, 400);
+      }
+
+      let userId = "guest";
+      let userName = "Khách";
+      let bets = {};
+      let bet_mode = "free";
+      let locked_numbers = [];
+
+      try {
+        const body = await request.json();
+        userId = body.user_id || "guest";
+        userName = body.username || "Khách";
+        bets = body.bets || {};
+        bet_mode = body.bet_mode || "free";
+        if (Array.isArray(body.locked_numbers)) {
+          locked_numbers = body.locked_numbers.map(Number).filter(n => n >= 1 && n <= 9);
+        }
+      } catch (e) {}
+
+      const totalBet = Object.values(bets).reduce((a, b) => a + Number(b), 0);
+      if (totalBet <= 0) return jsonRes({ detail: "Vui lòng đặt cược ít nhất 1 cửa!" }, 400);
+      if (session.balance < totalBet) return jsonRes({ detail: "Số dư không đủ để đặt cược!" }, 400);
+
+      // Max bet check
+      for (const [betKey, wagerVal] of Object.entries(bets)) {
+        const wager = Number(wagerVal);
+        if (wager <= 0) continue;
+        const limit = adminConfig.max_bets[betKey] !== undefined ? adminConfig.max_bets[betKey] : adminConfig.max_bets.DEFAULT;
+        if (wager > limit) {
+          const doorName = betKey === "SANH_CHUAN" ? "Sảnh Chuẩn" : (betKey === "NGU_QUY" ? "Ngũ Quý" : betKey);
+          return jsonRes({ detail: `Cửa [${doorName}] giới hạn tối đa ${limit} Xu (Bạn đang cược ${wager} Xu)!` }, 400);
+        }
+      }
+
+      session.balance -= totalBet;
+      session.total_wagered += totalBet;
+
+      // Trích nạp Quỹ Hũ
+      let jackpotContribution = 0;
+      for (const [betKey, wagerVal] of Object.entries(bets)) {
+        const wager = Number(wagerVal);
+        if (wager <= 0) continue;
+        if (betKey === "SANH_CHUAN" || betKey === "NGU_QUY") {
+          jackpotContribution += wager;
+        } else {
+          jackpotContribution += (wager * adminConfig.jackpot_rate_general);
+        }
+      }
+      adminConfig.jackpot_pool = Math.round((adminConfig.jackpot_pool + jackpotContribution) * 100) / 100;
+
+      // Lưu cược của user vào round hiện tại
+      if (!liveRoomState.roundBets[liveRound.round_id]) {
+        liveRoomState.roundBets[liveRound.round_id] = {};
+      }
+      liveRoomState.roundBets[liveRound.round_id][userId] = {
+        user_id: userId,
+        username: userName,
+        bets,
+        bet_mode,
+        locked_numbers,
+        total_bet: totalBet,
+        timestamp: Date.now()
+      };
+
+      return jsonRes({
+        status: "success",
+        message: "Đặt cược phiên Live thành công!",
+        data: {
+          round_id: liveRound.round_id,
+          placed_bet: liveRoomState.roundBets[liveRound.round_id][userId],
+          balance: Math.round(session.balance * 100) / 100
+        }
+      });
+    }
+
+    if (url.pathname === "/api/live/chat" && request.method === "POST") {
+      try {
+        const body = await request.json();
+        const text = (body.text || "").trim();
+        if (!text && !body.slip) {
+          return jsonRes({ detail: "Nội dung tin nhắn không được để trống!" }, 400);
+        }
+
+        const msgObj = {
+          id: "msg-" + Date.now() + "-" + Math.random().toString(36).substr(2, 4),
+          user_id: body.user_id || "guest",
+          username: body.username || "Thành viên",
+          avatar: body.avatar || "👤",
+          text: text.slice(0, 120),
+          type: body.type || (body.slip ? "win_share" : "chat"),
+          slip: body.slip || null,
+          time: Date.now()
+        };
+
+        liveRoomState.chatMessages.unshift(msgObj);
+        if (liveRoomState.chatMessages.length > 50) {
+          liveRoomState.chatMessages.pop();
+        }
+
+        return jsonRes({ status: "success", data: msgObj });
+      } catch (err) {
+        return jsonRes({ detail: "Lỗi gửi tin nhắn: " + err.message }, 400);
+      }
+    }
+
+    if (url.pathname === "/api/live/reaction" && request.method === "POST") {
+      try {
+        const body = await request.json();
+        const emoji = body.emoji || "❤️";
+        const rxObj = {
+          id: "rx-" + Date.now() + "-" + Math.random().toString(36).substr(2, 4),
+          emoji,
+          time: Date.now()
+        };
+        liveRoomState.recentReactions.unshift(rxObj);
+        if (liveRoomState.recentReactions.length > 30) {
+          liveRoomState.recentReactions.pop();
+        }
+        return jsonRes({ status: "success", data: rxObj });
+      } catch (err) {
+        return jsonRes({ detail: "Lỗi thả cảm xúc" }, 400);
+      }
     }
 
     if (url.pathname === "/api/admin/status" && request.method === "GET") {
@@ -1031,6 +1381,14 @@ function checkFortuneLockMatch(betKey, analysis, lockedSet) {
           if (body.max_bets.TU_QUY !== undefined) adminConfig.max_bets.TU_QUY = Number(body.max_bets.TU_QUY);
           if (body.max_bets.CU_LU !== undefined) adminConfig.max_bets.CU_LU = Number(body.max_bets.CU_LU);
           if (body.max_bets.DEFAULT !== undefined) adminConfig.max_bets.DEFAULT = Number(body.max_bets.DEFAULT);
+        }
+        if (body.live_room && typeof body.live_room === "object") {
+          if (typeof body.live_room.betting_time_sec === "number") {
+            adminConfig.live_room.betting_time_sec = Math.max(10, Math.min(180, Math.round(body.live_room.betting_time_sec)));
+          }
+        }
+        if (typeof body.betting_time_sec === "number") {
+          adminConfig.live_room.betting_time_sec = Math.max(10, Math.min(180, Math.round(body.betting_time_sec)));
         }
         return jsonRes({ status: "success", message: "Cập nhật cấu hình hậu đài thành công", data: adminConfig });
       } catch (err) {

@@ -31,7 +31,18 @@ const state = {
   },
   toastTimer: null,
   fortuneBetMode: "free", // "free" | "fortune"
-  fortuneLockedNumbers: []
+  fortuneLockedNumbers: [],
+
+  // Live Multiplayer Room & Social Suite
+  gamePlayMode: "solo", // "solo" | "live"
+  liveRoundData: null,
+  liveLocalTimeLeft: 30,
+  livePollInterval: null,
+  liveCountdownInterval: null,
+  liveLastSpunRoundId: null,
+  liveUserBetPlaced: false,
+  lastShareSlip: null,
+  chatMessagesCache: []
 };
 
 // Web Audio API Synthesizer
@@ -265,6 +276,42 @@ const dom = {
   winBannerAmount: document.getElementById("winBannerAmount"),
   winBannerDesc: document.getElementById("winBannerDesc"),
   winPillsList: document.getElementById("winPillsList"),
+  btnShareWinSlip: document.getElementById("btnShareWinSlip"),
+
+  // Live Room Mode & Countdown
+  globalMarqueeBanner: document.getElementById("globalMarqueeBanner"),
+  marqueeText: document.getElementById("marqueeText"),
+  btnModeSolo: document.getElementById("btnModeSolo"),
+  btnModeLive: document.getElementById("btnModeLive"),
+  modeLiveSecLbl: document.getElementById("modeLiveSecLbl"),
+  liveRoomOnlinePill: document.getElementById("liveRoomOnlinePill"),
+  liveOnlineCount: document.getElementById("liveOnlineCount"),
+  liveRoundBanner: document.getElementById("liveRoundBanner"),
+  liveRoundId: document.getElementById("liveRoundId"),
+  livePhaseBadge: document.getElementById("livePhaseBadge"),
+  livePhaseText: document.getElementById("livePhaseText"),
+  liveTimerVal: document.getElementById("liveTimerVal"),
+  liveProgressBar: document.getElementById("liveProgressBar"),
+  liveRoundHint: document.getElementById("liveRoundHint"),
+  liveBetStatus: document.getElementById("liveBetStatus"),
+
+  // Live Chat & Social
+  liveChatPanel: document.getElementById("liveChatPanel"),
+  chatHeaderToggle: document.getElementById("chatHeaderToggle"),
+  btnToggleChat: document.getElementById("btnToggleChat"),
+  chatUnreadCount: document.getElementById("chatUnreadCount"),
+  floatingEmojisLayer: document.getElementById("floatingEmojisLayer"),
+  chatMessagesContainer: document.getElementById("chatMessagesContainer"),
+  chatForm: document.getElementById("chatForm"),
+  chatInput: document.getElementById("chatInput"),
+  btnSubmitChat: document.getElementById("btnSubmitChat"),
+  cannedBtns: document.querySelectorAll(".canned-btn"),
+  rxBtns: document.querySelectorAll(".rx-btn"),
+
+  // Admin Live Room Config
+  inputLiveBettingTime: document.getElementById("inputLiveBettingTime"),
+  btnSaveLiveRoomConfig: document.getElementById("btnSaveLiveRoomConfig"),
+  saveLiveRoomMsg: document.getElementById("saveLiveRoomMsg"),
 
   // Chips & Betting Cells
   betChips: document.querySelectorAll(".bet-chip"),
@@ -380,9 +427,11 @@ async function init() {
   setupSoiKeoControls();
   setupAdminControls();
   setupFortuneModeControls();
+  setupLiveRoomControls();
   await loadSession();
   await loadAdminStatus(true); // silent fetch to load max bets
   renderInitialReels();
+  startGlobalMarqueePolling();
 }
 
 function switchTabTo(tabKey) {
@@ -880,6 +929,11 @@ function setupActions() {
 }
 
 async function triggerSpin() {
+  if (state.gamePlayMode === "live") {
+    await placeLiveBetAction();
+    return;
+  }
+
   if (state.isSpinning) return;
 
   // If no bets placed, default to BASE_SPIN: 10
@@ -1067,6 +1121,14 @@ function handleResults(center_row, analysis, payout) {
 
   const totalWon = payout.total_won;
   updateMeters(totalWon);
+
+  if (totalWon > 0) {
+    state.lastShareSlip = {
+      round_id: "Solo #" + (state.session ? state.session.total_spins : state.historyData.length),
+      amount: totalWon,
+      hand: analysis.hand_title_vi
+    };
+  }
 
   // Render winning pills
   if (payout.winning_items && payout.winning_items.length > 0) {
@@ -2627,6 +2689,621 @@ function renderFortuneLockState() {
         pill.textContent = "";
       }
     }
+  }
+}
+
+/**
+ * ============================================================
+ * LIVE MULTIPLAYER ROOM & SOCIAL SUITE CONTROLLER
+ * ============================================================
+ */
+
+function getLiveUserId() {
+  const tgUser = telegramEngine.tg?.initDataUnsafe?.user;
+  if (tgUser && tgUser.id) return `tg_${tgUser.id}`;
+  let localId = localStorage.getItem("lucky_live_uid");
+  if (!localId) {
+    localId = "guest_" + Math.random().toString(36).substring(2, 8);
+    localStorage.setItem("lucky_live_uid", localId);
+  }
+  return localId;
+}
+
+function getLiveUserName() {
+  const tgUser = telegramEngine.tg?.initDataUnsafe?.user;
+  if (tgUser) {
+    if (tgUser.username) return `@${tgUser.username}`;
+    return tgUser.first_name || "Thành viên";
+  }
+  let localName = localStorage.getItem("lucky_live_uname");
+  if (!localName) {
+    localName = "Người Chơi " + Math.floor(1000 + Math.random() * 9000);
+    localStorage.setItem("lucky_live_uname", localName);
+  }
+  return localName;
+}
+
+function setupLiveRoomControls() {
+  // Mode switcher: Solo vs Live
+  if (dom.btnModeSolo) {
+    dom.btnModeSolo.addEventListener("click", () => switchGameplayMode("solo"));
+  }
+  if (dom.btnModeLive) {
+    dom.btnModeLive.addEventListener("click", () => switchGameplayMode("live"));
+  }
+
+  // Chat toggle
+  if (dom.chatHeaderToggle) {
+    dom.chatHeaderToggle.addEventListener("click", toggleLiveChat);
+  }
+
+  // Chat form submit
+  if (dom.chatForm) {
+    dom.chatForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const val = dom.chatInput ? dom.chatInput.value.trim() : "";
+      if (val) {
+        sendChatMessage(val);
+        dom.chatInput.value = "";
+      }
+    });
+  }
+
+  // Quick canned messages
+  if (dom.cannedBtns) {
+    dom.cannedBtns.forEach(btn => {
+      btn.addEventListener("click", () => {
+        const msg = btn.dataset.msg;
+        if (msg) {
+          soundEngine.init();
+          soundEngine.playChip();
+          telegramEngine.haptic("light");
+          sendChatMessage(msg);
+        }
+      });
+    });
+  }
+
+  // Reaction buttons
+  if (dom.rxBtns) {
+    dom.rxBtns.forEach(btn => {
+      btn.addEventListener("click", () => {
+        const emoji = btn.dataset.emoji;
+        if (emoji) {
+          sendReaction(emoji);
+        }
+      });
+    });
+  }
+
+  // Share win slip button
+  if (dom.btnShareWinSlip) {
+    dom.btnShareWinSlip.addEventListener("click", () => {
+      shareWinSlipAction();
+    });
+  }
+
+  // Save admin live room config
+  if (dom.btnSaveLiveRoomConfig) {
+    dom.btnSaveLiveRoomConfig.addEventListener("click", saveLiveRoomConfigAction);
+  }
+}
+
+function switchGameplayMode(mode) {
+  state.gamePlayMode = mode;
+  telegramEngine.haptic("selection");
+  soundEngine.init();
+  soundEngine.playChip();
+
+  const isLive = mode === "live";
+  if (dom.btnModeSolo) dom.btnModeSolo.classList.toggle("active", !isLive);
+  if (dom.btnModeLive) dom.btnModeLive.classList.toggle("active", isLive);
+
+  if (dom.liveRoundBanner) dom.liveRoundBanner.style.display = isLive ? "block" : "none";
+  if (dom.liveChatPanel) dom.liveChatPanel.style.display = isLive ? "block" : "none";
+  if (dom.liveRoomOnlinePill) dom.liveRoomOnlinePill.style.display = isLive ? "flex" : "none";
+
+  const spinMain = dom.btnSpin ? dom.btnSpin.querySelector(".spin-main") : null;
+  const spinSub = dom.btnSpin ? dom.btnSpin.querySelector(".spin-sub") : null;
+
+  if (isLive) {
+    if (spinMain) spinMain.textContent = "CƯỢC";
+    if (spinSub) spinSub.textContent = "CONFIRM BET";
+    showToast("👥 Đã vào <strong>PHÒNG TRỰC TIẾP</strong> (Phiên đồng bộ toàn server)", "gold");
+    syncLiveRoomState();
+    startLivePolling();
+  } else {
+    if (spinMain) spinMain.textContent = "QUAY";
+    if (spinSub) spinSub.textContent = "SPIN";
+    showToast("👤 Đã chuyển về <strong>CHƠI ĐƠN</strong> (Tự quay tự do)", "cyan");
+    stopLivePolling();
+  }
+}
+
+function toggleLiveChat() {
+  if (!dom.liveChatPanel) return;
+  const isCollapsed = dom.liveChatPanel.classList.toggle("collapsed");
+  if (dom.btnToggleChat) {
+    dom.btnToggleChat.textContent = isCollapsed ? "▲ MỞ CHAT" : "▼ THU GỌN";
+  }
+  telegramEngine.haptic("light");
+}
+
+let marqueePollTimer = null;
+function startGlobalMarqueePolling() {
+  if (marqueePollTimer) clearInterval(marqueePollTimer);
+  fetchMarqueeData();
+  marqueePollTimer = setInterval(fetchMarqueeData, 8000);
+}
+
+async function fetchMarqueeData() {
+  try {
+    const res = await fetch(`/api/live/state?user_id=${getLiveUserId()}&username=${encodeURIComponent(getLiveUserName())}`);
+    const json = await res.json();
+    if (json.status === "success" && json.data) {
+      if (json.data.big_wins && json.data.big_wins.length > 0) {
+        updateGlobalMarquee(json.data.big_wins);
+      }
+      if (json.data.config && json.data.config.live_room) {
+        const sec = json.data.config.live_room.betting_time_sec || 30;
+        if (dom.modeLiveSecLbl) dom.modeLiveSecLbl.textContent = `${sec}s`;
+        if (dom.inputLiveBettingTime && document.activeElement !== dom.inputLiveBettingTime) {
+          dom.inputLiveBettingTime.value = sec;
+        }
+      }
+    }
+  } catch (e) {}
+}
+
+function updateGlobalMarquee(bigWins) {
+  if (!dom.marqueeText || !bigWins || bigWins.length === 0) return;
+  const items = bigWins.map(bw => {
+    return `<span>🔥 Chúc mừng <strong>${bw.username}</strong> vừa thắng lớn <strong>+${(bw.amount || 0).toLocaleString()} Xu</strong> (${bw.hand || "Chiến tích"})!</span>`;
+  });
+  items.push(`<span>👑 Quỹ Thần Tài tích lũy đang bùng nổ: <strong class="glow-gold">${(state.adminData?.jackpot?.current_pool || 35000).toLocaleString()} Xu</strong>!</span>`);
+  dom.marqueeText.innerHTML = items.join("");
+}
+
+function startLivePolling() {
+  if (state.livePollInterval) clearInterval(state.livePollInterval);
+  if (state.liveCountdownInterval) clearInterval(state.liveCountdownInterval);
+
+  state.livePollInterval = setInterval(syncLiveRoomState, 1500);
+  state.liveCountdownInterval = setInterval(tickLiveCountdown, 1000);
+}
+
+function stopLivePolling() {
+  if (state.livePollInterval) {
+    clearInterval(state.livePollInterval);
+    state.livePollInterval = null;
+  }
+  if (state.liveCountdownInterval) {
+    clearInterval(state.liveCountdownInterval);
+    state.liveCountdownInterval = null;
+  }
+}
+
+function tickLiveCountdown() {
+  if (state.gamePlayMode !== "live") return;
+  if (state.liveLocalTimeLeft > 0) {
+    state.liveLocalTimeLeft--;
+    if (dom.liveTimerVal) {
+      dom.liveTimerVal.textContent = `${state.liveLocalTimeLeft}s`;
+    }
+    if (dom.liveProgressBar && state.liveRoundData) {
+      const dur = state.liveRoundData.betting_duration_sec || 30;
+      const pct = Math.max(0, Math.min(100, (state.liveLocalTimeLeft / dur) * 100));
+      dom.liveProgressBar.style.width = `${pct}%`;
+    }
+  }
+}
+
+async function syncLiveRoomState() {
+  try {
+    const uid = getLiveUserId();
+    const uname = getLiveUserName();
+    const res = await fetch(`/api/live/state?user_id=${uid}&username=${encodeURIComponent(uname)}`);
+    const json = await res.json();
+    if (json.status !== "success" || !json.data) return;
+
+    const data = json.data;
+    state.liveRoundData = data.round;
+    state.liveLocalTimeLeft = data.round.time_left_sec;
+
+    // Update online count
+    if (dom.liveOnlineCount) dom.liveOnlineCount.textContent = data.online_count;
+
+    // Update Round UI
+    updateLiveRoundUI(data.round, data.user_current_bet);
+
+    // Update Chat Messages
+    if (data.recent_messages) {
+      renderChatMessages(data.recent_messages);
+    }
+
+    // Spawn new reactions
+    if (data.recent_reactions && data.recent_reactions.length > 0) {
+      const latestRx = data.recent_reactions[0];
+      if (latestRx && (!state.lastRxId || state.lastRxId !== latestRx.id)) {
+        state.lastRxId = latestRx.id;
+        spawnFloatingEmoji(latestRx.emoji);
+      }
+    }
+
+    // Process user settlement of previous round
+    if (data.user_last_settlement) {
+      handleLiveSettlement(data.user_last_settlement, data.user_balance);
+    }
+
+  } catch (err) {
+    console.error("Live state sync error:", err);
+  }
+}
+
+function updateLiveRoundUI(round, userBet) {
+  if (!round) return;
+
+  if (dom.liveRoundId) dom.liveRoundId.textContent = round.round_id;
+  if (dom.liveTimerVal) dom.liveTimerVal.textContent = `${round.time_left_sec}s`;
+
+  if (dom.livePhaseBadge) {
+    dom.livePhaseBadge.className = `lr-phase-badge ${round.phase}`;
+  }
+
+  const spinMain = dom.btnSpin ? dom.btnSpin.querySelector(".spin-main") : null;
+  const spinSub = dom.btnSpin ? dom.btnSpin.querySelector(".spin-sub") : null;
+
+  if (round.phase === "betting") {
+    if (dom.livePhaseText) dom.livePhaseText.textContent = "ĐANG MỞ CƯỢC";
+    if (dom.liveRoundHint) dom.liveRoundHint.textContent = "⏳ Hãy chọn chip đặt cược trước khi hết thời gian đếm ngược!";
+    if (dom.btnSpin) dom.btnSpin.disabled = false;
+    if (spinMain) spinMain.textContent = "CƯỢC";
+    if (spinSub) spinSub.textContent = "CONFIRM BET";
+
+    if (userBet) {
+      if (dom.liveBetStatus) dom.liveBetStatus.textContent = `✅ Đã đặt cược ${userBet.total_bet} Xu`;
+    } else {
+      if (dom.liveBetStatus) dom.liveBetStatus.textContent = "Chưa đặt cược phiên này";
+    }
+  } else if (round.phase === "spinning") {
+    if (dom.livePhaseText) dom.livePhaseText.textContent = "ĐANG QUAY CUỘN";
+    if (dom.liveRoundHint) dom.liveRoundHint.textContent = "🌀 Toàn phòng đang quay chung 1 kết quả...";
+    if (dom.btnSpin) dom.btnSpin.disabled = true;
+    if (spinMain) spinMain.textContent = "ĐANG QUAY";
+    if (spinSub) spinSub.textContent = "SPINNING...";
+
+    // Trigger synchronized reel spin animation once per round
+    if (round.outcome && state.liveLastSpunRoundId !== round.round_id) {
+      state.liveLastSpunRoundId = round.round_id;
+      executeLiveSpinReels(round.outcome);
+    }
+  } else if (round.phase === "payout") {
+    if (dom.livePhaseText) dom.livePhaseText.textContent = "TRẢ THƯỞNG";
+    if (dom.liveRoundHint) dom.liveRoundHint.textContent = "🏆 Kết quả đã công bố! Chuẩn bị sang phiên mới.";
+    if (dom.btnSpin) dom.btnSpin.disabled = true;
+    if (spinMain) spinMain.textContent = "KẾT QUẢ";
+    if (spinSub) spinSub.textContent = "PAYOUT";
+  }
+}
+
+async function executeLiveSpinReels(outcome) {
+  if (!outcome || !outcome.grid) return;
+  state.isSpinning = true;
+  soundEngine.init();
+  soundEngine.playSpin();
+
+  const prevGrid = state.currentGrid || [
+    [3, 8, 1, 6, 2],
+    [7, 7, 7, 8, 9],
+    [4, 5, 2, 9, 3]
+  ];
+
+  const grid = outcome.grid;
+  const center_row = outcome.center_row;
+  const analysis = outcome.analysis;
+
+  dom.resHand.textContent = "ĐANG QUAY CHUNG CẢ PHÒNG...";
+  clearWinningHighlights();
+  dom.winPillsList.innerHTML = "";
+
+  const reelPromises = [];
+  for (let c = 0; c < 5; c++) {
+    const p = new Promise(resolve => {
+      const strip = document.getElementById(`reel-${c}`);
+      if (!strip) return resolve();
+
+      const targetNums = [grid[0][c], grid[1][c], grid[2][c]];
+      const prevNums = [prevGrid[0][c], prevGrid[1][c], prevGrid[2][c]];
+      const targetTop = targetNums[0];
+      const prevTop = prevNums[0];
+
+      let delta = (prevTop - targetTop) % 9;
+      if (delta < 0) delta += 9;
+      const fullLoops = 3 + c * 2;
+      const totalItems = delta + fullLoops * 9 + 3;
+
+      const stripNums = [];
+      for (let i = 0; i < totalItems; i++) {
+        stripNums.push(((targetTop - 1 + i) % 9) + 1);
+      }
+
+      strip.innerHTML = "";
+      strip.style.transition = "none";
+      stripNums.forEach((num, idx) => {
+        const color = NUMBER_COLORS[num] || "#fff";
+        const cell = document.createElement("div");
+        let rowClass = "row-top";
+        if (idx === 1) rowClass = "row-center";
+        else if (idx === 2) rowClass = "row-bottom";
+        else if (idx === totalItems - 2) rowClass = "row-center";
+        else if (idx === totalItems - 1) rowClass = "row-bottom";
+
+        cell.className = `num-cell-slot ${rowClass}`;
+        cell.innerHTML = `<span class="slot-number-text" style="color:${color}">${num}</span>`;
+        strip.appendChild(cell);
+      });
+
+      const cellH = strip.firstElementChild ? strip.firstElementChild.offsetHeight : 110;
+      const initialOffset = -((totalItems - 3) * cellH);
+      strip.style.transform = `translateY(${initialOffset}px)`;
+      const duration = 0.80 + c * 0.25;
+      void strip.offsetHeight;
+
+      strip.classList.add("strip-rolling");
+      strip.style.transition = `transform ${duration}s cubic-bezier(0.12, 0.95, 0.25, 1.08)`;
+      strip.style.transform = "translateY(0px)";
+
+      setTimeout(() => {
+        strip.classList.remove("strip-rolling");
+        soundEngine.playReelStop();
+        telegramEngine.haptic("rigid");
+        renderReelStatic(c, targetNums);
+        resolve();
+      }, duration * 1000);
+    });
+    reelPromises.push(p);
+  }
+
+  await Promise.all(reelPromises);
+  state.currentGrid = grid;
+  state.isSpinning = false;
+
+  // Display results on cabinet
+  dom.resSum.textContent = `Tổng: ${analysis.sum}`;
+  dom.resTaiXiu.textContent = analysis.is_tai ? "TÀI (26-45)" : (analysis.is_xiu ? "XỈU (5-24)" : "HÒA (25)");
+  dom.resChanLe.textContent = analysis.is_chan ? "CHẴN" : "LẺ";
+  dom.resHand.textContent = `Dãy: [ ${center_row.join(" - ")} ] ➔ ${analysis.hand_title_vi}`;
+
+  // Record to history & update Soi Kèo
+  state.historyData.unshift({
+    spin: outcome.round_id,
+    center_row: [...center_row],
+    sum: analysis.sum,
+    is_tai: analysis.is_tai,
+    is_xiu: analysis.is_xiu,
+    is_hoa_25: analysis.is_hoa_25,
+    is_chan: analysis.is_chan,
+    is_le: analysis.is_le,
+    is_thung: analysis.is_thung,
+    is_sanh: analysis.is_sanh,
+    best_hand: analysis.hand_title_vi,
+    best_hand_key: analysis.best_hand,
+    total_bet: 0,
+    total_won: 0,
+    net: 0
+  });
+  if (state.historyData.length > 100) state.historyData.pop();
+  renderSoiKeo();
+}
+
+function handleLiveSettlement(settlement, newBalance) {
+  if (!settlement || !settlement.payout) return;
+  const payout = settlement.payout;
+  if (newBalance !== undefined && state.session) {
+    state.session.balance = newBalance;
+    updateMeters(payout.total_won);
+  }
+
+  if (payout.total_won > 0) {
+    soundEngine.playWin();
+    telegramEngine.haptic("success");
+    showToast(`🏆 <strong>PHIÊN ${settlement.round_id}</strong>: Bạn đã thắng <strong>+${payout.total_won.toLocaleString()} Xu</strong>!`, "gold");
+
+    state.lastShareSlip = {
+      round_id: settlement.round_id,
+      amount: payout.total_won,
+      hand: settlement.analysis?.hand_title_vi || "Thắng cược"
+    };
+
+    if (payout.total_won >= (payout.total_bet || 10) * 5 && dom.winBanner) {
+      soundEngine.playBigWin();
+      telegramEngine.haptic("warning");
+      dom.winBannerTitle.textContent = payout.total_won >= (payout.total_bet || 10) * 20 ? "JACKPOT / EPIC WIN!" : "BIG WIN!";
+      dom.winBannerAmount.textContent = `+${payout.total_won.toFixed(2)}`;
+      dom.winBannerDesc.textContent = `${settlement.analysis?.hand_title_vi} • Phiên Live: ${settlement.round_id}`;
+      dom.winBanner.style.display = "block";
+      dom.winBanner.classList.add("show");
+    }
+  } else {
+    showToast(`Kết quả phiên ${settlement.round_id}: Không trúng. Chúc bạn may mắn phiên sau!`, "warn");
+  }
+}
+
+async function placeLiveBetAction() {
+  if (state.isSpinning) return;
+  if (Object.keys(state.placedBets).length === 0) {
+    state.placedBets["BASE_SPIN"] = 10.0;
+    renderPlacedChips();
+  }
+
+  const totalBet = Object.values(state.placedBets).reduce((acc, v) => acc + v, 0);
+  if (state.session && state.session.balance < totalBet) {
+    telegramEngine.haptic("error");
+    alert("Số dư của bạn không đủ cho tổng cược!");
+    return;
+  }
+
+  try {
+    const res = await fetch("/api/live/bet", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        user_id: getLiveUserId(),
+        username: getLiveUserName(),
+        bets: state.placedBets,
+        bet_mode: state.fortuneBetMode === "fortune" ? "fortune_lock" : "free",
+        locked_numbers: state.fortuneLockedNumbers
+      })
+    });
+    const json = await res.json();
+    if (json.status === "success") {
+      state.session.balance = json.data.balance;
+      updateMeters();
+      telegramEngine.haptic("success");
+      soundEngine.playWinTone();
+      showToast(`⚡ Đã xác nhận cược <strong>${totalBet.toLocaleString()} Xu</strong> cho phiên <strong>${json.data.round_id}</strong>!`, "gold");
+      if (dom.liveBetStatus) dom.liveBetStatus.textContent = `✅ Đã đặt cược ${totalBet.toLocaleString()} Xu`;
+    } else {
+      telegramEngine.haptic("error");
+      showToast(`⚠️ ${json.detail || "Không thể đặt cược phiên này"}`, true);
+    }
+  } catch (err) {
+    console.error("Live bet error:", err);
+  }
+}
+
+async function sendChatMessage(text) {
+  try {
+    const res = await fetch("/api/live/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        user_id: getLiveUserId(),
+        username: getLiveUserName(),
+        avatar: telegramEngine.tg?.initDataUnsafe?.user?.photo_url ? "⭐️" : "👤",
+        text: text
+      })
+    });
+    const json = await res.json();
+    if (json.status === "success") {
+      syncLiveRoomState();
+    }
+  } catch (e) {}
+}
+
+async function sendReaction(emoji) {
+  try {
+    spawnFloatingEmoji(emoji);
+    soundEngine.init();
+    soundEngine.playChip();
+    telegramEngine.haptic("light");
+    await fetch("/api/live/reaction", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ emoji })
+    });
+  } catch (e) {}
+}
+
+function spawnFloatingEmoji(emoji) {
+  if (!dom.floatingEmojisLayer) return;
+  const span = document.createElement("span");
+  span.className = "floating-emoji-item";
+  span.textContent = emoji;
+  const randomLeft = 20 + Math.random() * 80;
+  span.style.left = `${randomLeft}px`;
+  dom.floatingEmojisLayer.appendChild(span);
+  setTimeout(() => span.remove(), 2200);
+}
+
+function shareWinSlipAction() {
+  const slip = state.lastShareSlip;
+  if (!slip) {
+    showToast("Bạn chưa có chiến tích mới để khoe!", "warn");
+    return;
+  }
+
+  // Open chat panel if collapsed
+  if (dom.liveChatPanel && dom.liveChatPanel.classList.contains("collapsed")) {
+    toggleLiveChat();
+  }
+
+  const shareText = `🔥 Vừa húp trọn +${slip.amount.toLocaleString()} Xu (${slip.hand}) ở phiên ${slip.round_id}!`;
+  fetch("/api/live/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      user_id: getLiveUserId(),
+      username: getLiveUserName(),
+      avatar: "🏆",
+      text: shareText,
+      type: "win_share",
+      slip: slip
+    })
+  }).then(() => {
+    soundEngine.playWinTone();
+    telegramEngine.haptic("success");
+    showToast("📢 Đã khoe chiến tích rực rỡ lên phòng chat!", "gold");
+    syncLiveRoomState();
+  });
+}
+
+function renderChatMessages(messages) {
+  if (!dom.chatMessagesContainer || !messages) return;
+  dom.chatMessagesContainer.innerHTML = messages.map(msg => {
+    const isSys = msg.type === "system";
+    const isWinShare = msg.type === "win_share" || !!msg.slip;
+    let slipHtml = "";
+    if (msg.slip) {
+      slipHtml = `
+        <div class="chat-win-slip">
+          <span class="cws-title">🏆 THẺ CHIẾN TÍCH: ${msg.slip.hand || "THẮNG LỚN"}</span>
+          <span class="cws-amt">+${(msg.slip.amount || 0).toLocaleString()} Xu</span>
+        </div>
+      `;
+    }
+    return `
+      <div class="chat-msg-row ${isSys ? "system" : ""} ${isWinShare ? "win-share" : ""}">
+        <span class="chat-msg-avatar">${msg.avatar || "👤"}</span>
+        <div class="chat-msg-content">
+          <span class="chat-msg-author">${msg.username || "Thành viên"}:</span>
+          <span class="chat-msg-text">${msg.text || ""}</span>
+          ${slipHtml}
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+async function saveLiveRoomConfigAction() {
+  if (!dom.inputLiveBettingTime) return;
+  const sec = parseInt(dom.inputLiveBettingTime.value) || 30;
+  if (sec < 10 || sec > 180) {
+    alert("Thời gian cược phải từ 10 đến 180 giây!");
+    return;
+  }
+
+  try {
+    telegramEngine.haptic("medium");
+    const res = await fetch("/api/admin/config", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        live_room: { betting_time_sec: sec }
+      })
+    });
+    const json = await res.json();
+    if (json.status === "success") {
+      if (dom.saveLiveRoomMsg) {
+        dom.saveLiveRoomMsg.textContent = "✅ Đã lưu thời gian cược " + sec + "s thành công!";
+        dom.saveLiveRoomMsg.className = "adm-save-msg show success";
+        setTimeout(() => { dom.saveLiveRoomMsg.className = "adm-save-msg"; }, 3500);
+      }
+      if (dom.modeLiveSecLbl) dom.modeLiveSecLbl.textContent = `${sec}s`;
+      showToast(`⚙️ Đã cập nhật thời gian cược Live Room thành <strong>${sec} giây</strong>`, "gold");
+    }
+  } catch (err) {
+    console.error("Save live room error:", err);
   }
 }
 
