@@ -131,6 +131,10 @@ const soundEngine = {
         osc.stop(state.audioCtx.currentTime + idx * 0.09 + 0.4);
       });
     } catch (e) {}
+  },
+
+  playWinTone() {
+    this.playWin();
   }
 };
 
@@ -2372,10 +2376,13 @@ function setupFortuneModeControls() {
   const btnExit = document.getElementById("btnExitFortuneMode");
 
   if (btnFree) {
-    btnFree.addEventListener("click", () => {
-      soundEngine.init();
-      soundEngine.playChip();
-      telegramEngine.haptic("light");
+    btnFree.addEventListener("click", (e) => {
+      if (e) e.preventDefault();
+      try {
+        soundEngine.init();
+        soundEngine.playChip();
+        telegramEngine.haptic("light");
+      } catch (err) {}
       state.fortuneBetMode = "free";
       renderFortuneLockState();
       showToast("🌐 <strong>CHẾ ĐỘ TỰ DO</strong>: Đang kích hoạt (Dải số 1 - 9 tự nhiên)", "cyan");
@@ -2383,10 +2390,13 @@ function setupFortuneModeControls() {
   }
 
   if (btnFortune) {
-    btnFortune.addEventListener("click", () => {
-      soundEngine.init();
-      soundEngine.playWinTone();
-      telegramEngine.haptic("medium");
+    btnFortune.addEventListener("click", (e) => {
+      if (e) e.preventDefault();
+      try {
+        soundEngine.init();
+        soundEngine.playWinTone();
+        telegramEngine.haptic("medium");
+      } catch (err) {}
       state.fortuneBetMode = "fortune";
       if (!state.fortuneLockedNumbers || state.fortuneLockedNumbers.length === 0) {
         state.fortuneLockedNumbers = [1, 2, 3];
@@ -2397,10 +2407,13 @@ function setupFortuneModeControls() {
   }
 
   if (btnExit) {
-    btnExit.addEventListener("click", () => {
-      soundEngine.init();
-      soundEngine.playChip();
-      telegramEngine.haptic("light");
+    btnExit.addEventListener("click", (e) => {
+      if (e) e.preventDefault();
+      try {
+        soundEngine.init();
+        soundEngine.playChip();
+        telegramEngine.haptic("light");
+      } catch (err) {}
       state.fortuneBetMode = "free";
       renderFortuneLockState();
       showToast("🌐 Đã chuyển về <strong>CHẾ ĐỘ TỰ DO</strong>", "cyan");
@@ -2410,10 +2423,13 @@ function setupFortuneModeControls() {
   // Quick Lock Presets
   const btn123 = document.getElementById("btnQuickLock123");
   if (btn123) {
-    btn123.addEventListener("click", () => {
-      soundEngine.init();
-      soundEngine.playWinTone();
-      telegramEngine.haptic("selection");
+    btn123.addEventListener("click", (e) => {
+      if (e) e.preventDefault();
+      try {
+        soundEngine.init();
+        soundEngine.playWinTone();
+        telegramEngine.haptic("selection");
+      } catch (err) {}
       state.fortuneBetMode = "fortune";
       state.fortuneLockedNumbers = [1, 2, 3];
       renderFortuneLockState();
@@ -2423,10 +2439,13 @@ function setupFortuneModeControls() {
 
   const btn7 = document.getElementById("btnQuickLock7");
   if (btn7) {
-    btn7.addEventListener("click", () => {
-      soundEngine.init();
-      soundEngine.playWinTone();
-      telegramEngine.haptic("selection");
+    btn7.addEventListener("click", (e) => {
+      if (e) e.preventDefault();
+      try {
+        soundEngine.init();
+        soundEngine.playWinTone();
+        telegramEngine.haptic("selection");
+      } catch (err) {}
       state.fortuneBetMode = "fortune";
       state.fortuneLockedNumbers = [7];
       renderFortuneLockState();
@@ -2436,10 +2455,13 @@ function setupFortuneModeControls() {
 
   const btn689 = document.getElementById("btnQuickLock689");
   if (btn689) {
-    btn689.addEventListener("click", () => {
-      soundEngine.init();
-      soundEngine.playWinTone();
-      telegramEngine.haptic("selection");
+    btn689.addEventListener("click", (e) => {
+      if (e) e.preventDefault();
+      try {
+        soundEngine.init();
+        soundEngine.playWinTone();
+        telegramEngine.haptic("selection");
+      } catch (err) {}
       state.fortuneBetMode = "fortune";
       state.fortuneLockedNumbers = [6, 8, 9];
       renderFortuneLockState();
@@ -2449,10 +2471,13 @@ function setupFortuneModeControls() {
 
   const btnClear = document.getElementById("btnQuickLockClear");
   if (btnClear) {
-    btnClear.addEventListener("click", () => {
-      soundEngine.init();
-      soundEngine.playChip();
-      telegramEngine.haptic("warning");
+    btnClear.addEventListener("click", (e) => {
+      if (e) e.preventDefault();
+      try {
+        soundEngine.init();
+        soundEngine.playChip();
+        telegramEngine.haptic("warning");
+      } catch (err) {}
       state.fortuneLockedNumbers = [];
       renderFortuneLockState();
       showToast("Đã xóa toàn bộ số khóa. Bấm vào ô số 1-9 để khóa số mới!", "warn");
@@ -2464,13 +2489,15 @@ function setupFortuneModeControls() {
 }
 
 function toggleFortuneLockNumber(num) {
-  soundEngine.init();
-  telegramEngine.haptic("selection");
+  try {
+    soundEngine.init();
+    telegramEngine.haptic("selection");
+  } catch (err) {}
 
   if (state.fortuneBetMode !== "fortune") {
     state.fortuneBetMode = "fortune";
     state.fortuneLockedNumbers = [num];
-    soundEngine.playWinTone();
+    try { soundEngine.playWinTone(); } catch (e) {}
     showToast(`⚡ Đã kích hoạt <strong>KHÓA SỐ THẦN TÀI</strong> và khóa <strong>Số ${num}</strong>!`, "gold");
     renderFortuneLockState();
     return;
@@ -2478,17 +2505,17 @@ function toggleFortuneLockNumber(num) {
 
   if (state.fortuneLockedNumbers.includes(num)) {
     state.fortuneLockedNumbers = state.fortuneLockedNumbers.filter(n => n !== num);
-    soundEngine.playChip();
+    try { soundEngine.playChip(); } catch (e) {}
     showToast(`Đã bỏ khóa Số ${num}`, "cyan");
   } else {
     if (state.fortuneLockedNumbers.length >= 5) {
-      telegramEngine.haptic("error");
+      try { telegramEngine.haptic("error"); } catch (e) {}
       showToast("Chỉ được chọn tối đa 5 con số Thần Tài cùng lúc!", "warn");
       return;
     }
     state.fortuneLockedNumbers.push(num);
     state.fortuneLockedNumbers.sort((a, b) => a - b);
-    soundEngine.playWinTone();
+    try { soundEngine.playWinTone(); } catch (e) {}
     showToast(`⚡ Đã thêm <strong>Số ${num}</strong> vào danh sách Khóa Thần Tài!`, "gold");
   }
 
