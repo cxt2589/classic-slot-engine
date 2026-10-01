@@ -662,6 +662,16 @@ function setupBettingBoard() {
         delete state.placedBets[betKey];
         renderPlacedChips();
         updateMeters();
+
+        // Đồng bộ Chế Độ Khóa Thần Tài: Nếu bấm ✕ trên ô số, hủy luôn trạng thái ĐÃ CHỌN
+        if (state.fortuneBetMode === "fortune" && cell.dataset.num) {
+          const num = parseInt(cell.dataset.num);
+          if (num && state.fortuneLockedNumbers.includes(num)) {
+            state.fortuneLockedNumbers = state.fortuneLockedNumbers.filter(n => n !== num);
+            renderFortuneLockState();
+            showToast(`Đã xóa cược & bỏ chọn Số ${num}`, "cyan");
+          }
+        }
         return;
       }
 
@@ -717,6 +727,13 @@ function setupBettingBoard() {
         }
       } else if (state.betInteractionMode === "del") {
         delete state.placedBets[betKey];
+        if (state.fortuneBetMode === "fortune" && cell.dataset.num) {
+          const num = parseInt(cell.dataset.num);
+          if (num && state.fortuneLockedNumbers.includes(num)) {
+            state.fortuneLockedNumbers = state.fortuneLockedNumbers.filter(n => n !== num);
+            renderFortuneLockState();
+          }
+        }
       }
 
       renderPlacedChips();
