@@ -3597,6 +3597,7 @@ function renderChatMessages(messages) {
     const isSys = msg.type === "system";
     const isWinShare = msg.type === "win_share" || !!msg.slip;
     const isRedPacket = msg.type === "red_packet" || !!msg.packet_id;
+    const isClaimNotice = msg.type === "red_packet_claim" || !!msg.claim_info;
     const timeStr = msg.time ? new Date(msg.time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "";
     let slipHtml = "";
     if (msg.slip) {
@@ -3604,6 +3605,15 @@ function renderChatMessages(messages) {
         <div class="chat-win-slip">
           <span class="cws-title">🏆 THẺ CHIẾN TÍCH: ${msg.slip.hand || "THẮNG LỚN"}</span>
           <span class="cws-amt">+${(msg.slip.amount || 0).toLocaleString()} Xu</span>
+        </div>
+      `;
+    }
+    let claimHtml = "";
+    if (isClaimNotice && msg.claim_info) {
+      claimHtml = `
+        <div class="chat-claim-pill">
+          <span class="ccp-tag">🧧 NHẬN LỘC MAY MẮN</span>
+          <span class="ccp-detail"><strong>+${(msg.claim_info.amount || 0).toLocaleString()} Xu</strong> từ <strong>${msg.claim_info.sender_name || "Bạn bè"}</strong></span>
         </div>
       `;
     }
@@ -3628,8 +3638,8 @@ function renderChatMessages(messages) {
       }
     }
     return `
-      <div class="chat-msg-row ${isSys ? "system" : ""} ${isWinShare ? "win-share" : ""} ${isRedPacket ? "red-packet-msg" : ""}">
-        <span class="chat-msg-avatar">${msg.avatar || "👤"}</span>
+      <div class="chat-msg-row ${isSys ? "system" : ""} ${isWinShare ? "win-share" : ""} ${isRedPacket ? "red-packet-msg" : ""} ${isClaimNotice ? "claim-notice-msg" : ""}">
+        <span class="chat-msg-avatar">${msg.avatar || (isClaimNotice ? "🎁" : "👤")}</span>
         <div class="chat-msg-content">
           <div class="chat-msg-header">
             <span class="chat-msg-author">${msg.username || "Thành viên"}</span>
@@ -3637,6 +3647,7 @@ function renderChatMessages(messages) {
           </div>
           <span class="chat-msg-text">${msg.text || ""}</span>
           ${slipHtml}
+          ${claimHtml}
           ${rpBtnHtml}
         </div>
       </div>
@@ -3887,8 +3898,10 @@ async function claimRedPacketAction(packetId, el) {
       state.session.balance = json.data.balance;
       updateMeters(json.data.amount);
       soundEngine.playWinTone();
-      showToast(`🧧 <strong>CHÚC MỪNG!</strong> Bạn vừa nhặt được <strong>+${json.data.amount} Xu</strong> lộc từ <strong>${json.data.sender_name}</strong>!`, "gold");
+      showToast(`🧧 <strong>CHÚC MỪNG!</strong> Bạn vừa nhận được <strong>+${(json.data.amount || 0).toLocaleString()} Xu</strong> lộc từ <strong>${json.data.sender_name}</strong>!`, "gold");
       spawnFloatingEmoji("💰");
+      setTimeout(() => spawnFloatingEmoji("🎉"), 200);
+      syncLiveRoomState();
       setTimeout(() => dismissRedPacketRain(), 1000);
     } else {
       showToast(`🧧 ${json.detail || "Đã có người nhặt trước!"}`, "warn");

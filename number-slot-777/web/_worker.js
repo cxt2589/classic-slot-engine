@@ -1612,6 +1612,29 @@ function getLiveRoundInfo() {
         packet.claimed_by[userId] = luckyAmount;
         await saveKVRedPackets(env, curPackets);
 
+        // Phát thông báo nhận lộc vào phòng chat cho cả phòng cùng thấy
+        const claimNotice = {
+          id: "msg-claim-" + Date.now() + "-" + Math.random().toString(36).substr(2, 4),
+          user_id: userId,
+          username: userName,
+          avatar: "🎁",
+          text: `🧧 ${userName} vừa nhận được +${luckyAmount.toLocaleString()} Xu từ đợt phát lộc của ${packet.sender_name}! ✨`,
+          type: "red_packet_claim",
+          claim_info: {
+            user_id: userId,
+            username: userName,
+            amount: luckyAmount,
+            sender_id: packet.sender_id,
+            sender_name: packet.sender_name,
+            packet_id: packet.id
+          },
+          time: Date.now()
+        };
+        const curMsgs = await getKVChatMessages(env);
+        const updatedMsgs = [claimNotice, ...curMsgs.filter(m => m.id !== claimNotice.id)].slice(0, 50);
+        liveRoomState.chatMessages = updatedMsgs;
+        await saveKVChatMessages(env, updatedMsgs);
+
         return jsonRes({
           status: "success",
           data: {

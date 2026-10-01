@@ -6236,6 +6236,46 @@ body.chat-drawer-open .nav-tabs.is-docked-bottom {
   color: #76ff03;
 }
 
+/* Red Packet Claim Notification Card in Chat */
+.chat-msg-row.claim-notice-msg .chat-msg-content {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.14) 0%, rgba(0, 230, 118, 0.08) 100%);
+  border: 1px solid rgba(255, 215, 0, 0.38);
+  box-shadow: 0 0 12px rgba(255, 215, 0, 0.15);
+}
+
+.chat-msg-row.claim-notice-msg .chat-msg-author {
+  color: #ffd700;
+  font-weight: 900;
+}
+
+.chat-claim-pill {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 5px;
+  padding: 5px 10px;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 6px;
+  border-left: 3px solid #00e676;
+}
+
+.ccp-tag {
+  font-size: 0.68rem;
+  color: #00e676;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+}
+
+.ccp-detail {
+  font-size: 0.74rem;
+  color: #e2e8f0;
+}
+
+.ccp-detail strong {
+  color: #ffd700;
+}
+
 /* Quick Canned Messages Bar inside Drawer */
 .chat-canned-bar {
   display: flex;
