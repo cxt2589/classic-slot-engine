@@ -528,6 +528,21 @@ function setupStickyAndDockedNavigation() {
         const scrollY = window.scrollY || window.pageYOffset || 0;
         const isMobile = window.innerWidth <= 768;
 
+        // Khi đang mở khung chat, KHÔNG dock menu xuống đáy màn hình để không chèn vào ô chat
+        if (document.body.classList.contains("chat-drawer-open")) {
+          if (isMobileDocked) {
+            isMobileDocked = false;
+            mainNavTabs.classList.remove("is-docked-bottom");
+            appContainer?.classList.remove("has-docked-nav");
+            document.body.classList.remove("has-docked-nav");
+            if (navTabsWrapper) {
+              navTabsWrapper.style.minHeight = "";
+            }
+          }
+          ticking = false;
+          return;
+        }
+
         if (isMobile) {
           // Reset desktop state if switched to mobile
           if (isDesktopSticky) {
@@ -542,6 +557,7 @@ function setupStickyAndDockedNavigation() {
             isMobileDocked = true;
             mainNavTabs.classList.add("is-docked-bottom");
             appContainer?.classList.add("has-docked-nav");
+            document.body.classList.add("has-docked-nav");
             if (navTabsWrapper) {
               navTabsWrapper.style.minHeight = `${mainNavTabs.offsetHeight || 44}px`;
             }
@@ -549,6 +565,7 @@ function setupStickyAndDockedNavigation() {
             isMobileDocked = false;
             mainNavTabs.classList.remove("is-docked-bottom");
             appContainer?.classList.remove("has-docked-nav");
+            document.body.classList.remove("has-docked-nav");
             if (navTabsWrapper) {
               navTabsWrapper.style.minHeight = "";
             }
@@ -559,6 +576,7 @@ function setupStickyAndDockedNavigation() {
             isMobileDocked = false;
             mainNavTabs.classList.remove("is-docked-bottom");
             appContainer?.classList.remove("has-docked-nav");
+            document.body.classList.remove("has-docked-nav");
             if (navTabsWrapper) {
               navTabsWrapper.style.minHeight = "";
             }
@@ -581,6 +599,12 @@ function setupStickyAndDockedNavigation() {
       ticking = true;
     }
   }
+
+  window.recheckScrollNav = () => {
+    isMobileDocked = false;
+    isDesktopSticky = false;
+    onScroll();
+  };
 
   window.addEventListener("scroll", onScroll, { passive: true });
   window.addEventListener("resize", onScroll, { passive: true });
@@ -3028,6 +3052,18 @@ function openChatDrawer() {
   if (!dom.chatDrawerBackdrop) return;
   dom.chatDrawerBackdrop.classList.add("open");
   document.body.classList.add("chat-drawer-open");
+  
+  // Gỡ bỏ ngay lập tức thanh menu dock dưới đáy màn hình để không chèn vào ô nhập chat
+  const mainNavTabs = document.getElementById("mainNavTabs");
+  if (mainNavTabs) {
+    mainNavTabs.classList.remove("is-docked-bottom");
+  }
+  const appContainer = document.querySelector(".app-container");
+  if (appContainer) {
+    appContainer.classList.remove("has-docked-nav");
+  }
+  document.body.classList.remove("has-docked-nav");
+
   telegramEngine.haptic("medium");
   if (dom.chatMessagesContainer) {
     dom.chatMessagesContainer.scrollTop = dom.chatMessagesContainer.scrollHeight;
@@ -3039,6 +3075,9 @@ function closeChatDrawer() {
   dom.chatDrawerBackdrop.classList.remove("open");
   document.body.classList.remove("chat-drawer-open");
   telegramEngine.haptic("light");
+  if (typeof window.recheckScrollNav === "function") {
+    window.recheckScrollNav();
+  }
 }
 
 function toggleLiveChat() {

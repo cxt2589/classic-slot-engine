@@ -5886,10 +5886,10 @@ body.is-telegram-app .brand-text .subtext {
 /* Fixed Floating Chat FAB Button */
 .fixed-chat-fab {
   position: fixed;
-  bottom: 24px;
-  right: 20px;
-  width: 52px;
-  height: 52px;
+  bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+  right: 18px;
+  width: 50px;
+  height: 50px;
   border-radius: 50%;
   background: linear-gradient(135deg, #161c32 0%, #0c1020 100%);
   border: 2px solid #ffd700;
@@ -5898,8 +5898,30 @@ body.is-telegram-app .brand-text .subtext {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  z-index: 9998;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  z-index: 99990;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), bottom 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Khi thanh menu hiện ra ở dưới đáy (is-docked-bottom / has-docked-nav):
+   TỰ ĐỘNG NÂNG NÚT CHAT NỔI LÊN TRÊN THANH MENU ĐỂ KHÔNG BAO GIỜ BỊ CHÈN VÀO */
+body.has-docked-nav .fixed-chat-fab,
+.app-container.has-docked-nav ~ .fixed-chat-fab {
+  bottom: calc(68px + max(10px, env(safe-area-inset-bottom, 10px))) !important;
+}
+
+/* Khi mở phòng chat trực tiếp (chat-drawer-open):
+   Ẩn nút chat nổi và ẩn thanh menu dock để giao diện chat hoàn toàn sạch sẽ, không bị đè */
+body.chat-drawer-open .fixed-chat-fab {
+  display: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+body.chat-drawer-open .nav-tabs.is-docked-bottom {
+  display: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transform: translateY(120%) !important;
 }
 
 .fixed-chat-fab .fab-icon {
@@ -5979,10 +6001,10 @@ body.is-telegram-app .brand-text .subtext {
 .chat-drawer-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(4, 6, 12, 0.68);
+  background: rgba(4, 6, 12, 0.72);
   backdrop-filter: blur(5px);
   -webkit-backdrop-filter: blur(5px);
-  z-index: 99999;
+  z-index: 1000000 !important;
   opacity: 0;
   visibility: hidden;
   display: none;
@@ -5992,7 +6014,7 @@ body.is-telegram-app .brand-text .subtext {
 }
 
 .chat-drawer-backdrop.open {
-  display: flex;
+  display: flex !important;
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
@@ -6006,6 +6028,7 @@ body.is-telegram-app .brand-text .subtext {
   flex-direction: column;
   overflow: hidden;
   cursor: default;
+  z-index: 1000001 !important;
 }
 
 /* Desktop & Tablet: Slide in from right */
@@ -6286,8 +6309,9 @@ body.is-telegram-app .brand-text .subtext {
 .chat-form {
   display: flex;
   gap: 8px;
-  padding: 8px 12px 14px 12px;
-  background: rgba(14, 18, 32, 0.95);
+  padding: 10px 12px;
+  padding-bottom: max(14px, env(safe-area-inset-bottom, 14px));
+  background: rgba(14, 18, 32, 0.98);
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   flex-shrink: 0;
 }
