@@ -651,11 +651,113 @@ export default {
       return jsonRes({ status: "success", data: session });
     }
 
+function checkFortuneLockMatch(betKey, analysis, lockedSet) {
+  if (!lockedSet || lockedSet.size === 0) return { matched: true, reasonSuffix: "" };
+
+  const centerNumbers = analysis.numbers;
+  const lockedArr = Array.from(lockedSet);
+
+  if (betKey.startsWith("SO_")) {
+    return { matched: true, reasonSuffix: "" };
+  }
+
+  if (betKey === "BASE_SPIN") {
+    return { matched: true, reasonSuffix: "" };
+  }
+
+  if (betKey === "TAI" || betKey === "XIU" || betKey === "HOA_25" || betKey === "CHAN" || betKey === "LE") {
+    const hasNum = centerNumbers.some(n => lockedSet.has(n));
+    return {
+      matched: hasNum,
+      reasonSuffix: hasNum ? ` ⚡ [Kèm số Thần Tài: ${centerNumbers.filter(n => lockedSet.has(n)).join(", ")}]` : ""
+    };
+  }
+
+  if (betKey === "THUNG" || betKey === "THUNG_CHAN" || betKey === "THUNG_LE") {
+    const hasNum = centerNumbers.some(n => lockedSet.has(n));
+    return {
+      matched: hasNum,
+      reasonSuffix: hasNum ? ` ⚡ [Chứa số Thần Tài: ${centerNumbers.filter(n => lockedSet.has(n)).join(", ")}]` : ""
+    };
+  }
+
+  if (betKey === "SANH" || betKey === "SANH_CHUAN") {
+    // Dãy sảnh phải chứa toàn bộ các số Thần Tài mà người chơi đã chọn!
+    const containsAll = lockedArr.every(tn => centerNumbers.includes(tn));
+    return {
+      matched: containsAll,
+      reasonSuffix: containsAll ? ` ⚡ [Khớp bộ số Thần Tài: ${lockedArr.join("-")}]` : ""
+    };
+  }
+
+  if (betKey === "NGU_QUY") {
+    const num = centerNumbers[0];
+    const match = analysis.is_ngu_quy && lockedSet.has(num);
+    return {
+      matched: match,
+      reasonSuffix: match ? ` ⚡ [Đúng số Thần Tài: ${num}]` : ""
+    };
+  }
+
+  if (betKey === "TU_QUY") {
+    for (const [num, cnt] of Object.entries(analysis.counts)) {
+      if (cnt >= 4 && lockedSet.has(Number(num))) {
+        return { matched: true, reasonSuffix: ` ⚡ [Đúng số Thần Tài: ${num}]` };
+      }
+    }
+    return { matched: false, reasonSuffix: "" };
+  }
+
+  if (betKey === "CU_LU") {
+    for (const [num, cnt] of Object.entries(analysis.counts)) {
+      if (cnt === 3 && lockedSet.has(Number(num))) {
+        return { matched: true, reasonSuffix: ` ⚡ [Bộ 3 số Thần Tài: ${num}]` };
+      }
+    }
+    return { matched: false, reasonSuffix: "" };
+  }
+
+  if (betKey === "SAM_CO") {
+    for (const [num, cnt] of Object.entries(analysis.counts)) {
+      if (cnt >= 3 && lockedSet.has(Number(num))) {
+        return { matched: true, reasonSuffix: ` ⚡ [Bộ 3 số Thần Tài: ${num}]` };
+      }
+    }
+    return { matched: false, reasonSuffix: "" };
+  }
+
+  if (betKey === "HAI_DOI") {
+    for (const [num, cnt] of Object.entries(analysis.counts)) {
+      if (cnt >= 2 && lockedSet.has(Number(num))) {
+        return { matched: true, reasonSuffix: ` ⚡ [Đôi số Thần Tài: ${num}]` };
+      }
+    }
+    return { matched: false, reasonSuffix: "" };
+  }
+
+  if (betKey === "MOT_DOI") {
+    for (const [num, cnt] of Object.entries(analysis.counts)) {
+      if (cnt >= 2 && lockedSet.has(Number(num))) {
+        return { matched: true, reasonSuffix: ` ⚡ [Đôi số Thần Tài: ${num}]` };
+      }
+    }
+    return { matched: false, reasonSuffix: "" };
+  }
+
+  return { matched: true, reasonSuffix: "" };
+}
+
     if (url.pathname === "/api/spin" && request.method === "POST") {
       let bets = {};
+      let bet_mode = "free"; // "free" | "fortune_lock"
+      let locked_numbers = [];
       try {
         const body = await request.json();
         bets = body.bets || { BASE_SPIN: 10.0 };
+        bet_mode = body.bet_mode || "free";
+        if (Array.isArray(body.locked_numbers)) {
+          locked_numbers = body.locked_numbers.map(Number).filter(n => n >= 1 && n <= 9);
+        }
       } catch (e) {}
 
       const totalBet = Object.values(bets).reduce((a, b) => a + Number(b), 0);
@@ -734,6 +836,8 @@ export default {
       }
 
       // Evaluate bets
+      const isFortuneLock = (bet_mode === "fortune_lock" && locked_numbers.length > 0);
+      const lockedSet = new Set(locked_numbers);
       const winningItems = [];
       let totalWon = 0;
 
@@ -794,6 +898,16 @@ export default {
           }
         }
 
+        // Kiểm tra điều kiện Khóa Số Thần Tài (Fortune Lock)
+        if (mult > 0 && isFortuneLock) {
+          const lockCheck = checkFortuneLockMatch(betKey, analysis, lockedSet);
+          if (!lockCheck.matched) {
+            mult = 0; // Không thỏa mãn số Thần Tài đã chọn
+          } else if (lockCheck.reasonSuffix) {
+            reason += lockCheck.reasonSuffix;
+          }
+        }
+
         if (mult > 0) {
           const win = Math.round(wager * mult * 100) / 100;
           totalWon += win;
@@ -821,7 +935,8 @@ export default {
         best_hand_key: analysis.best_hand,
         total_bet: totalBet,
         total_won: totalWon,
-        net: Math.round((totalWon - totalBet) * 100) / 100
+        net: Math.round((totalWon - totalBet) * 100) / 100,
+        fortune_lock: isFortuneLock ? { locked_numbers } : null
       };
       session.history.unshift(histEntry);
       if (session.history.length > 100) session.history.pop();
@@ -844,6 +959,10 @@ export default {
             total_won: totalWon,
             net_profit: Math.round((totalWon - totalBet) * 100) / 100,
             winning_items: winningItems
+          },
+          fortune_lock: {
+            is_active: isFortuneLock,
+            locked_numbers: locked_numbers
           },
           admin_info: {
             allow_sanh_chuan: adminConfig.allow_sanh_chuan,

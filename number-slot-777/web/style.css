@@ -4932,5 +4932,295 @@ body.is-telegram-app .brand-text .subtext {
   transform: translateX(-50%) translateY(0);
 }
 
+/* ==========================================================================
+   FORTUNE LOCK MODE (KHÓA SỐ THẦN TÀI) STYLES
+   ========================================================================== */
+.fortune-lock-global-banner {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.15) 0%, rgba(255, 145, 0, 0.12) 100%);
+  border: 1px solid rgba(255, 215, 0, 0.6);
+  border-radius: 10px;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 6px;
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.2);
+  animation: bannerGlowPulse 2s infinite alternate;
+}
+
+@keyframes bannerGlowPulse {
+  0% { box-shadow: 0 0 10px rgba(255, 215, 0, 0.2); border-color: rgba(255, 215, 0, 0.4); }
+  100% { box-shadow: 0 0 22px rgba(255, 215, 0, 0.45); border-color: rgba(255, 215, 0, 0.9); }
+}
+
+.flgb-icon {
+  font-size: 1.8rem;
+  filter: drop-shadow(0 0 8px #ffd700);
+}
+
+.flgb-content {
+  flex: 1;
+}
+
+.flgb-title {
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  font-weight: 900;
+  color: #ffd700;
+  letter-spacing: 0.5px;
+}
+
+.flgb-desc {
+  font-size: 0.74rem;
+  color: #e2e8f0;
+  margin-top: 2px;
+}
+
+.flgb-exit-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #cbd5e0;
+  font-size: 0.7rem;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.flgb-exit-btn:hover {
+  background: rgba(255, 23, 68, 0.25);
+  border-color: #ff1744;
+  color: #fff;
+}
+
+/* SECTION 6 HEADER & MODE SELECTOR */
+.bet-section-header-f {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.fortune-mode-selector {
+  display: flex;
+  background: #0d101c;
+  border: 1px solid #23283c;
+  border-radius: 8px;
+  padding: 3px;
+  gap: 4px;
+}
+
+.fmode-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  color: #a0aec0;
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 5px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.fmode-tab:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.fmode-tab.active {
+  background: #1c2237;
+  color: #00e5ff;
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.25);
+}
+
+.fmode-tab.gold-btn.active {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.25) 0%, rgba(255, 145, 0, 0.25) 100%);
+  color: #ffd700;
+  border: 1px solid rgba(255, 215, 0, 0.6);
+  box-shadow: 0 0 14px rgba(255, 215, 0, 0.4);
+}
+
+/* FORTUNE LOCK CONTROL CARD */
+.fortune-lock-control-card {
+  background: linear-gradient(145deg, #131728 0%, #0d101b 100%);
+  border: 1px solid rgba(255, 215, 0, 0.4);
+  border-radius: 10px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.1);
+  margin-bottom: 6px;
+}
+
+.flc-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 6px;
+}
+
+.flc-badge {
+  font-size: 0.74rem;
+  font-weight: 900;
+  color: #ffd700;
+  letter-spacing: 0.5px;
+}
+
+.flc-sub {
+  font-size: 0.7rem;
+  color: #a0aec0;
+}
+
+.flc-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.flc-status-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.flc-lbl, .flc-act-lbl {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #718096;
+}
+
+.flc-tags {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.flc-num-tag {
+  background: linear-gradient(135deg, #ffd700 0%, #ff8f00 100%);
+  color: #000;
+  font-family: var(--font-numbers);
+  font-size: 0.72rem;
+  font-weight: 900;
+  padding: 2px 8px;
+  border-radius: 12px;
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.flc-num-tag-del {
+  cursor: pointer;
+  font-weight: 900;
+  font-size: 0.7rem;
+  opacity: 0.7;
+}
+
+.flc-num-tag-del:hover {
+  opacity: 1;
+}
+
+.flc-empty-hint {
+  font-size: 0.72rem;
+  color: #a0aec0;
+  font-style: italic;
+}
+
+.flc-actions-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.flc-preset-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.flc-btn {
+  background: #1a2034;
+  border: 1px solid #2e3752;
+  color: #e2e8f0;
+  font-size: 0.7rem;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.flc-btn:hover {
+  background: #273150;
+  border-color: #ffd700;
+  color: #ffd700;
+}
+
+.flc-btn.danger {
+  border-color: #4a5568;
+  color: #a0aec0;
+}
+
+.flc-btn.danger:hover {
+  background: rgba(255, 23, 68, 0.2);
+  border-color: #ff1744;
+  color: #ff5252;
+}
+
+/* NUMBER CELLS LOCK PILL & AURA */
+.num-lock-pill {
+  display: none;
+  position: absolute;
+  top: 3px;
+  left: 4px;
+  background: rgba(255, 215, 0, 0.2);
+  border: 1px solid rgba(255, 215, 0, 0.5);
+  color: #ffd700;
+  font-size: 0.52rem;
+  font-weight: 900;
+  padding: 1px 4px;
+  border-radius: 3px;
+  line-height: 1;
+  letter-spacing: 0.3px;
+  pointer-events: auto;
+  cursor: pointer;
+  z-index: 4;
+}
+
+.fortune-mode-active .num-lock-pill {
+  display: block;
+}
+
+.bet-cell.num-cell.is-locked-fortune {
+  border-color: #ffd700 !important;
+  background: linear-gradient(145deg, rgba(255, 215, 0, 0.18) 0%, rgba(255, 145, 0, 0.08) 100%) !important;
+  box-shadow: 0 0 16px rgba(255, 215, 0, 0.45), inset 0 0 12px rgba(255, 215, 0, 0.2) !important;
+  transform: translateY(-2px);
+}
+
+.bet-cell.num-cell.is-locked-fortune .num-lock-pill {
+  background: linear-gradient(135deg, #ffd700 0%, #ff8f00 100%);
+  color: #000;
+  border-color: #fff;
+  box-shadow: 0 0 6px #ffd700;
+}
+
+
 
 

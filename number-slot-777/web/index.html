@@ -213,6 +213,16 @@
 
           <!-- Betting Grid -->
           <div class="bet-grid">
+            <!-- Global Fortune Lock Active Indicator Banner -->
+            <div class="fortune-lock-global-banner" id="fortuneLockGlobalBanner" style="display: none;">
+              <div class="flgb-icon">⚡</div>
+              <div class="flgb-content">
+                <div class="flgb-title">CHẾ ĐỘ KHÓA SỐ THẦN TÀI ĐANG KÍCH HOẠT</div>
+                <div class="flgb-desc">Các mục từ 1 đến 5 chỉ trúng thưởng khi kết quả gắn liền với Con Số Thần Tài: <strong id="flgbNumsBadge" class="glow-gold">--</strong></div>
+              </div>
+              <button class="flgb-exit-btn" id="btnExitFortuneMode" title="Chuyển lại về Chế Độ Tự Do">✕ Về Tự Do</button>
+            </div>
+
             <!-- Row A: Tài / Xỉu / Hòa 25 -->
             <div class="bet-section-title">1. TỔNG ĐIỂM (5 - 45)</div>
             <div class="bet-row three-cols">
@@ -322,50 +332,99 @@
               </div>
             </div>
 
-            <!-- Row F: Single Number 1..9 -->
-            <div class="bet-section-title">6. CƯỢC CON SỐ YÊU THÍCH (1 - 9 SẼ XUẤT HIỆN Ở HÀNG GIỮA)</div>
-            <div class="bet-row nine-cols">
-              <div class="bet-cell num-cell" data-bet="SO_1" style="border-color:#00E5FF">
+            <!-- Row F: Single Number 1..9 & Fortune Lock Mode -->
+            <div class="bet-section-header-f">
+              <div class="bet-section-title">6. CƯỢC CON SỐ YÊU THÍCH (1 - 9)</div>
+              
+              <!-- Fortune Mode Switcher -->
+              <div class="fortune-mode-selector">
+                <button class="fmode-tab active" id="btnFModeFree" data-fmode="free" title="Chế độ cược tự do toàn bộ dải số 1-9">
+                  <span class="fmt-icon">🌐</span>
+                  <span class="fmt-txt">CHẾ ĐỘ TỰ DO</span>
+                </button>
+                <button class="fmode-tab gold-btn" id="btnFModeFortune" data-fmode="fortune" title="Chế độ Khóa Số Thần Tài: Khóa số mục tiêu cho mục 1 đến 5">
+                  <span class="fmt-icon">⚡</span>
+                  <span class="fmt-txt">KHÓA SỐ THẦN TÀI</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Fortune Lock Helper Control Card (Shown in Fortune Lock mode) -->
+            <div class="fortune-lock-control-card" id="fortuneLockControlCard" style="display: none;">
+              <div class="flc-head">
+                <div class="flc-badge">⚡ CHẾ ĐỘ KHÓA SỐ THẦN TÀI ĐANG BẬT</div>
+                <span class="flc-sub">Các mục 1 đến 5 sẽ <strong>bắt buộc căn cứ</strong> theo các số được chọn ở đây</span>
+              </div>
+              <div class="flc-body">
+                <div class="flc-status-row">
+                  <span class="flc-lbl">Số Thần Tài đang chọn:</span>
+                  <div class="flc-tags" id="flcSelectedTags">
+                    <span class="flc-empty-hint">Chưa chọn số nào (Bấm các số 1-9 bên dưới hoặc chọn nhanh)</span>
+                  </div>
+                </div>
+                <div class="flc-actions-row">
+                  <span class="flc-act-lbl">Chọn nhanh:</span>
+                  <div class="flc-preset-group">
+                    <button class="flc-btn" id="btnQuickLock123">⚡ Khóa 1-2-3 (Sảnh)</button>
+                    <button class="flc-btn" id="btnQuickLock7">👑 Khóa Số 7 (Vua)</button>
+                    <button class="flc-btn" id="btnQuickLock689">💰 Khóa 6-8-9 (Lộc)</button>
+                    <button class="flc-btn danger" id="btnQuickLockClear">✕ Hủy Khóa</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="bet-row nine-cols" id="rowSingleNumbers">
+              <div class="bet-cell num-cell" data-bet="SO_1" data-num="1" style="border-color:#00E5FF">
+                <span class="num-lock-pill" id="lock-pill-1">⚡ KHÓA</span>
                 <span class="big-num" style="color:#00E5FF">1</span>
                 <span class="num-sub">x1.7..100x</span>
                 <div class="chip-placed hidden" id="chip-SO_1">0</div>
               </div>
-              <div class="bet-cell num-cell" data-bet="SO_2" style="border-color:#76FF03">
+              <div class="bet-cell num-cell" data-bet="SO_2" data-num="2" style="border-color:#76FF03">
+                <span class="num-lock-pill" id="lock-pill-2">⚡ KHÓA</span>
                 <span class="big-num" style="color:#76FF03">2</span>
                 <span class="num-sub">x1.7..100x</span>
                 <div class="chip-placed hidden" id="chip-SO_2">0</div>
               </div>
-              <div class="bet-cell num-cell" data-bet="SO_3" style="border-color:#FF9100">
+              <div class="bet-cell num-cell" data-bet="SO_3" data-num="3" style="border-color:#FF9100">
+                <span class="num-lock-pill" id="lock-pill-3">⚡ KHÓA</span>
                 <span class="big-num" style="color:#FF9100">3</span>
                 <span class="num-sub">x1.7..100x</span>
                 <div class="chip-placed hidden" id="chip-SO_3">0</div>
               </div>
-              <div class="bet-cell num-cell" data-bet="SO_4" style="border-color:#2979FF">
+              <div class="bet-cell num-cell" data-bet="SO_4" data-num="4" style="border-color:#2979FF">
+                <span class="num-lock-pill" id="lock-pill-4">⚡ KHÓA</span>
                 <span class="big-num" style="color:#2979FF">4</span>
                 <span class="num-sub">x1.7..100x</span>
                 <div class="chip-placed hidden" id="chip-SO_4">0</div>
               </div>
-              <div class="bet-cell num-cell" data-bet="SO_5" style="border-color:#D500F9">
+              <div class="bet-cell num-cell" data-bet="SO_5" data-num="5" style="border-color:#D500F9">
+                <span class="num-lock-pill" id="lock-pill-5">⚡ KHÓA</span>
                 <span class="big-num" style="color:#D500F9">5</span>
                 <span class="num-sub">x1.7..100x</span>
                 <div class="chip-placed hidden" id="chip-SO_5">0</div>
               </div>
-              <div class="bet-cell num-cell" data-bet="SO_6" style="border-color:#FFD600">
+              <div class="bet-cell num-cell" data-bet="SO_6" data-num="6" style="border-color:#FFD600">
+                <span class="num-lock-pill" id="lock-pill-6">⚡ KHÓA</span>
                 <span class="big-num" style="color:#FFD600">6</span>
                 <span class="num-sub">x1.7..100x</span>
                 <div class="chip-placed hidden" id="chip-SO_6">0</div>
               </div>
-              <div class="bet-cell num-cell" data-bet="SO_7" style="border-color:#FF1744">
+              <div class="bet-cell num-cell" data-bet="SO_7" data-num="7" style="border-color:#FF1744">
+                <span class="num-lock-pill" id="lock-pill-7">⚡ KHÓA</span>
                 <span class="big-num" style="color:#FF1744">7</span>
                 <span class="num-sub">x1.7..100x</span>
                 <div class="chip-placed hidden" id="chip-SO_7">0</div>
               </div>
-              <div class="bet-cell num-cell" data-bet="SO_8" style="border-color:#00E676">
+              <div class="bet-cell num-cell" data-bet="SO_8" data-num="8" style="border-color:#00E676">
+                <span class="num-lock-pill" id="lock-pill-8">⚡ KHÓA</span>
                 <span class="big-num" style="color:#00E676">8</span>
                 <span class="num-sub">x1.7..100x</span>
                 <div class="chip-placed hidden" id="chip-SO_8">0</div>
               </div>
-              <div class="bet-cell num-cell" data-bet="SO_9" style="border-color:#FF3D00">
+              <div class="bet-cell num-cell" data-bet="SO_9" data-num="9" style="border-color:#FF3D00">
+                <span class="num-lock-pill" id="lock-pill-9">⚡ KHÓA</span>
                 <span class="big-num" style="color:#FF3D00">9</span>
                 <span class="num-sub">x1.7..100x</span>
                 <div class="chip-placed hidden" id="chip-SO_9">0</div>

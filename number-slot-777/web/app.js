@@ -29,7 +29,9 @@ const state = {
     CU_LU: 200,
     DEFAULT: 5000
   },
-  toastTimer: null
+  toastTimer: null,
+  fortuneBetMode: "free", // "free" | "fortune"
+  fortuneLockedNumbers: [1, 2, 3]
 };
 
 // Web Audio API Synthesizer
@@ -373,6 +375,7 @@ async function init() {
   setupActions();
   setupSoiKeoControls();
   setupAdminControls();
+  setupFortuneModeControls();
   await loadSession();
   await loadAdminStatus(true); // silent fetch to load max bets
   renderInitialReels();
@@ -658,6 +661,28 @@ function setupBettingBoard() {
         return;
       }
 
+      // If user clicked on the num-lock-pill '⚡ KHÓA'
+      if (e.target && e.target.classList.contains("num-lock-pill")) {
+        e.stopPropagation();
+        const num = parseInt(cell.dataset.num);
+        if (num) {
+          toggleFortuneLockNumber(num);
+        }
+        return;
+      }
+
+      // Auto-lock number in Fortune Lock mode when betting on it
+      if (state.fortuneBetMode === "fortune" && cell.dataset.num) {
+        const num = parseInt(cell.dataset.num);
+        if (num && !state.fortuneLockedNumbers.includes(num)) {
+          if (state.fortuneLockedNumbers.length < 5) {
+            state.fortuneLockedNumbers.push(num);
+            state.fortuneLockedNumbers.sort((a, b) => a - b);
+            renderFortuneLockState();
+          }
+        }
+      }
+
       pushBetHistory();
       soundEngine.init();
       soundEngine.playChip();
@@ -873,7 +898,11 @@ async function triggerSpin() {
     const res = await fetch("/api/spin", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ bets: state.placedBets })
+      body: JSON.stringify({
+        bets: state.placedBets,
+        bet_mode: state.fortuneBetMode === "fortune" ? "fortune_lock" : "free",
+        locked_numbers: state.fortuneLockedNumbers
+      })
     });
     const json = await res.json();
 
@@ -2298,6 +2327,216 @@ function renderAdminStatus(data) {
 
     const inputDef = document.getElementById("inputMaxDefault");
     if (inputDef && document.activeElement !== inputDef) inputDef.value = config.max_bets.DEFAULT || 5000;
+  }
+}
+
+/**
+ * ----------------------------------------------------
+ * CHẾ ĐỘ CƯỢC: KHÓA SỐ THẦN TÀI (FORTUNE LOCK MODE)
+ * ----------------------------------------------------
+ */
+
+function setupFortuneModeControls() {
+  const btnFree = document.getElementById("btnFModeFree");
+  const btnFortune = document.getElementById("btnFModeFortune");
+  const btnExit = document.getElementById("btnExitFortuneMode");
+
+  if (btnFree) {
+    btnFree.addEventListener("click", () => {
+      soundEngine.init();
+      soundEngine.playChip();
+      telegramEngine.haptic("light");
+      state.fortuneBetMode = "free";
+      renderFortuneLockState();
+      showToast("Đã chuyển sang Chế Độ Tự Do (Dải số 1-9 tự nhiên)", "info");
+    });
+  }
+
+  if (btnFortune) {
+    btnFortune.addEventListener("click", () => {
+      soundEngine.init();
+      soundEngine.playWinTone();
+      telegramEngine.haptic("medium");
+      state.fortuneBetMode = "fortune";
+      if (!state.fortuneLockedNumbers || state.fortuneLockedNumbers.length === 0) {
+        state.fortuneLockedNumbers = [1, 2, 3];
+      }
+      renderFortuneLockState();
+      showToast("⚡ Đã kích hoạt Chế Độ Khóa Số Thần Tài!", "gold");
+    });
+  }
+
+  if (btnExit) {
+    btnExit.addEventListener("click", () => {
+      soundEngine.init();
+      soundEngine.playChip();
+      telegramEngine.haptic("light");
+      state.fortuneBetMode = "free";
+      renderFortuneLockState();
+      showToast("Đã chuyển về Chế Độ Tự Do", "info");
+    });
+  }
+
+  // Quick Lock Presets
+  const btn123 = document.getElementById("btnQuickLock123");
+  if (btn123) {
+    btn123.addEventListener("click", () => {
+      soundEngine.init();
+      soundEngine.playWinTone();
+      telegramEngine.haptic("selection");
+      state.fortuneBetMode = "fortune";
+      state.fortuneLockedNumbers = [1, 2, 3];
+      renderFortuneLockState();
+      showToast("⚡ Đã khóa bộ số Thần Tài: 1 - 2 - 3 (Mục tiêu Sảnh Chuẩn)", "gold");
+    });
+  }
+
+  const btn7 = document.getElementById("btnQuickLock7");
+  if (btn7) {
+    btn7.addEventListener("click", () => {
+      soundEngine.init();
+      soundEngine.playWinTone();
+      telegramEngine.haptic("selection");
+      state.fortuneBetMode = "fortune";
+      state.fortuneLockedNumbers = [7];
+      renderFortuneLockState();
+      showToast("👑 Đã khóa Con Số 7 May Mắn (Mục tiêu Ngũ Quý 77777)", "gold");
+    });
+  }
+
+  const btn689 = document.getElementById("btnQuickLock689");
+  if (btn689) {
+    btn689.addEventListener("click", () => {
+      soundEngine.init();
+      soundEngine.playWinTone();
+      telegramEngine.haptic("selection");
+      state.fortuneBetMode = "fortune";
+      state.fortuneLockedNumbers = [6, 8, 9];
+      renderFortuneLockState();
+      showToast("💰 Đã khóa bộ số Thần Tài: 6 - 8 - 9 (Phát Lộc)", "gold");
+    });
+  }
+
+  const btnClear = document.getElementById("btnQuickLockClear");
+  if (btnClear) {
+    btnClear.addEventListener("click", () => {
+      soundEngine.init();
+      soundEngine.playChip();
+      telegramEngine.haptic("warning");
+      state.fortuneLockedNumbers = [];
+      renderFortuneLockState();
+      showToast("Đã xóa toàn bộ số khóa. Bấm vào ô số 1-9 để khóa số mới!", "warning");
+    });
+  }
+
+  // Initial render
+  renderFortuneLockState();
+}
+
+function toggleFortuneLockNumber(num) {
+  soundEngine.init();
+  telegramEngine.haptic("selection");
+
+  if (state.fortuneBetMode !== "fortune") {
+    state.fortuneBetMode = "fortune";
+    state.fortuneLockedNumbers = [num];
+    soundEngine.playWinTone();
+    showToast(`⚡ Đã kích hoạt Chế Độ Khóa Số Thần Tài và khóa Số ${num}!`, "gold");
+    renderFortuneLockState();
+    return;
+  }
+
+  if (state.fortuneLockedNumbers.includes(num)) {
+    state.fortuneLockedNumbers = state.fortuneLockedNumbers.filter(n => n !== num);
+    soundEngine.playChip();
+    showToast(`Đã bỏ khóa Số ${num}`, "info");
+  } else {
+    if (state.fortuneLockedNumbers.length >= 5) {
+      telegramEngine.haptic("error");
+      showToast("Chỉ được chọn tối đa 5 con số Thần Tài cùng lúc!", "warning");
+      return;
+    }
+    state.fortuneLockedNumbers.push(num);
+    state.fortuneLockedNumbers.sort((a, b) => a - b);
+    soundEngine.playWinTone();
+    showToast(`⚡ Đã thêm Số ${num} vào danh sách Khóa Thần Tài!`, "gold");
+  }
+
+  renderFortuneLockState();
+}
+
+function renderFortuneLockState() {
+  const isFortune = state.fortuneBetMode === "fortune";
+  const locked = state.fortuneLockedNumbers || [];
+
+  // 1. Mode switcher tabs
+  const btnFree = document.getElementById("btnFModeFree");
+  const btnFortune = document.getElementById("btnFModeFortune");
+  if (btnFree) btnFree.classList.toggle("active", !isFortune);
+  if (btnFortune) btnFortune.classList.toggle("active", isFortune);
+
+  // 2. Global banner on top of betting board
+  const banner = document.getElementById("fortuneLockGlobalBanner");
+  const bannerNums = document.getElementById("flgbNumsBadge");
+  if (banner) {
+    banner.style.display = isFortune ? "flex" : "none";
+  }
+  if (bannerNums) {
+    bannerNums.textContent = locked.length > 0 ? locked.join(", ") : "(Chưa chọn số nào)";
+  }
+
+  // 3. Fortune helper card
+  const card = document.getElementById("fortuneLockControlCard");
+  const tagsContainer = document.getElementById("flcSelectedTags");
+  if (card) {
+    card.style.display = isFortune ? "block" : "none";
+  }
+
+  if (tagsContainer) {
+    if (locked.length === 0) {
+      tagsContainer.innerHTML = '<span class="flc-empty-hint">Chưa chọn số nào (Bấm các số 1-9 bên dưới hoặc chọn nhanh)</span>';
+    } else {
+      tagsContainer.innerHTML = locked.map(num => `
+        <span class="flc-num-tag">
+          ⚡ Số ${num}
+          <span class="flc-num-tag-del" data-del-num="${num}" title="Bỏ chọn số này">✕</span>
+        </span>
+      `).join("");
+
+      tagsContainer.querySelectorAll(".flc-num-tag-del").forEach(delBtn => {
+        delBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const n = parseInt(delBtn.dataset.delNum);
+          if (n) toggleFortuneLockNumber(n);
+        });
+      });
+    }
+  }
+
+  // 4. Toggle class on betting board / row F
+  const rowSingle = document.getElementById("rowSingleNumbers");
+  if (rowSingle) {
+    rowSingle.classList.toggle("fortune-mode-active", isFortune);
+  }
+  const betGrid = document.querySelector(".bet-grid");
+  if (betGrid) {
+    betGrid.classList.toggle("fortune-mode-active", isFortune);
+  }
+
+  // 5. Update each number cell (1 to 9)
+  for (let num = 1; num <= 9; num++) {
+    const cell = document.querySelector(`.bet-cell.num-cell[data-num="${num}"]`);
+    const pill = document.getElementById(`lock-pill-${num}`);
+    const isLocked = isFortune && locked.includes(num);
+
+    if (cell) {
+      cell.classList.toggle("is-locked-fortune", isLocked);
+    }
+    if (pill) {
+      pill.style.display = isFortune ? "inline-block" : "none";
+      pill.textContent = isLocked ? "⚡ ĐÃ KHÓA" : "+ KHÓA";
+      pill.title = isLocked ? `Bấm để hủy khóa Số ${num}` : `Bấm để khóa Số ${num}`;
+    }
   }
 }
 
