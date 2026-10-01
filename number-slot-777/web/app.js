@@ -31,7 +31,7 @@ const state = {
   },
   toastTimer: null,
   fortuneBetMode: "free", // "free" | "fortune"
-  fortuneLockedNumbers: [1, 2, 3]
+  fortuneLockedNumbers: []
 };
 
 // Web Audio API Synthesizer
@@ -2415,11 +2415,8 @@ function setupFortuneModeControls() {
         telegramEngine.haptic("medium");
       } catch (err) {}
       state.fortuneBetMode = "fortune";
-      if (!state.fortuneLockedNumbers || state.fortuneLockedNumbers.length === 0) {
-        state.fortuneLockedNumbers = [1, 2, 3];
-      }
       renderFortuneLockState();
-      showToast("⚡ <strong>KHÓA SỐ THẦN TÀI</strong>: Đang kích hoạt (Mục 1 - 5 theo số khóa)", "gold");
+      showToast("⚡ <strong>KHÓA SỐ THẦN TÀI</strong>: Đang kích hoạt (Hãy chọn số mục tiêu)", "gold");
     });
   }
 
