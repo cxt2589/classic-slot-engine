@@ -137,6 +137,12 @@
           <span class="lr-hint" id="liveRoundHint">⏳ Hãy đặt cược trước khi hết thời gian!</span>
           <span class="lr-bet-status glow-cyan" id="liveBetStatus">Chưa đặt cược phiên này</span>
         </div>
+
+        <div class="lr-comm-bar" id="liveCommunityInfo">
+          <span class="lr-comm-tag">👥 <strong id="commPlayerCount">0</strong> người cược</span>
+          <span class="lr-comm-tag gold">💰 Tổng cược: <strong id="commTotalWagered">0</strong> Xu</span>
+          <button class="lr-invite-btn" id="btnInviteLiveRoom" title="Mời bạn bè cùng vào cược">👥 MỜI BẠN</button>
+        </div>
       </div>
 
       <div class="game-layout">
@@ -180,7 +186,10 @@
               <div class="win-banner-title" id="winBannerTitle">BIG WIN!</div>
               <div class="win-banner-amount" id="winBannerAmount">+0.00</div>
               <div class="win-banner-desc" id="winBannerDesc"></div>
-              <button class="win-banner-share-btn" id="btnShareWinSlip">📢 KHOE CHIẾN TÍCH LÊN PHÒNG CHAT</button>
+              <div class="win-banner-btn-group">
+                <button class="win-banner-share-btn" id="btnShareWinSlip">📢 KHOE LÊN CHAT</button>
+                <button class="win-banner-share-btn tg-share" id="btnShareWinTelegram">✈️ CHIA SẺ TELEGRAM</button>
+              </div>
               <div class="win-banner-hint" style="font-size:0.72rem;color:#a0aec0;margin-top:8px;font-style:italic">⚡ Chạm vào nền để đóng</div>
             </div>
           </div>
@@ -224,11 +233,17 @@
 
           <!-- Khoe Chiến Tích Thắng Cược (Quick Share Win) -->
           <div class="share-win-container" id="shareWinContainer" style="display:none">
-            <button id="btnQuickShareWin" class="quick-share-win-btn animate-glow" title="Khoe chiến tích thắng cược vào phòng chat">
-              <span class="share-btn-icon">📢</span>
-              <span class="share-btn-text" id="quickShareWinText">KHOE CHIẾN TÍCH (+1,250 Xu) LÊN PHÒNG CHAT</span>
-              <span class="share-btn-sparkle">✨</span>
-            </button>
+            <div class="share-win-btn-row">
+              <button id="btnQuickShareWin" class="quick-share-win-btn animate-glow" title="Khoe chiến tích thắng cược vào phòng chat">
+                <span class="share-btn-icon">📢</span>
+                <span class="share-btn-text" id="quickShareWinText">KHOE CHIẾN TÍCH (+1,250 Xu) LÊN CHAT</span>
+                <span class="share-btn-sparkle">✨</span>
+              </button>
+              <button id="btnQuickShareTelegram" class="quick-share-win-btn tg-share" title="Chia sẻ chiến tích vào nhóm hoặc bạn bè Telegram">
+                <span class="share-btn-icon">✈️</span>
+                <span class="share-btn-text">GỬI TELEGRAM</span>
+              </button>
+            </div>
           </div>
 
           <!-- Social & Reaction Bar (Thao Tác Tương Tác Trực Tiếp Ngay Dưới Máy Quay) -->
@@ -1757,6 +1772,12 @@ Content-Type: application/json
         </div>
       </div>
 
+      <!-- Chat Utility Bar: Phát Lộc Cả Phòng & Mời Bạn Bè -->
+      <div class="chat-utility-bar">
+        <button type="button" class="chat-util-btn redpacket-btn" id="btnSendRedPacket" title="Phát lộc 200 Xu cho cả phòng">🧧 PHÁT LỘC (200 Xu)</button>
+        <button type="button" class="chat-util-btn invite-btn" id="btnDrawerInvite" title="Mời bạn bè vào phòng chat và cược chung">👥 MỜI BẠN BÈ</button>
+      </div>
+
       <!-- Input Form -->
       <form class="chat-form" id="chatForm">
         <input type="text" id="chatInput" placeholder="Nhắn tin với mọi người trong phòng..." maxlength="120" autocomplete="off">
@@ -1765,6 +1786,17 @@ Content-Type: application/json
     </div>
   </div>
 
-  <script src="/static/app.js?v=20261001_live3"></script>
+  <!-- RED PACKET RAIN LAYER (MƯA LÌ XÌ RƠI TRÊN MÀN HÌNH) -->
+  <div class="red-packet-rain-layer" id="redPacketRainLayer"></div>
+
+  <!-- GLOBAL JACKPOT CELEBRATION POPUP ALERT (THÔNG BÁO NỔ HŨ TOÀN PHÒNG) -->
+  <div class="global-jackpot-alert" id="globalJackpotAlert" style="display:none">
+    <div class="gja-sparkles">✨ 🎉 ✨</div>
+    <div class="gja-title">THẦN TÀI GIÁNG LÂM!</div>
+    <div class="gja-desc" id="gjaDesc">Người chơi vừa nổ hũ siêu to!</div>
+    <div class="gja-amt glow-gold" id="gjaAmt">+50,000 Xu</div>
+  </div>
+
+  <script src="/static/app.js?v=20261001_live4"></script>
 </body>
 </html>

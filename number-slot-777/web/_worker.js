@@ -222,6 +222,26 @@ async function saveKVBigWins(env, wins) {
   }
 }
 
+async function getKVRedPackets(env) {
+  if (env && env.LUCKY_ROOM) {
+    try {
+      const stored = await env.LUCKY_ROOM.get("live_red_packets", { type: "json" });
+      if (Array.isArray(stored)) {
+        return stored;
+      }
+    } catch (e) {}
+  }
+  return [];
+}
+
+async function saveKVRedPackets(env, packets) {
+  if (env && env.LUCKY_ROOM) {
+    try {
+      await env.LUCKY_ROOM.put("live_red_packets", JSON.stringify(packets));
+    } catch (e) {}
+  }
+}
+
 function ensureSession() {
   if (!session) {
     session = {
@@ -1277,14 +1297,16 @@ function getLiveRoundInfo() {
         }
       }
 
-      // Đồng bộ tin nhắn, reactions và big wins qua KV
+      // Đồng bộ tin nhắn, reactions, big wins và bao lì xì qua KV
       const messages = await getKVChatMessages(env);
       const reactions = await getKVReactions(env);
       const bigWins = await getKVBigWins(env);
+      const redPackets = await getKVRedPackets(env);
 
-      // Giữ reactions 15s gần nhất
+      // Giữ reactions 15s gần nhất, lì xì 35s gần nhất
       const now = Date.now();
       const freshReactions = reactions.filter(r => (now - r.time) < 15000);
+      const activePackets = redPackets.filter(p => (now - p.created_at) < 35000);
 
       // Số người online (ước lượng ngẫu nhiên sinh động quanh 130-170)
       const baseOnline = 145 + (Math.sin(liveRound.cycle_index) * 23 | 0);
@@ -1299,6 +1321,7 @@ function getLiveRoundInfo() {
           recent_messages: messages.slice(0, 40),
           recent_reactions: freshReactions.slice(0, 20),
           big_wins: bigWins.slice(0, 10),
+          active_red_packets: activePackets,
           user_current_bet: currentBetsMap[userId] || null,
           user_last_settlement: userLastSettlement,
           user_balance: Math.round(session.balance * 100) / 100,
@@ -1444,6 +1467,101 @@ function getLiveRoundInfo() {
         return jsonRes({ status: "success", data: rxObj });
       } catch (err) {
         return jsonRes({ detail: "Lỗi thả cảm xúc" }, 400);
+      }
+    }
+
+    if (url.pathname === "/api/live/redpacket/send" && request.method === "POST") {
+      try {
+        const body = await request.json();
+        const userId = body.user_id || "guest";
+        const userName = body.username || "Khách";
+        const sendAmt = Math.max(100, Math.min(10000, Number(body.amount) || 200));
+
+        if (session.balance < sendAmt) {
+          return jsonRes({ detail: "Số dư không đủ để phát lộc (cần tối thiểu " + sendAmt + " Xu)!" }, 400);
+        }
+
+        session.balance -= sendAmt;
+
+        const packetObj = {
+          id: "rp-" + Date.now() + "-" + Math.random().toString(36).substr(2, 4),
+          sender_id: userId,
+          sender_name: userName,
+          total_amount: sendAmt,
+          created_at: Date.now(),
+          claimed_by: {}
+        };
+
+        const curPackets = await getKVRedPackets(env);
+        const now = Date.now();
+        const fresh = [packetObj, ...curPackets.filter(p => (now - p.created_at) < 35000)].slice(0, 10);
+        await saveKVRedPackets(env, fresh);
+
+        // Thông báo phát lộc vào phòng chat
+        const chatNotice = {
+          id: "msg-rp-" + Date.now() + "-" + Math.random().toString(36).substr(2, 4),
+          user_id: "sys",
+          username: "HỆ THỐNG",
+          avatar: "🧧",
+          text: `🧧 ${userName} vừa PHÁT LỘC +${sendAmt.toLocaleString()} Xu cho cả phòng! Mau chạm vào bao lì xì để nhặt! 🎉`,
+          type: "system",
+          time: Date.now()
+        };
+        const curMsgs = await getKVChatMessages(env);
+        const updatedMsgs = [chatNotice, ...curMsgs].slice(0, 50);
+        liveRoomState.chatMessages = updatedMsgs;
+        await saveKVChatMessages(env, updatedMsgs);
+
+        return jsonRes({
+          status: "success",
+          message: `Đã phát lộc ${sendAmt.toLocaleString()} Xu thành công!`,
+          data: {
+            packet: packetObj,
+            balance: Math.round(session.balance * 100) / 100
+          }
+        });
+      } catch (err) {
+        return jsonRes({ detail: "Lỗi phát lộc: " + err.message }, 400);
+      }
+    }
+
+    if (url.pathname === "/api/live/redpacket/claim" && request.method === "POST") {
+      try {
+        const body = await request.json();
+        const packetId = body.packet_id;
+        const userId = body.user_id || "guest";
+        const userName = body.username || "Khách";
+
+        const curPackets = await getKVRedPackets(env);
+        const packet = curPackets.find(p => p.id === packetId);
+
+        if (!packet) {
+          return jsonRes({ detail: "Bao lì xì đã hết hạn hoặc không tồn tại!" }, 400);
+        }
+
+        if (packet.claimed_by && packet.claimed_by[userId]) {
+          return jsonRes({ detail: "Bạn đã nhận lộc từ bao này rồi!", already_claimed: true }, 400);
+        }
+
+        // Tính số xu lộc may mắn ngẫu nhiên từ 15 đến 50 xu
+        const luckyAmount = Math.floor(Math.random() * 35) + 15;
+        session.balance += luckyAmount;
+        session.total_won += luckyAmount;
+
+        if (!packet.claimed_by) packet.claimed_by = {};
+        packet.claimed_by[userId] = luckyAmount;
+        await saveKVRedPackets(env, curPackets);
+
+        return jsonRes({
+          status: "success",
+          data: {
+            amount: luckyAmount,
+            sender_name: packet.sender_name,
+            balance: Math.round(session.balance * 100) / 100
+          }
+        });
+      } catch (err) {
+        return jsonRes({ detail: "Lỗi nhận lì xì" }, 400);
       }
     }
 
