@@ -3412,7 +3412,7 @@ function setupLiveRoomControls() {
   }
   if (dom.chatDrawerBackdrop) {
     dom.chatDrawerBackdrop.addEventListener("click", (e) => {
-      if (e.target === dom.chatDrawerBackdrop || (dom.chatDrawerPanel && !dom.chatDrawerPanel.contains(e.target))) {
+      if (e.target === dom.chatDrawerBackdrop) {
         closeChatDrawer();
       }
     });
@@ -3591,7 +3591,7 @@ function setupLiveRoomControls() {
     dom.btnConfirmSendRedPacket.addEventListener("click", () => {
       const val = parseInt(dom.inputCustomRedPacket?.value) || 200;
       if (val < 100 || val > 50000) {
-        alert("Số Xu phát lộc phải từ 100 đến 50,000 Xu!");
+        showToast("Số Xu phát lộc phải từ 100 đến 50,000 Xu!", "warn");
         return;
       }
       closeSendRedPacketModal();
@@ -4889,6 +4889,81 @@ function shareWinSlipAction() {
   });
 }
 
+function buildSingleChatMessageHtml(msg) {
+  const isSys = msg.type === "system";
+  const isWinShare = msg.type === "win_share" || !!msg.slip;
+  const isRedPacket = msg.type === "red_packet" || !!msg.packet_id;
+  const isClaimNotice = msg.type === "red_packet_claim" || !!msg.claim_info;
+  const timeNum = Number(msg.time) || 0;
+  const timeStr = timeNum > 1000000000 ? new Date(timeNum).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "Vừa xong";
+  let slipHtml = "";
+  if (msg.slip) {
+    slipHtml = `
+      <div class="chat-win-slip">
+        <span class="cws-title">🏆 THẺ CHIẾN TÍCH: ${msg.slip.hand || "THẮNG LỚN"}</span>
+        <span class="cws-amt">+${(msg.slip.amount || 0).toLocaleString()} Xu</span>
+      </div>
+    `;
+  }
+  let claimHtml = "";
+  if (isClaimNotice && msg.claim_info) {
+    claimHtml = `
+      <div class="chat-claim-pill">
+        <span class="ccp-tag">🧧 NHẬN LỘC MAY MẮN</span>
+        <span class="ccp-detail"><strong>+${(msg.claim_info.amount || 0).toLocaleString()} Xu</strong> từ <strong>${msg.claim_info.sender_name || "Bạn bè"}</strong></span>
+      </div>
+    `;
+  }
+  let rpBtnHtml = "";
+  if (isRedPacket && msg.packet_id) {
+    if (msg.sender_id === getLiveUserId()) {
+      rpBtnHtml = `
+        <div style="margin-top: 5px;">
+          <span style="font-size: 0.72rem; color: #ffd700; font-weight: 800; background: rgba(255, 215, 0, 0.15); border: 1px solid rgba(255, 215, 0, 0.35); padding: 3px 9px; border-radius: 6px;">
+            🧧 Gói phát lộc của bạn
+          </span>
+        </div>
+      `;
+    } else {
+      rpBtnHtml = `
+        <div>
+          <button class="chat-claim-packet-btn" data-packet-id="${msg.packet_id}">
+            🧧 BẤM NHẬN LỘC NGAY
+          </button>
+        </div>
+      `;
+    }
+  }
+  const isRothschildSender = (msg.username && (msg.username.toLowerCase().includes("marothschild") || msg.username.toLowerCase() === "@marothschild")) ||
+                             (msg.user_id && msg.user_id.toLowerCase().includes("marothschild"));
+  const vipLvl = isRothschildSender ? 5 : (Number(msg.vip_level) || 0);
+  const vipIcons = ["🌱", "🥉", "🥈", "🥇", "💎", "👑"];
+  const vipBadgeHtml = !isSys ? `<span class="chat-vip-badge vip-${vipLvl}">${vipIcons[vipLvl] || "🌱"} VIP ${vipLvl}</span>` : "";
+  const activeTitle = isRothschildSender ? (msg.title || "👑 Hoàng Gia 777") : msg.title;
+  const titleBadgeHtml = (activeTitle && !isSys) ? `<span class="chat-title-badge-tag">${activeTitle}</span>` : "";
+  const isVip5 = vipLvl >= 5 || isRothschildSender;
+
+  return `
+    <div class="chat-msg-row ${isSys ? "system" : ""} ${isWinShare ? "win-share" : ""} ${isRedPacket ? "red-packet-msg" : ""} ${isClaimNotice ? "claim-notice-msg" : ""} ${isVip5 ? "vip-5-msg" : ""}" data-msg-id="${msg.id || ""}">
+      <span class="chat-msg-avatar">${isRothschildSender ? "👑" : (msg.avatar || (isClaimNotice ? "🎁" : "👤"))}</span>
+      <div class="chat-msg-content">
+        <div class="chat-msg-header">
+          <div class="chat-msg-header-top">
+            ${vipBadgeHtml}
+            <span class="chat-msg-author">${msg.username || "Thành viên"}</span>
+            ${timeStr ? `<span class="chat-msg-time">${timeStr}</span>` : ""}
+          </div>
+          ${titleBadgeHtml ? `<div class="chat-msg-title-row">${titleBadgeHtml}</div>` : ""}
+        </div>
+        <span class="chat-msg-text">${msg.text || ""}</span>
+        ${slipHtml}
+        ${claimHtml}
+        ${rpBtnHtml}
+      </div>
+    </div>
+  `;
+}
+
 let lastRenderedChatKey = "";
 
 function renderChatMessages(messages) {
@@ -4905,83 +4980,36 @@ function renderChatMessages(messages) {
   }
   lastRenderedChatKey = cacheKey;
 
-  dom.chatMessagesContainer.innerHTML = sorted.map(msg => {
-    const isSys = msg.type === "system";
-    const isWinShare = msg.type === "win_share" || !!msg.slip;
-    const isRedPacket = msg.type === "red_packet" || !!msg.packet_id;
-    const isClaimNotice = msg.type === "red_packet_claim" || !!msg.claim_info;
-    const timeNum = Number(msg.time) || 0;
-    const timeStr = timeNum > 1000000000 ? new Date(timeNum).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "Vừa xong";
-    let slipHtml = "";
-    if (msg.slip) {
-      slipHtml = `
-        <div class="chat-win-slip">
-          <span class="cws-title">🏆 THẺ CHIẾN TÍCH: ${msg.slip.hand || "THẮNG LỚN"}</span>
-          <span class="cws-amt">+${(msg.slip.amount || 0).toLocaleString()} Xu</span>
-        </div>
-      `;
-    }
-    let claimHtml = "";
-    if (isClaimNotice && msg.claim_info) {
-      claimHtml = `
-        <div class="chat-claim-pill">
-          <span class="ccp-tag">🧧 NHẬN LỘC MAY MẮN</span>
-          <span class="ccp-detail"><strong>+${(msg.claim_info.amount || 0).toLocaleString()} Xu</strong> từ <strong>${msg.claim_info.sender_name || "Bạn bè"}</strong></span>
-        </div>
-      `;
-    }
-    let rpBtnHtml = "";
-    if (isRedPacket && msg.packet_id) {
-      if (msg.sender_id === getLiveUserId()) {
-        rpBtnHtml = `
-          <div style="margin-top: 5px;">
-            <span style="font-size: 0.72rem; color: #ffd700; font-weight: 800; background: rgba(255, 215, 0, 0.15); border: 1px solid rgba(255, 215, 0, 0.35); padding: 3px 9px; border-radius: 6px;">
-              🧧 Gói phát lộc của bạn
-            </span>
-          </div>
-        `;
-      } else {
-        rpBtnHtml = `
-          <div>
-            <button class="chat-claim-packet-btn" data-packet-id="${msg.packet_id}">
-              🧧 BẤM NHẬN LỘC NGAY
-            </button>
-          </div>
-        `;
+  // Render gia tăng (incremental): Tránh hủy và vẽ lại toàn bộ DOM làm kênh chat bị giật/nhấp nháy trắng trên máy chậm
+  const existingRows = dom.chatMessagesContainer.querySelectorAll(".chat-msg-row[data-msg-id]");
+  const existingIdSet = new Set();
+  existingRows.forEach(r => {
+    if (r.dataset.msgId) existingIdSet.add(r.dataset.msgId);
+  });
+
+  const shouldFullRebuild = existingRows.length === 0 || 
+                            existingRows.length > sorted.length || 
+                            (firstId && !existingIdSet.has(firstId));
+
+  if (shouldFullRebuild) {
+    dom.chatMessagesContainer.innerHTML = sorted.map(buildSingleChatMessageHtml).join("");
+  } else {
+    const newMsgs = sorted.filter(m => m.id && !existingIdSet.has(m.id));
+    if (newMsgs.length > 0) {
+      const tempDiv = document.createElement("div");
+      tempDiv.innerHTML = newMsgs.map(buildSingleChatMessageHtml).join("");
+      while (tempDiv.firstChild) {
+        dom.chatMessagesContainer.appendChild(tempDiv.firstChild);
+      }
+      while (dom.chatMessagesContainer.children.length > 60) {
+        dom.chatMessagesContainer.removeChild(dom.chatMessagesContainer.firstElementChild);
       }
     }
-    const isRothschildSender = (msg.username && (msg.username.toLowerCase().includes("marothschild") || msg.username.toLowerCase() === "@marothschild")) ||
-                               (msg.user_id && msg.user_id.toLowerCase().includes("marothschild"));
-    const vipLvl = isRothschildSender ? 5 : (Number(msg.vip_level) || 0);
-    const vipIcons = ["🌱", "🥉", "🥈", "🥇", "💎", "👑"];
-    const vipBadgeHtml = !isSys ? `<span class="chat-vip-badge vip-${vipLvl}">${vipIcons[vipLvl] || "🌱"} VIP ${vipLvl}</span>` : "";
-    const activeTitle = isRothschildSender ? (msg.title || "👑 Hoàng Gia 777") : msg.title;
-    const titleBadgeHtml = (activeTitle && !isSys) ? `<span class="chat-title-badge-tag">${activeTitle}</span>` : "";
-    const isVip5 = vipLvl >= 5 || isRothschildSender;
+  }
 
-    return `
-      <div class="chat-msg-row ${isSys ? "system" : ""} ${isWinShare ? "win-share" : ""} ${isRedPacket ? "red-packet-msg" : ""} ${isClaimNotice ? "claim-notice-msg" : ""} ${isVip5 ? "vip-5-msg" : ""}">
-        <span class="chat-msg-avatar">${isRothschildSender ? "👑" : (msg.avatar || (isClaimNotice ? "🎁" : "👤"))}</span>
-        <div class="chat-msg-content">
-          <div class="chat-msg-header">
-            <div class="chat-msg-header-top">
-              ${vipBadgeHtml}
-              <span class="chat-msg-author">${msg.username || "Thành viên"}</span>
-              ${timeStr ? `<span class="chat-msg-time">${timeStr}</span>` : ""}
-            </div>
-            ${titleBadgeHtml ? `<div class="chat-msg-title-row">${titleBadgeHtml}</div>` : ""}
-          </div>
-          <span class="chat-msg-text">${msg.text || ""}</span>
-          ${slipHtml}
-          ${claimHtml}
-          ${rpBtnHtml}
-        </div>
-      </div>
-    `;
-  }).join("");
-
-  // Gắn sự kiện bấm nhận lộc trực tiếp từ khung chat
-  dom.chatMessagesContainer.querySelectorAll(".chat-claim-packet-btn").forEach(btn => {
+  // Gắn sự kiện bấm nhận lộc cho các nút mới chưa gắn
+  dom.chatMessagesContainer.querySelectorAll(".chat-claim-packet-btn:not([data-bound])").forEach(btn => {
+    btn.dataset.bound = "true";
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
       const pId = btn.dataset.packetId;
@@ -5287,15 +5315,14 @@ async function claimRedPacketAction(packetId, el) {
 async function sendRedPacketAction(amount = 200) {
   if (state.session && state.session.balance < amount) {
     telegramEngine.haptic("error");
-    alert(`Số dư của bạn không đủ để phát lộc ${amount} Xu!`);
+    showToast(`Số dư của bạn không đủ để phát lộc ${amount.toLocaleString()} Xu!`, "warn");
     return;
   }
 
-  const confirmSend = confirm(`Bạn có chắc muốn trích ${amount.toLocaleString()} Xu từ số dư để phát lộc cho tất cả người chơi trong phòng?`);
-  if (!confirmSend) return;
-
   try {
     telegramEngine.haptic("medium");
+    showToast(`🧧 Đang gửi gói phát lộc ${amount.toLocaleString()} Xu...`, "gold");
+
     const res = await fetch("/api/live/redpacket/send", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -5303,7 +5330,8 @@ async function sendRedPacketAction(amount = 200) {
         user_id: getLiveUserId(),
         username: getLiveUserName(),
         room_id: state.currentRoomId || "public",
-        amount: amount
+        amount: amount,
+        client_balance: state.session?.balance
       })
     });
     const json = await res.json();
@@ -5328,6 +5356,7 @@ async function sendRedPacketAction(amount = 200) {
     }
   } catch (err) {
     console.error("Send red packet error:", err);
+    showToast("⚠️ Lỗi kết nối khi phát lộc, vui lòng thử lại!", true);
   }
 }
 

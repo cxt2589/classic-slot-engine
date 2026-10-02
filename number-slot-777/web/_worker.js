@@ -2680,6 +2680,10 @@ function getLiveRoundInfo(roomId = "public") {
         const roomId = normalizeRoomId(body.room_id || "public");
         const sendAmt = Math.max(100, Math.min(100000, Number(body.amount) || 200));
 
+        if (body.client_balance !== undefined && Number(body.client_balance) > session.balance) {
+          session.balance = Number(body.client_balance);
+        }
+
         if (session.balance < sendAmt) {
           return jsonRes({ detail: "Số dư không đủ để phát lộc (cần tối thiểu " + sendAmt + " Xu)!" }, 400);
         }
