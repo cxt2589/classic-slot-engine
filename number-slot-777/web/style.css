@@ -3614,30 +3614,30 @@ body.is-telegram-app .brand-text .subtext {
 /* ALL MOBILE & TABLET SCREENS (<= 768px) */
 @media (max-width: 768px) {
   :root {
-    --slot-cell-h: 96px;
-    --reels-pad: 6px;
-    --slot-num-size: 2.7rem;
+    --slot-cell-h: clamp(44px, min(8.6dvh, 18vw), 72px);
+    --reels-pad: 3px;
+    --slot-num-size: clamp(1.35rem, min(4.3dvh, 8.5vw), 2.2rem);
   }
 
   .app-container {
-    padding: 0 10px;
+    padding: 0 6px;
   }
 
   .slot-cabinet {
-    padding: 12px 10px;
-    border-radius: 12px;
+    padding: 8px 6px;
+    border-radius: 10px;
   }
 
   .betting-board {
-    padding: 14px 10px;
-    border-radius: 12px;
+    padding: 12px 8px;
+    border-radius: 10px;
   }
 
   /* Compact 1-line top header - Tuyệt đối không tràn viền, thoáng đãng trên mobile */
   .top-nav {
     position: relative;
-    padding: 6px 10px;
-    gap: 8px;
+    padding: 4px 8px;
+    gap: 6px;
     border-bottom: 1px solid rgba(255, 215, 0, 0.2);
     display: flex;
     justify-content: space-between;
@@ -3646,7 +3646,7 @@ body.is-telegram-app .brand-text .subtext {
     width: 100%;
     box-sizing: border-box;
     overflow: visible;
-    min-height: 48px;
+    min-height: 40px;
     height: auto;
   }
 
@@ -3853,122 +3853,138 @@ body.is-telegram-app .brand-text .subtext {
 /* SMARTPHONES: IPHONE 12/13/14/15, PLUS, PRO MAX (<= 600px) */
 @media (max-width: 600px) {
   :root {
-    --slot-cell-h: 86px;
-    --reels-pad: 4px;
-    --slot-num-size: 2.3rem;
+    --slot-cell-h: clamp(44px, min(8.6dvh, 17.5vw), 68px);
+    --reels-pad: 3px;
+    --slot-num-size: clamp(1.35rem, min(4.2dvh, 8.2vw), 2.1rem);
   }
 
   .app-container {
-    padding: 0 6px;
+    padding: 0 4px;
   }
 
   .slot-cabinet {
-    padding: 10px 6px;
+    padding: 6px 5px;
     border-radius: 10px;
+    margin-bottom: 6px;
   }
 
   .betting-board {
-    padding: 10px 6px;
+    padding: 8px 6px;
     border-radius: 10px;
   }
 
   .cabinet-marquee {
-    padding: 6px 8px;
-    margin-bottom: 8px;
+    padding: 3px 6px;
+    margin-bottom: 4px;
+    min-height: 32px;
+    border-radius: 6px;
   }
 
   .marquee-sub {
-    font-size: 0.62rem;
-    letter-spacing: 0.5px;
+    font-size: 0.52rem;
+    letter-spacing: 0.3px;
+    line-height: 1;
+  }
+
+  .marquee-live-result {
+    gap: 4px;
+    margin-top: 1px;
   }
 
   .res-tag {
-    font-size: 0.78rem;
-    padding: 2px 6px;
+    font-size: 0.72rem;
+    padding: 1px 5px;
   }
 
   .res-hand {
-    font-size: 0.75rem;
+    font-size: 0.68rem;
+    margin-top: 1px;
   }
 
   .marker-text {
     bottom: 2px;
-    font-size: 0.5rem;
-    letter-spacing: 0.6px;
-    padding: 1px 6px;
+    font-size: 0.48rem;
+    letter-spacing: 0.4px;
+    padding: 1px 5px;
   }
 
   .marker-arrow {
-    font-size: 0.95rem;
+    font-size: 0.88rem;
   }
 
-  /* Perfectly Balanced Symmetrical Action Bar */
+  /* Compact Symmetrical Action Bar */
   .cabinet-action-bar {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 5px;
-    margin-top: 10px;
+    gap: 3px;
+    margin-top: 5px;
     width: 100%;
   }
 
   .sec-btn {
     width: 100%;
     min-width: 0;
-    height: 38px;
-    min-height: 38px;
-    max-height: 38px;
-    padding: 0 2px;
-    font-size: 0.65rem;
+    height: 28px;
+    min-height: 28px;
+    max-height: 28px;
+    padding: 0 1px;
+    font-size: clamp(0.5rem, 1.8vw, 0.58rem);
     line-height: 1;
     white-space: nowrap;
-    border-radius: 6px;
+    border-radius: 5px;
     flex: none;
   }
 
   .spin-btn {
     grid-column: 1 / -1;
     width: 100%;
-    height: 50px;
-    min-height: 50px;
+    height: 44px;
+    min-height: 44px;
+    max-height: 44px;
     padding: 0;
-    border-radius: 10px;
+    border-radius: 8px;
     flex-direction: row;
-    gap: 8px;
-    box-shadow: 0 4px 14px rgba(213, 0, 0, 0.5);
+    gap: 6px;
+    box-shadow: 0 3px 12px rgba(213, 0, 0, 0.5);
   }
 
   .spin-main {
-    font-size: 1.2rem;
-    letter-spacing: 2px;
+    font-size: 1.15rem;
+    letter-spacing: 1.5px;
+    line-height: 1;
   }
 
   .spin-sub {
-    font-size: 0.62rem;
-    margin-top: 2px;
+    font-size: 0.56rem;
+    margin-top: 0;
   }
 
-  /* Cabinet Meters */
+  /* Compact Cabinet Meters */
   .cabinet-meters {
-    gap: 5px;
-    margin-top: 8px;
+    gap: 4px;
+    margin-top: 4px;
   }
 
   .meter-box {
-    padding: 6px 4px;
-    border-radius: 8px;
+    padding: 3px 3px;
+    border-radius: 6px;
   }
 
   .meter-lbl {
-    font-size: 0.56rem;
+    font-size: 0.52rem;
+    line-height: 1;
   }
 
   .meter-val {
-    font-size: clamp(0.85rem, 3.2vw, 1.05rem);
+    font-size: clamp(0.78rem, 2.8vw, 0.95rem);
+    margin-top: 1px;
   }
 
   .quick-topup-btn {
-    font-size: 0.54rem;
-    padding: 1px 4px;
+    font-size: 0.5rem;
+    padding: 0 3px;
+    height: 16px;
+    line-height: 16px;
   }
 
   /* Chip Selector & Action Controls */
@@ -4087,9 +4103,9 @@ body.is-telegram-app .brand-text .subtext {
 /* NARROW MOBILE (<= 480px) */
 @media (max-width: 480px) {
   :root {
-    --slot-cell-h: clamp(62px, 16.5vw, 76px);
-    --reels-pad: 4px;
-    --slot-num-size: clamp(1.75rem, 5.5vw, 2.1rem);
+    --slot-cell-h: clamp(42px, min(8.4dvh, 17vw), 64px);
+    --reels-pad: 3px;
+    --slot-num-size: clamp(1.3rem, min(4.1dvh, 8vw), 2.0rem);
   }
 
   .slot-cabinet, .betting-board {
@@ -4106,61 +4122,63 @@ body.is-telegram-app .brand-text .subtext {
 
   .cabinet-action-bar {
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 4px;
+    gap: 3px;
   }
 
   .sec-btn {
-    font-size: clamp(0.55rem, 2.2vw, 0.62rem);
+    font-size: clamp(0.5rem, 1.8vw, 0.58rem);
     padding: 0 1px;
-    height: 36px;
-    min-height: 36px;
+    height: 28px;
+    min-height: 28px;
+    max-height: 28px;
   }
 
   .cabinet-social-bar {
-    padding: 6px 8px;
-    gap: 6px;
+    padding: 3px 6px;
+    gap: 4px;
+    margin-top: 4px;
   }
 
   .rx-pill-btn {
-    font-size: 1.05rem;
-    padding: 3px 5px;
+    font-size: 0.95rem;
+    padding: 2px 4px;
   }
 
   .open-chat-dock-btn {
-    padding: 5px 8px;
-    font-size: 0.66rem;
+    padding: 3px 6px;
+    font-size: 0.62rem;
   }
 
   .quick-share-win-btn {
-    font-size: 0.74rem;
-    padding: 8px 10px;
+    font-size: 0.72rem;
+    padding: 6px 8px;
   }
 
   .brand-text h1 {
-    font-size: 1.02rem;
+    font-size: 0.95rem;
   }
 
   .icon-btn {
-    width: 30px;
-    height: 30px;
-    font-size: 0.9rem;
+    width: 28px;
+    height: 28px;
+    font-size: 0.82rem;
   }
 }
 
 /* COMPACT / SMALL MOBILE (IPHONE SE, SMALL ANDROIDS <= 380px) */
 @media (max-width: 380px) {
   :root {
-    --slot-cell-h: clamp(52px, 14.5vw, 66px);
-    --reels-pad: 3px;
-    --slot-num-size: clamp(1.5rem, 4.8vw, 1.85rem);
+    --slot-cell-h: clamp(40px, min(8.2dvh, 16.5vw), 58px);
+    --reels-pad: 2px;
+    --slot-num-size: clamp(1.2rem, min(3.8dvh, 7.5vw), 1.8rem);
   }
 
   .app-container {
-    padding: 0 4px;
+    padding: 0 3px;
   }
 
   .slot-cabinet, .betting-board {
-    padding: 8px 4px;
+    padding: 6px 3px;
     border-radius: 8px;
     width: 100%;
     max-width: 100%;
@@ -4174,59 +4192,60 @@ body.is-telegram-app .brand-text .subtext {
   }
 
   .brand-text h1 {
-    font-size: 0.85rem;
+    font-size: 0.82rem;
     letter-spacing: 0;
   }
 
   .player-vip-pill {
-    max-width: min(165px, 48vw);
-    padding: 2px 6px 2px 3px;
+    max-width: min(155px, 46vw);
+    padding: 2px 5px 2px 2px;
     gap: 4px;
   }
 
   .pv-name {
-    font-size: 0.72rem;
+    font-size: 0.7rem;
   }
 
   .icon-btn {
-    width: 28px;
-    height: 28px;
-    font-size: 0.82rem;
+    width: 26px;
+    height: 26px;
+    font-size: 0.78rem;
   }
 
   .bet-chip {
-    width: 27px;
-    height: 27px;
-    font-size: 0.62rem;
+    width: 26px;
+    height: 26px;
+    font-size: 0.6rem;
   }
 
   .marker-text {
     bottom: 1px;
-    font-size: 0.42rem;
-    letter-spacing: 0.2px;
-    padding: 0 4px;
+    font-size: 0.4rem;
+    letter-spacing: 0.1px;
+    padding: 0 3px;
   }
 
   .marker-arrow {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
   }
 
   .cabinet-action-bar {
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 3px;
+    gap: 2px;
   }
 
   .sec-btn {
-    height: 32px;
-    min-height: 32px;
-    max-height: 32px;
-    font-size: 0.52rem;
+    height: 26px;
+    min-height: 26px;
+    max-height: 26px;
+    font-size: 0.48rem;
     padding: 0 1px;
   }
 
   .spin-btn {
-    height: 44px;
-    min-height: 44px;
+    height: 40px;
+    min-height: 40px;
+    max-height: 40px;
   }
 
   .spin-main {
@@ -4234,22 +4253,22 @@ body.is-telegram-app .brand-text .subtext {
   }
 
   .spin-sub {
-    font-size: 0.56rem;
+    font-size: 0.52rem;
   }
 
   .cabinet-social-bar {
-    padding: 4px 6px;
-    gap: 4px;
+    padding: 2px 4px;
+    gap: 3px;
   }
 
   .rx-pill-btn {
-    font-size: 0.95rem;
-    padding: 2px 4px;
+    font-size: 0.88rem;
+    padding: 1px 3px;
   }
 
   .open-chat-dock-btn {
-    padding: 4px 6px;
-    font-size: 0.6rem;
+    padding: 2px 5px;
+    font-size: 0.58rem;
   }
 
   .dock-chat-lbl {
@@ -8642,48 +8661,104 @@ body.chat-drawer-open .nav-tabs.is-docked-bottom {
 
 /* Mobile Media Queries for Room Elements & Game Mode Bar */
 @media (max-width: 640px) {
+  .global-marquee-banner {
+    height: 22px;
+    margin-bottom: 4px;
+  }
+  .marquee-badge {
+    font-size: 0.58rem;
+    padding: 0 6px;
+    letter-spacing: 0.2px;
+  }
+  .marquee-text {
+    font-size: 0.68rem;
+  }
+  .marquee-text span {
+    margin-right: 20px;
+  }
   .game-mode-bar {
     flex-direction: column;
     align-items: stretch;
-    gap: 8px;
-    margin-bottom: 10px;
+    gap: 4px;
+    margin-bottom: 6px;
   }
   .mode-switch-group {
     width: 100%;
     max-width: 100%;
-    gap: 4px;
-    padding: 3px;
-    border-radius: 12px;
+    gap: 3px;
+    padding: 2px;
+    border-radius: 10px;
   }
   .mode-switch-btn {
-    padding: 6px 2px;
-    min-height: 48px;
-    border-radius: 9px;
+    padding: 4px 1px;
+    min-height: 36px;
+    border-radius: 7px;
+    gap: 2px;
   }
   .mode-switch-btn .msb-head {
-    gap: 3px;
+    gap: 2px;
   }
   .mode-switch-btn .m-icon {
-    font-size: 0.9rem;
+    font-size: 0.78rem;
   }
   .mode-switch-btn .m-title {
-    font-size: 0.68rem;
-    letter-spacing: 0.1px;
+    font-size: 0.62rem;
+    letter-spacing: 0;
   }
   .mode-switch-btn .msb-badge {
-    font-size: 0.58rem;
-    padding: 1px 5px;
+    font-size: 0.52rem;
+    padding: 0 4px;
+    line-height: 1.1;
   }
   .game-mode-meta-row {
     width: 100%;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
   }
   .game-mode-meta-row .room-selector-btn {
     flex: 1;
     justify-content: center;
+    padding: 3px 8px;
+    font-size: 0.68rem;
+    min-height: 26px;
+  }
+  .live-room-online-pill {
+    padding: 3px 8px;
+    font-size: 0.68rem;
+    min-height: 26px;
+  }
+  /* Compact Live Round Banner on Mobile */
+  .live-round-banner {
+    padding: 6px 10px;
+    margin-bottom: 6px;
+    border-radius: 8px;
+  }
+  .lr-head {
+    margin-bottom: 4px;
+    gap: 4px;
+  }
+  .lr-round-id {
+    font-size: 0.95rem;
+  }
+  .lr-phase-badge {
+    padding: 2px 8px;
+    font-size: 0.65rem;
+  }
+  .lr-countdown-box .lr-cd-val {
+    font-size: 0.95rem;
+  }
+  .lr-foot {
+    font-size: 0.65rem;
+  }
+  .lr-comm-bar {
+    font-size: 0.65rem;
+    padding: 3px 6px;
+  }
+  .live-roadmap-card {
+    padding: 4px 6px;
+    margin-top: 4px;
   }
 }
 
@@ -10055,6 +10130,148 @@ body.chat-drawer-open .nav-tabs.is-docked-bottom {
   padding: 1px 5px;
   border-radius: 3px;
   margin-left: 2px;
+}
+
+/* ========================================================
+   SOLUTION 3: FLOATING STICKY BET ACTION DOCK (MOBILE ONLY)
+   Tự động nổi khi cuộn xuống Bàn cược chi tiết
+   ======================================================== */
+.mobile-sticky-bet-dock {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .mobile-sticky-bet-dock {
+    display: flex;
+    position: fixed;
+    bottom: calc(54px + max(4px, env(safe-area-inset-bottom, 4px)));
+    left: 8px;
+    right: 8px;
+    background: rgba(9, 12, 22, 0.96);
+    border: 1.5px solid rgba(255, 215, 0, 0.75);
+    border-radius: 12px;
+    padding: 6px 12px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.85), 0 0 16px rgba(255, 215, 0, 0.28);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    z-index: 99950;
+    transform: translateY(140%);
+    opacity: 0;
+    pointer-events: none;
+    transition: transform 0.26s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
+  }
+
+  .mobile-sticky-bet-dock.visible {
+    transform: translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* Ẩn dock cược khi mở khung chat để nhường không gian cho bàn phím chat */
+  body.chat-drawer-open .mobile-sticky-bet-dock {
+    transform: translateY(160%) !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+
+  .msb-dock-left {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 0;
+  }
+
+  .msb-dock-lbl {
+    font-family: var(--font-display);
+    font-size: 0.54rem;
+    font-weight: 800;
+    color: #94a3b8;
+    letter-spacing: 0.5px;
+    line-height: 1;
+  }
+
+  .msb-dock-val {
+    font-family: var(--font-numbers);
+    font-size: 1.05rem;
+    font-weight: 900;
+    color: var(--neon-cyan);
+    line-height: 1.2;
+    margin-top: 1px;
+    white-space: nowrap;
+  }
+
+  .msb-dock-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .msb-dock-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    border-radius: 8px;
+    font-family: var(--font-display);
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    user-select: none;
+  }
+
+  .msb-dock-btn.clear {
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.45);
+    color: #fca5a5;
+    font-size: 0.65rem;
+    padding: 0 8px;
+    height: 36px;
+  }
+
+  .msb-dock-btn.clear:active {
+    transform: scale(0.95);
+    background: rgba(239, 68, 68, 0.3);
+  }
+
+  .msb-dock-btn.spin {
+    background: var(--spin-gradient);
+    border: 1.5px solid #ff5252;
+    color: #fff;
+    font-size: 0.88rem;
+    letter-spacing: 1px;
+    padding: 0 16px;
+    height: 38px;
+    box-shadow: 0 2px 10px rgba(213, 0, 0, 0.5);
+  }
+
+  .msb-dock-btn.spin:active {
+    transform: scale(0.96);
+  }
+
+  .msb-dock-btn.spin:disabled {
+    filter: grayscale(0.8) opacity(0.5);
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .msb-spin-icon {
+    font-size: 0.95rem;
+  }
+}
+
+/* ĐIỆN THOẠI MÀN HÌNH SIÊU NGẮN (<= 640px height): Giảm tiếp chiều cao để đảm bảo 1 màn hình */
+@media (max-height: 640px) and (max-width: 768px) {
+  :root {
+    --slot-cell-h: clamp(38px, 7.8dvh, 48px) !important;
+    --slot-num-size: clamp(1.15rem, 3.6dvh, 1.55rem) !important;
+  }
+  .global-marquee-banner {
+    display: none !important;
+  }
 }
 
 

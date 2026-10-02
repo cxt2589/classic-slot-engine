@@ -582,7 +582,14 @@ const dom = {
   latTitle: document.getElementById("latTitle"),
   latPhaseBadge: document.getElementById("latPhaseBadge"),
   latTotalWager: document.getElementById("latTotalWager"),
-  latBody: document.getElementById("latBody")
+  latBody: document.getElementById("latBody"),
+
+  // Mobile Sticky Bet Dock (Solution 3)
+  mobileStickyBetDock: document.getElementById("mobileStickyBetDock"),
+  stickyTotalBetVal: document.getElementById("stickyTotalBetVal"),
+  btnStickyClearBets: document.getElementById("btnStickyClearBets"),
+  btnStickySpin: document.getElementById("btnStickySpin"),
+  stickySpinTxt: document.getElementById("stickySpinTxt")
 };
 
 // Colors mapping (0-9 for 5D lotto & slot numbers)
@@ -603,6 +610,7 @@ async function init() {
   setupLiveRoomControls();
   initRoomSystem(); // Giai đoạn 2: Khởi tạo phòng riêng & Telegram Deep Links
   initLottoSystem(); // Giai đoạn 3: Hệ thống Xổ Số Nhanh 5D
+  initMobileStickyBetDock(); // Giải pháp 3: Dock cược nổi khi cuộn xuống Bàn cược
   await loadSession();
   await loadAdminStatus(true); // silent fetch to load max bets
   renderInitialReels();
@@ -763,6 +771,9 @@ function updateMeters(lastWin = 0) {
     ? (lottoState.currentActiveTicket?.total_bet || 0)
     : Object.values(state.placedBets).reduce((acc, v) => acc + v, 0);
   dom.meterTotalBet.textContent = totalWager.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  if (dom.stickyTotalBetVal) {
+    dom.stickyTotalBetVal.textContent = totalWager.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " Xu";
+  }
   if (lastWin > 0) {
     dom.meterWin.textContent = lastWin.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
@@ -1117,6 +1128,75 @@ function setupActions() {
       dom.winBanner.style.display = "none";
     });
   }
+}
+
+/**
+ * Solution 3: Floating Sticky Bet Action Dock (Mobile Only)
+ * Tự động đồng bộ và nổi lên khi người chơi cuộn xuống Bàn cược chi tiết
+ */
+function initMobileStickyBetDock() {
+  const dock = dom.mobileStickyBetDock;
+  const spinBtn = dom.btnSpin;
+  const stickySpin = dom.btnStickySpin;
+  const stickyClear = dom.btnStickyClearBets;
+  const stickyTotalBet = dom.stickyTotalBetVal;
+  const stickySpinTxt = dom.stickySpinTxt;
+
+  if (!dock || !spinBtn) return;
+
+  // 1. Đồng bộ hành động bấm nút
+  if (stickySpin) {
+    stickySpin.addEventListener("click", () => {
+      if (dom.btnSpin && !dom.btnSpin.disabled) {
+        dom.btnSpin.click();
+        const cabinet = document.querySelector(".slot-cabinet");
+        if (cabinet) {
+          cabinet.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      }
+    });
+  }
+
+  if (stickyClear) {
+    stickyClear.addEventListener("click", () => {
+      if (dom.btnClearBets) dom.btnClearBets.click();
+    });
+  }
+
+  // 2. Tự động đồng bộ trạng thái chữ và disabled của nút QUAY / CƯỢC
+  function syncStickyButton() {
+    if (!stickySpin || !dom.btnSpin) return;
+    stickySpin.disabled = dom.btnSpin.disabled;
+    const spinMain = dom.btnSpin.querySelector(".spin-main");
+    if (stickySpinTxt && spinMain) {
+      stickySpinTxt.textContent = spinMain.textContent;
+    }
+  }
+
+  // Lắng nghe thay đổi disabled và text trên dom.btnSpin
+  const spinObserver = new MutationObserver(() => {
+    syncStickyButton();
+  });
+  spinObserver.observe(dom.btnSpin, { attributes: true, childList: true, subtree: true });
+  syncStickyButton();
+
+  // 3. Hiển thị dock cược nổi: Chỉ hiển thị khi người chơi cuộn xuống Bàn cược (nút QUAY chính trôi khỏi màn hình)
+  function checkDockVisibility() {
+    if (window.innerWidth > 768) {
+      dock.classList.remove("visible");
+      return;
+    }
+    const rect = spinBtn.getBoundingClientRect();
+    if (rect.bottom < 40) {
+      dock.classList.add("visible");
+    } else {
+      dock.classList.remove("visible");
+    }
+  }
+
+  window.addEventListener("scroll", checkDockVisibility, { passive: true });
+  window.addEventListener("resize", checkDockVisibility, { passive: true });
+  checkDockVisibility();
 }
 
 async function triggerSpin() {
