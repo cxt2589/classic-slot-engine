@@ -320,7 +320,6 @@ function getTgAppUrl(roomId = "public") {
 
 function makePlayKeyboard(text, roomId = "public", isGroup = false) {
   const clean = normalizeRoomId(roomId);
-  const webUrl = clean !== "public" ? `${APP_BASE_URL}?room=${clean}` : APP_BASE_URL;
   const tgAppUrl = clean !== "public"
     ? `https://t.me/${TELEGRAM_BOT_USERNAME}/app?startapp=room_${clean}`
     : `https://t.me/${TELEGRAM_BOT_USERNAME}/app`;
@@ -338,7 +337,7 @@ function makePlayKeyboard(text, roomId = "public", isGroup = false) {
   } else {
     return [
       [
-        { text: `${text}`, web_app: { url: webUrl } }
+        { text: `${text}`, url: tgAppUrl }
       ]
     ];
   }
@@ -346,12 +345,7 @@ function makePlayKeyboard(text, roomId = "public", isGroup = false) {
 
 function makePlayButton(text, roomId = "public", isGroup = false, hash = "") {
   const clean = normalizeRoomId(roomId);
-  if (isGroup) {
-    return { text, url: getTgAppUrl(clean) };
-  } else {
-    const webUrl = (clean !== "public" ? `${APP_BASE_URL}?room=${clean}` : APP_BASE_URL) + (hash ? `#${hash}` : "");
-    return { text, web_app: { url: webUrl } };
-  }
+  return { text, url: getTgAppUrl(clean) };
 }
 
 async function getKVTelegramGroups(env) {
