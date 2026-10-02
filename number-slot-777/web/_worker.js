@@ -157,7 +157,10 @@ const liveRoomState = {
   roundBets: {}, // round_id -> { user_id -> betData }
   roundOutcomes: {}, // round_id -> outcome object
   settledRounds: {}, // "roundId_userId" -> true
-  telegramGroups: [] // [{ chat_id, title, type, room_id, created_at, updated_at }]
+  telegramGroups: [], // [{ chat_id, title, type, room_id, created_at, updated_at }]
+  lottoOutcomes: {}, // round_id -> lotto outcome object
+  lottoBets: {}, // round_id -> { user_id -> betData }
+  lottoSettled: {} // "roundId_userId" -> result
 };
 
 function normalizeRoomId(raw) {
@@ -454,6 +457,210 @@ async function broadcastTelegramNotification(env, options) {
     console.error("broadcastTelegramNotification error:", err);
     return [];
   }
+}
+
+// ==========================================
+// HỆ THỐNG XỔ SỐ NHANH 5D (TURBO 5D LOTTO ENGINE)
+// ==========================================
+const LOTTO_CHANNELS = {
+  "30s": { id: "30s", title: "Siêu Tốc 30s", icon: "⚡", totalCycleSec: 30, betSec: 20, drawSec: 4, paySec: 6 },
+  "60s": { id: "60s", title: "Tiêu Chuẩn 60s", icon: "⏱️", totalCycleSec: 60, betSec: 45, drawSec: 5, paySec: 10 },
+  "3m":  { id: "3m",  title: "Keno 3 Phút", icon: "☕", totalCycleSec: 180, betSec: 150, drawSec: 10, paySec: 20 },
+  "60m": { id: "60m", title: "Mega 1 Giờ", icon: "👑", totalCycleSec: 3600, betSec: 3300, drawSec: 60, paySec: 240 }
+};
+
+const LOTTO_PAYOUTS = {
+  DE_DUOI: 95.0,
+  DE_DAU: 95.0,
+  BA_CANG: 900.0,
+  TAI: 1.98,
+  XIU: 1.98,
+  CHAN: 1.98,
+  LE: 1.98,
+  KEP_BANG: 9.5
+};
+
+function generateLottoOutcome(roundId, channelId = "60s") {
+  const baseNum = parseInt(String(roundId).replace(/\D/g, "")) || 10001;
+  const chSeed = hashString(channelId);
+  const prng = mulberry32((baseNum * 31 + chSeed) >>> 0);
+
+  // Sinh 5 chữ số từ 0 đến 9
+  const digits = [];
+  for (let i = 0; i < 5; i++) {
+    digits.push(Math.floor(prng() * 10)); // 0 - 9
+  }
+
+  const d1 = digits[0], d2 = digits[1], d3 = digits[2], d4 = digits[3], d5 = digits[4];
+  const de_duoi = `${d4}${d5}`;
+  const de_dau = `${d1}${d2}`;
+  const ba_cang = `${d3}${d4}${d5}`;
+  const full_5d = digits.join("");
+
+  const deNum = d4 * 10 + d5;
+  const is_tai = deNum >= 50;
+  const is_xiu = deNum < 50;
+  const is_chan = d5 % 2 === 0;
+  const is_le = !is_chan;
+  const is_kep_bang = d4 === d5;
+
+  return {
+    digits,
+    full_5d,
+    de_duoi,
+    de_dau,
+    ba_cang,
+    analysis: {
+      de_duoi,
+      de_dau,
+      ba_cang,
+      de_num: deNum,
+      side: is_tai ? "TAI" : "XIU",
+      parity: is_chan ? "CHAN" : "LE",
+      is_kep_bang
+    }
+  };
+}
+
+function getLottoRoundInfo(channelId = "60s") {
+  const normCh = LOTTO_CHANNELS[channelId] ? channelId : "60s";
+  const chConfig = LOTTO_CHANNELS[normCh];
+  const nowMs = Date.now();
+  const totalCycleMs = chConfig.totalCycleSec * 1000;
+  
+  const cycleIndex = Math.floor(nowMs / totalCycleMs);
+  const cycleStartMs = cycleIndex * totalCycleMs;
+  const elapsedSec = Math.floor((nowMs - cycleStartMs) / 1000);
+  
+  let phase = "betting";
+  let timeLeftSec = chConfig.betSec - elapsedSec;
+  
+  if (elapsedSec < chConfig.betSec) {
+    phase = "betting";
+    timeLeftSec = chConfig.betSec - elapsedSec;
+  } else if (elapsedSec < chConfig.betSec + chConfig.drawSec) {
+    phase = "drawing";
+    timeLeftSec = (chConfig.betSec + chConfig.drawSec) - elapsedSec;
+  } else {
+    phase = "payout";
+    timeLeftSec = chConfig.totalCycleSec - elapsedSec;
+  }
+
+  const roundId = `X5D-${normCh}-${cycleIndex}`;
+  
+  if (!liveRoomState.lottoOutcomes) liveRoomState.lottoOutcomes = {};
+  if (!liveRoomState.lottoOutcomes[roundId]) {
+    liveRoomState.lottoOutcomes[roundId] = generateLottoOutcome(roundId, normCh);
+  }
+
+  // Tạo roadmap 20 kỳ trước
+  const roadmap = [];
+  for (let i = 1; i <= 20; i++) {
+    const prevIdx = cycleIndex - i;
+    const prevRId = `X5D-${normCh}-${prevIdx}`;
+    if (!liveRoomState.lottoOutcomes[prevRId]) {
+      liveRoomState.lottoOutcomes[prevRId] = generateLottoOutcome(prevRId, normCh);
+    }
+    const out = liveRoomState.lottoOutcomes[prevRId];
+    roadmap.push({
+      round_id: prevRId,
+      cycle_index: prevIdx,
+      digits: out.digits,
+      full_5d: out.full_5d,
+      de_duoi: out.de_duoi,
+      de_dau: out.de_dau,
+      ba_cang: out.ba_cang,
+      analysis: out.analysis
+    });
+  }
+
+  return {
+    channel: chConfig,
+    round_id: roundId,
+    cycle_index: cycleIndex,
+    phase,
+    time_left_sec: Math.max(0, timeLeftSec),
+    total_cycle_sec: chConfig.totalCycleSec,
+    betting_duration_sec: chConfig.betSec,
+    draw_duration_sec: chConfig.drawSec,
+    payout_duration_sec: chConfig.paySec,
+    start_time_ms: cycleStartMs,
+    outcome: (phase === "drawing" || phase === "payout") ? liveRoomState.lottoOutcomes[roundId] : null,
+    roadmap
+  };
+}
+
+function calculateLottoPayout(userBets, outcome) {
+  let totalWon = 0;
+  const winDetails = [];
+
+  const actualDeDuoi = outcome.de_duoi;
+  const actualDeDau = outcome.de_dau;
+  const actualBaCang = outcome.ba_cang;
+  const analysis = outcome.analysis;
+
+  // 1. Đề Đuôi (x95)
+  if (userBets.DE_DUOI && Array.isArray(userBets.DE_DUOI.numbers)) {
+    const amt = Number(userBets.DE_DUOI.amount_per_num) || 0;
+    if (amt > 0 && userBets.DE_DUOI.numbers.includes(actualDeDuoi)) {
+      const won = amt * LOTTO_PAYOUTS.DE_DUOI;
+      totalWon += won;
+      winDetails.push({ door: "DE_DUOI", title: `Đề Đuôi [${actualDeDuoi}]`, hit: actualDeDuoi, multiplier: LOTTO_PAYOUTS.DE_DUOI, won });
+    }
+  }
+
+  // 2. Đề Đầu (x95)
+  if (userBets.DE_DAU && Array.isArray(userBets.DE_DAU.numbers)) {
+    const amt = Number(userBets.DE_DAU.amount_per_num) || 0;
+    if (amt > 0 && userBets.DE_DAU.numbers.includes(actualDeDau)) {
+      const won = amt * LOTTO_PAYOUTS.DE_DAU;
+      totalWon += won;
+      winDetails.push({ door: "DE_DAU", title: `Đề Đầu [${actualDeDau}]`, hit: actualDeDau, multiplier: LOTTO_PAYOUTS.DE_DAU, won });
+    }
+  }
+
+  // 3. 3 Càng (x900)
+  if (userBets.BA_CANG && Array.isArray(userBets.BA_CANG.numbers)) {
+    const amt = Number(userBets.BA_CANG.amount_per_num) || 0;
+    if (amt > 0 && userBets.BA_CANG.numbers.includes(actualBaCang)) {
+      const won = amt * LOTTO_PAYOUTS.BA_CANG;
+      totalWon += won;
+      winDetails.push({ door: "BA_CANG", title: `3 Càng [${actualBaCang}]`, hit: actualBaCang, multiplier: LOTTO_PAYOUTS.BA_CANG, won });
+    }
+  }
+
+  // 4. Tài / Xỉu (x1.98)
+  if (userBets.TAI && Number(userBets.TAI) > 0 && analysis.side === "TAI") {
+    const won = Number(userBets.TAI) * LOTTO_PAYOUTS.TAI;
+    totalWon += won;
+    winDetails.push({ door: "TAI", title: `Tài Đuôi (${analysis.de_num})`, multiplier: LOTTO_PAYOUTS.TAI, won });
+  }
+  if (userBets.XIU && Number(userBets.XIU) > 0 && analysis.side === "XIU") {
+    const won = Number(userBets.XIU) * LOTTO_PAYOUTS.XIU;
+    totalWon += won;
+    winDetails.push({ door: "XIU", title: `Xỉu Đuôi (${analysis.de_num})`, multiplier: LOTTO_PAYOUTS.XIU, won });
+  }
+
+  // 5. Chẵn / Lẻ (x1.98)
+  if (userBets.CHAN && Number(userBets.CHAN) > 0 && analysis.parity === "CHAN") {
+    const won = Number(userBets.CHAN) * LOTTO_PAYOUTS.CHAN;
+    totalWon += won;
+    winDetails.push({ door: "CHAN", title: `Chẵn Đuôi`, multiplier: LOTTO_PAYOUTS.CHAN, won });
+  }
+  if (userBets.LE && Number(userBets.LE) > 0 && analysis.parity === "LE") {
+    const won = Number(userBets.LE) * LOTTO_PAYOUTS.LE;
+    totalWon += won;
+    winDetails.push({ door: "LE", title: `Lẻ Đuôi`, multiplier: LOTTO_PAYOUTS.LE, won });
+  }
+
+  // 6. Kép Bằng (x9.5)
+  if (userBets.KEP_BANG && Number(userBets.KEP_BANG) > 0 && analysis.is_kep_bang) {
+    const won = Number(userBets.KEP_BANG) * LOTTO_PAYOUTS.KEP_BANG;
+    totalWon += won;
+    winDetails.push({ door: "KEP_BANG", title: `Kép Bằng [${actualDeDuoi}]`, multiplier: LOTTO_PAYOUTS.KEP_BANG, won });
+  }
+
+  return { total_won: Math.round(totalWon * 100) / 100, win_details: winDetails };
 }
 
 function ensureSession() {
@@ -1141,6 +1348,245 @@ export default {
         });
       } catch (err) {
         return jsonRes({ detail: "Lỗi test notify: " + err.message }, 400);
+      }
+    }
+
+    // ==========================================
+    // ENDPOINTS XỔ SỐ NHANH 5D (LOTTO 5D API)
+    // ==========================================
+    if (url.pathname === "/api/lotto/state" && request.method === "GET") {
+      const channel = url.searchParams.get("channel") || "60s";
+      const targetRoomId = normalizeRoomId(url.searchParams.get("room_id") || "public");
+      const userId = url.searchParams.get("user_id") || "guest";
+      const userName = url.searchParams.get("username") || "Khách";
+
+      const lottoRound = getLottoRoundInfo(channel);
+      const curRoundId = lottoRound.round_id;
+      const prevCycleIdx = lottoRound.cycle_index - 1;
+      const prevRoundId = `X5D-${lottoRound.channel.id}-${prevCycleIdx}`;
+
+      // Xử lý Settlement cược kỳ trước của user (nếu có)
+      const prevBetKey = `${prevRoundId}_${userId}`;
+      const settleKey = `${prevRoundId}_${userId}`;
+      let userLastSettlement = null;
+
+      // Đồng bộ cược kỳ trước từ KV nếu isolate mới khởi động
+      if (!liveRoomState.lottoBets[prevRoundId]?.[userId] && env && env.LUCKY_ROOM) {
+        try {
+          const storedBet = await env.LUCKY_ROOM.get(`lotto_bet_${prevRoundId}_${userId}`, { type: "json" });
+          if (storedBet) {
+            if (!liveRoomState.lottoBets[prevRoundId]) liveRoomState.lottoBets[prevRoundId] = {};
+            liveRoomState.lottoBets[prevRoundId][userId] = storedBet;
+          }
+        } catch (e) {}
+      }
+
+      const prevBetData = liveRoomState.lottoBets[prevRoundId]?.[userId];
+      if (prevBetData && !liveRoomState.lottoSettled[settleKey]) {
+        const prevOutcome = generateLottoOutcome(prevRoundId, lottoRound.channel.id);
+        const payoutRes = calculateLottoPayout(prevBetData.bets, prevOutcome);
+
+        if (payoutRes.total_won > 0) {
+          session.balance += payoutRes.total_won;
+          session.total_won += payoutRes.total_won;
+
+          // Nếu trúng lớn >= 2000 hoặc trúng Đề x95 / 3 Càng x900
+          const hasBigHit = payoutRes.win_details.some(w => w.multiplier >= 95 || w.won >= 5000);
+          if (hasBigHit || payoutRes.total_won >= 2000) {
+            const currentBigWins = await getKVBigWins(env);
+            const hitDetail = payoutRes.win_details[0] || {};
+            const bwObj = {
+              id: "bw-lotto-" + Date.now() + "-" + Math.random().toString(36).substr(2, 4),
+              username: userName,
+              amount: payoutRes.total_won,
+              hand: `Xổ Số 5D: ${hitDetail.title || "Trúng Thưởng"}`,
+              room_id: targetRoomId,
+              time: Date.now()
+            };
+            const updatedBigWins = [bwObj, ...currentBigWins].slice(0, 20);
+            liveRoomState.bigWins = updatedBigWins;
+            await saveKVBigWins(env, updatedBigWins);
+
+            // Bắn thông báo chúc mừng tới Telegram Group
+            broadcastTelegramNotification(env, {
+              type: "jackpot",
+              room_id: targetRoomId,
+              user_name: userName,
+              amount: payoutRes.total_won,
+              hand_title: `Xổ Số ${lottoRound.channel.title}: ${hitDetail.title || "Trúng Lớn"}`
+            }).catch(e => console.error("Broadcast lotto jackpot error:", e));
+          }
+        }
+
+        liveRoomState.lottoSettled[settleKey] = {
+          round_id: prevRoundId,
+          channel: lottoRound.channel.id,
+          payout: payoutRes,
+          outcome: prevOutcome,
+          time: Date.now()
+        };
+        userLastSettlement = liveRoomState.lottoSettled[settleKey];
+      } else if (liveRoomState.lottoSettled[settleKey]) {
+        userLastSettlement = liveRoomState.lottoSettled[settleKey];
+      }
+
+      // Kiểm tra cược kỳ hiện tại của user trong KV nếu chưa có trong memory
+      if (!liveRoomState.lottoBets[curRoundId]?.[userId] && env && env.LUCKY_ROOM) {
+        try {
+          const curKvBet = await env.LUCKY_ROOM.get(`lotto_bet_${curRoundId}_${userId}`, { type: "json" });
+          if (curKvBet) {
+            if (!liveRoomState.lottoBets[curRoundId]) liveRoomState.lottoBets[curRoundId] = {};
+            liveRoomState.lottoBets[curRoundId][userId] = curKvBet;
+          }
+        } catch (e) {}
+      }
+
+      const userCurrentBet = liveRoomState.lottoBets[curRoundId]?.[userId] || null;
+
+      // Tính toán cấp VIP
+      const isRothschild = (userId && userId.toLowerCase().includes("marothschild")) ||
+                           (userName && userName.toLowerCase().includes("marothschild"));
+      let currentVipLevel = isRothschild ? 5 : 0;
+      if (!isRothschild) {
+        const tw = session.total_wagered || 0;
+        if (tw >= 50000) currentVipLevel = 5;
+        else if (tw >= 20000) currentVipLevel = 4;
+        else if (tw >= 8000) currentVipLevel = 3;
+        else if (tw >= 3000) currentVipLevel = 2;
+        else if (tw >= 1000) currentVipLevel = 1;
+      }
+      const VIP_TIERS = [
+        { level: 0, name: "Tân Thủ", icon: "🌱" },
+        { level: 1, name: "Đồng", icon: "🥉" },
+        { level: 2, name: "Bạc", icon: "🥈" },
+        { level: 3, name: "Vàng", icon: "🥇" },
+        { level: 4, name: "Bạch Kim", icon: "💎" },
+        { level: 5, name: "Chí Tôn", icon: "👑" }
+      ];
+      const vipTier = VIP_TIERS[currentVipLevel];
+
+      return jsonRes({
+        status: "success",
+        data: {
+          round: {
+            round_id: lottoRound.round_id,
+            channel: lottoRound.channel,
+            cycle_index: lottoRound.cycle_index,
+            phase: lottoRound.phase,
+            time_left_sec: lottoRound.time_left_sec,
+            total_cycle_sec: lottoRound.total_cycle_sec,
+            betting_duration_sec: lottoRound.betting_duration_sec,
+            draw_duration_sec: lottoRound.draw_duration_sec,
+            payout_duration_sec: lottoRound.payout_duration_sec,
+            start_time_ms: lottoRound.start_time_ms,
+            outcome: lottoRound.outcome
+          },
+          channels: Object.values(LOTTO_CHANNELS),
+          roadmap: lottoRound.roadmap,
+          user_current_bet: userCurrentBet,
+          user_last_settlement: userLastSettlement,
+          user_balance: Math.round(session.balance * 100) / 100,
+          vip_info: {
+            level: currentVipLevel,
+            name: vipTier.name,
+            icon: vipTier.icon,
+            total_wagered: session.total_wagered || 0,
+            is_rothschild: isRothschild
+          },
+          payout_rates: LOTTO_PAYOUTS
+        }
+      });
+    }
+
+    if (url.pathname === "/api/lotto/bet" && request.method === "POST") {
+      try {
+        const body = await request.json();
+        const channel = body.channel || "60s";
+        const targetRoomId = normalizeRoomId(body.room_id || "public");
+        const userId = body.user_id || "guest";
+        const userName = body.username || "Khách";
+        const bets = body.bets || {};
+
+        const lottoRound = getLottoRoundInfo(channel);
+        if (lottoRound.phase !== "betting") {
+          return jsonRes({ detail: "Kỳ quay đang mở thưởng, vui lòng chờ kỳ tiếp theo!" }, 400);
+        }
+        if (lottoRound.time_left_sec <= 2) {
+          return jsonRes({ detail: "Hết thời gian cược kỳ này (chốt số trước 2 giây)!" }, 400);
+        }
+
+        // Tính tổng tiền cược của vé
+        let totalWager = 0;
+        let totalNumbersCount = 0;
+
+        if (bets.DE_DUOI && Array.isArray(bets.DE_DUOI.numbers)) {
+          const amt = Number(bets.DE_DUOI.amount_per_num) || 0;
+          totalWager += bets.DE_DUOI.numbers.length * amt;
+          totalNumbersCount += bets.DE_DUOI.numbers.length;
+        }
+        if (bets.DE_DAU && Array.isArray(bets.DE_DAU.numbers)) {
+          const amt = Number(bets.DE_DAU.amount_per_num) || 0;
+          totalWager += bets.DE_DAU.numbers.length * amt;
+          totalNumbersCount += bets.DE_DAU.numbers.length;
+        }
+        if (bets.BA_CANG && Array.isArray(bets.BA_CANG.numbers)) {
+          const amt = Number(bets.BA_CANG.amount_per_num) || 0;
+          totalWager += bets.BA_CANG.numbers.length * amt;
+          totalNumbersCount += bets.BA_CANG.numbers.length;
+        }
+        if (bets.TAI && Number(bets.TAI) > 0) totalWager += Number(bets.TAI);
+        if (bets.XIU && Number(bets.XIU) > 0) totalWager += Number(bets.XIU);
+        if (bets.CHAN && Number(bets.CHAN) > 0) totalWager += Number(bets.CHAN);
+        if (bets.LE && Number(bets.LE) > 0) totalWager += Number(bets.LE);
+        if (bets.KEP_BANG && Number(bets.KEP_BANG) > 0) totalWager += Number(bets.KEP_BANG);
+
+        if (totalWager <= 0) {
+          return jsonRes({ detail: "Vui lòng chọn ít nhất 1 số hoặc 1 cửa để đặt vé!" }, 400);
+        }
+        if (session.balance < totalWager) {
+          return jsonRes({ detail: `Số dư không đủ (Cần ${totalWager.toLocaleString()} Xu)!` }, 400);
+        }
+
+        // Trừ tiền cược và tích lũy EXP VIP
+        session.balance -= totalWager;
+        session.total_wagered += totalWager;
+
+        const roundId = lottoRound.round_id;
+        if (!liveRoomState.lottoBets[roundId]) liveRoomState.lottoBets[roundId] = {};
+
+        const existingBet = liveRoomState.lottoBets[roundId][userId];
+        const newBetEntry = {
+          round_id: roundId,
+          channel: lottoRound.channel.id,
+          user_id: userId,
+          username: userName,
+          room_id: targetRoomId,
+          bets: bets,
+          total_bet: totalWager,
+          placed_at: Date.now()
+        };
+
+        liveRoomState.lottoBets[roundId][userId] = newBetEntry;
+
+        if (env && env.LUCKY_ROOM) {
+          try {
+            await env.LUCKY_ROOM.put(`lotto_bet_${roundId}_${userId}`, JSON.stringify(newBetEntry), { expirationTtl: 1800 });
+          } catch (e) {}
+        }
+
+        return jsonRes({
+          status: "success",
+          message: `Đã đặt vé Xổ Số ${lottoRound.channel.title} (${totalWager.toLocaleString()} Xu) thành công!`,
+          data: {
+            round_id: roundId,
+            channel: lottoRound.channel.id,
+            total_bet: totalWager,
+            balance: Math.round(session.balance * 100) / 100,
+            bet_entry: newBetEntry
+          }
+        });
+      } catch (err) {
+        return jsonRes({ detail: "Lỗi đặt vé: " + err.message }, 400);
       }
     }
 

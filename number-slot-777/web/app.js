@@ -61,6 +61,31 @@ const state = {
   currentRoomInfo: null
 };
 
+const lottoState = {
+  currentChannel: "60s",
+  currentRound: null,
+  activeSubtab: "so", // "so" | "nhanh"
+  selectedBetType: "DE_DUOI", // "DE_DUOI" | "DE_DAU" | "BA_CANG"
+  matrixDigits: {
+    tram: null,
+    chuc: null,
+    donVi: null
+  },
+  selectedNumbers: new Set(),
+  fastBets: {
+    TAI: 0,
+    XIU: 0,
+    CHAN: 0,
+    LE: 0,
+    KEP_BANG: 0
+  },
+  currentChip: 10,
+  pollTimer: null,
+  lastSettledRoundId: null,
+  isSpinningBalls: false,
+  spinInterval: null
+};
+
 // Web Audio API Synthesizer
 const soundEngine = {
   init() {
@@ -276,6 +301,7 @@ const dom = {
   marqueeText: document.getElementById("marqueeText"),
   btnModeSolo: document.getElementById("btnModeSolo"),
   btnModeLive: document.getElementById("btnModeLive"),
+  btnModeLotto: document.getElementById("btnModeLotto"),
   modeLiveSecLbl: document.getElementById("modeLiveSecLbl"),
   liveRoomOnlinePill: document.getElementById("liveRoomOnlinePill"),
   liveOnlineCount: document.getElementById("liveOnlineCount"),
@@ -505,6 +531,58 @@ const dom = {
   simContributionsTableBody: document.getElementById("simContributionsTableBody"),
   simSymbolsGrid: document.getElementById("simSymbolsGrid"),
   simSumBarsWrapper: document.getElementById("simSumBarsWrapper"),
+
+  // Turbo 5D Lotto Elements
+  lottoGameContainer: document.getElementById("lottoGameContainer"),
+  lottoChannelsBar: document.getElementById("lottoChannelsBar"),
+  lottoRoundBanner: document.getElementById("lottoRoundBanner"),
+  lottoRoundId: document.getElementById("lottoRoundId"),
+  lottoChannelBadge: document.getElementById("lottoChannelBadge"),
+  lottoPhasePill: document.getElementById("lottoPhasePill"),
+  lottoPhaseText: document.getElementById("lottoPhaseText"),
+  lottoTimerVal: document.getElementById("lottoTimerVal"),
+  lottoProgressBar: document.getElementById("lottoProgressBar"),
+  lottoBallsCage: document.getElementById("lottoBallsCage"),
+  lottoCageStatus: document.getElementById("lottoCageStatus"),
+  lottoBallsRow: document.getElementById("lottoBallsRow"),
+  lottoBall0: document.getElementById("lottoBall0"),
+  lottoBall1: document.getElementById("lottoBall1"),
+  lottoBall2: document.getElementById("lottoBall2"),
+  lottoBall3: document.getElementById("lottoBall3"),
+  lottoBall4: document.getElementById("lottoBall4"),
+  lspDeDuoi: document.getElementById("lspDeDuoi"),
+  lspDeDau: document.getElementById("lspDeDau"),
+  lspBaCang: document.getElementById("lspBaCang"),
+  lspTaiXiu: document.getElementById("lspTaiXiu"),
+  lspChanLe: document.getElementById("lspChanLe"),
+  btnSubtabSo: document.getElementById("btnSubtabSo"),
+  btnSubtabNhanh: document.getElementById("btnSubtabNhanh"),
+  paneLottoSo: document.getElementById("paneLottoSo"),
+  paneLottoNhanh: document.getElementById("paneLottoNhanh"),
+  lmsRowTram: document.getElementById("lmsRowTram"),
+  lmsRowChuc: document.getElementById("lmsRowChuc"),
+  lmsRowDonVi: document.getElementById("lmsRowDonVi"),
+  lmsDigitsTram: document.getElementById("lmsDigitsTram"),
+  lmsDigitsChuc: document.getElementById("lmsDigitsChuc"),
+  lmsDigitsDonVi: document.getElementById("lmsDigitsDonVi"),
+  inputLottoCustomNumbers: document.getElementById("inputLottoCustomNumbers"),
+  btnAddCustomNumbers: document.getElementById("btnAddCustomNumbers"),
+  btnLottoRandNumber: document.getElementById("btnLottoRandNumber"),
+  btnLottoKepBang: document.getElementById("btnLottoKepBang"),
+  btnLottoDauChan: document.getElementById("btnLottoDauChan"),
+  btnLottoDauLe: document.getElementById("btnLottoDauLe"),
+  btnLottoClearNumbers: document.getElementById("btnLottoClearNumbers"),
+  lstCount: document.getElementById("lstCount"),
+  lstEstWager: document.getElementById("lstEstWager"),
+  lstChipsWrap: document.getElementById("lstChipsWrap"),
+  lottoChipsSelector: document.getElementById("lottoChipsSelector"),
+  btnLottoAllIn: document.getElementById("btnLottoAllIn"),
+  lottoTotalWagerVal: document.getElementById("lottoTotalWagerVal"),
+  btnSubmitLottoTicket: document.getElementById("btnSubmitLottoTicket"),
+  lottoRoadmapCard: document.getElementById("lottoRoadmapCard"),
+  lrcChannelNote: document.getElementById("lrcChannelNote"),
+  lottoRoadmapTable: document.getElementById("lottoRoadmapTable"),
+  lottoRoadmapBody: document.getElementById("lottoRoadmapBody")
 };
 
 // Colors mapping
@@ -523,6 +601,7 @@ async function init() {
   setupFortuneModeControls();
   setupLiveRoomControls();
   initRoomSystem(); // Giai đoạn 2: Khởi tạo phòng riêng & Telegram Deep Links
+  initLottoSystem(); // Giai đoạn 3: Hệ thống Xổ Số Nhanh 5D
   await loadSession();
   await loadAdminStatus(true); // silent fetch to load max bets
   renderInitialReels();
@@ -3215,6 +3294,9 @@ function setupLiveRoomControls() {
   if (dom.btnModeLive) {
     dom.btnModeLive.addEventListener("click", () => switchGameplayMode("live"));
   }
+  if (dom.btnModeLotto) {
+    dom.btnModeLotto.addEventListener("click", () => switchGameplayMode("lotto"));
+  }
 
   // Open Chat Drawer from Cabinet Dock Button & Floating FAB
   if (dom.btnOpenChatDock) {
@@ -3813,27 +3895,55 @@ function switchGameplayMode(mode) {
   soundEngine.playChip();
 
   const isLive = mode === "live";
-  if (dom.btnModeSolo) dom.btnModeSolo.classList.toggle("active", !isLive);
+  const isLotto = mode === "lotto";
+  const isSolo = mode === "solo";
+
+  if (dom.btnModeSolo) dom.btnModeSolo.classList.toggle("active", isSolo);
   if (dom.btnModeLive) dom.btnModeLive.classList.toggle("active", isLive);
+  if (dom.btnModeLotto) dom.btnModeLotto.classList.toggle("active", isLotto);
 
-  if (dom.liveRoundBanner) dom.liveRoundBanner.style.display = isLive ? "block" : "none";
-  if (dom.liveRoomOnlinePill) dom.liveRoomOnlinePill.style.display = isLive ? "flex" : "none";
+  const gameLayout = document.querySelector(".game-layout");
 
-  const spinMain = dom.btnSpin ? dom.btnSpin.querySelector(".spin-main") : null;
-  const spinSub = dom.btnSpin ? dom.btnSpin.querySelector(".spin-sub") : null;
+  if (isLotto) {
+    if (dom.liveRoundBanner) dom.liveRoundBanner.style.display = "none";
+    if (dom.liveRoomOnlinePill) dom.liveRoomOnlinePill.style.display = "none";
+    if (gameLayout) gameLayout.style.display = "none";
+    if (dom.lottoGameContainer) dom.lottoGameContainer.style.display = "flex";
 
-  if (isLive) {
+    showToast("🎯 Đã chuyển sang chế độ <strong>XỔ SỐ SIÊU TỐC 5D</strong>", "gold");
+    stopLivePolling();
+    syncLottoState();
+    startLottoPolling();
+  } else if (isLive) {
+    if (dom.lottoGameContainer) dom.lottoGameContainer.style.display = "none";
+    if (gameLayout) gameLayout.style.display = "";
+    if (dom.liveRoundBanner) dom.liveRoundBanner.style.display = "block";
+    if (dom.liveRoomOnlinePill) dom.liveRoomOnlinePill.style.display = "flex";
+
+    const spinMain = dom.btnSpin ? dom.btnSpin.querySelector(".spin-main") : null;
+    const spinSub = dom.btnSpin ? dom.btnSpin.querySelector(".spin-sub") : null;
     if (spinMain) spinMain.textContent = "CƯỢC";
     if (spinSub) spinSub.textContent = "CONFIRM BET";
+
     showToast("👥 Đã vào <strong>PHÒNG TRỰC TIẾP</strong> (Phiên đồng bộ toàn server)", "gold");
+    stopLottoPolling();
     syncLiveRoomState();
     startLivePolling();
   } else {
+    if (dom.lottoGameContainer) dom.lottoGameContainer.style.display = "none";
+    if (gameLayout) gameLayout.style.display = "";
+    if (dom.liveRoundBanner) dom.liveRoundBanner.style.display = "none";
+    if (dom.liveRoomOnlinePill) dom.liveRoomOnlinePill.style.display = "none";
+
+    const spinMain = dom.btnSpin ? dom.btnSpin.querySelector(".spin-main") : null;
+    const spinSub = dom.btnSpin ? dom.btnSpin.querySelector(".spin-sub") : null;
     if (spinMain) spinMain.textContent = "QUAY";
     if (spinSub) spinSub.textContent = "SPIN";
+
     showToast("👤 Đã chuyển về <strong>CHƠI ĐƠN</strong> (Tự quay tự do)", "cyan");
     renderCommunityDoorBets({});
     stopLivePolling();
+    stopLottoPolling();
   }
 }
 
@@ -4910,6 +5020,786 @@ function showGlobalJackpotAlert(bw) {
       dom.globalJackpotAlert.style.display = "none";
     }, 500);
   }, 4500);
+}
+
+// ==========================================
+// HỆ THỐNG XỔ SỐ SIÊU TỐC 5D (LOTTO 5D SYSTEM)
+// ==========================================
+
+function initLottoSystem() {
+  if (!dom.lottoGameContainer) return;
+
+  // 1. Channel buttons
+  const chBtns = document.querySelectorAll(".lotto-ch-btn");
+  chBtns.forEach(btn => {
+    btn.addEventListener("click", () => {
+      soundEngine.init();
+      soundEngine.playChip();
+      telegramEngine.haptic("selection");
+      const ch = btn.dataset.channel;
+      if (!ch) return;
+      lottoState.currentChannel = ch;
+      chBtns.forEach(b => b.classList.toggle("active", b.dataset.channel === ch));
+      if (dom.lottoChannelBadge) {
+        const badgeMap = { "30s": "⚡ 30s", "60s": "⏱️ 60s", "3m": "☕ 3m", "60m": "👑 60m" };
+        dom.lottoChannelBadge.textContent = badgeMap[ch] || ch;
+      }
+      if (dom.lrcChannelNote) {
+        const noteMap = { "30s": "Siêu Tốc 30s", "60s": "Tiêu Chuẩn 60s", "3m": "Keno 3 Phút", "60m": "Mega 1 Giờ" };
+        dom.lrcChannelNote.textContent = `Kênh: ${noteMap[ch] || ch}`;
+      }
+      syncLottoState();
+    });
+  });
+
+  // Start continuous 1s ticker for channel countdowns
+  setInterval(tickLottoChannelsTimers, 1000);
+  tickLottoChannelsTimers();
+
+  // 2. Subtabs (Cược Số vs Cược Nhanh)
+  if (dom.btnSubtabSo && dom.btnSubtabNhanh) {
+    dom.btnSubtabSo.addEventListener("click", () => switchLottoSubtab("so"));
+    dom.btnSubtabNhanh.addEventListener("click", () => switchLottoSubtab("nhanh"));
+  }
+
+  // 3. Bet Type Radio (DE_DUOI, DE_DAU, BA_CANG)
+  const radios = document.querySelectorAll('input[name="lottoBetType"]');
+  radios.forEach(radio => {
+    radio.addEventListener("change", (e) => {
+      soundEngine.init();
+      soundEngine.playChip();
+      telegramEngine.haptic("selection");
+      lottoState.selectedBetType = e.target.value;
+      
+      // Update radio wrappers
+      document.querySelectorAll(".lbt-radio").forEach(lbl => {
+        const inp = lbl.querySelector("input");
+        lbl.classList.toggle("active", inp && inp.checked);
+      });
+
+      // Show/hide Hàng Trăm for BA_CANG
+      if (dom.lmsRowTram) {
+        dom.lmsRowTram.style.display = (lottoState.selectedBetType === "BA_CANG") ? "flex" : "none";
+      }
+
+      // Reset matrix temporary picks & clear numbers
+      resetLottoMatrixDigits();
+      lottoState.selectedNumbers.clear();
+      renderLottoTray();
+      updateLottoTotalWager();
+    });
+  });
+
+  // 4. Render 10 Digit Buttons (0-9) for Trăm, Chục, Đơn Vị
+  renderLottoMatrixDigits();
+
+  // 5. Custom Number Input
+  if (dom.btnAddCustomNumbers && dom.inputLottoCustomNumbers) {
+    dom.btnAddCustomNumbers.addEventListener("click", addCustomLottoNumbers);
+    dom.inputLottoCustomNumbers.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        addCustomLottoNumbers();
+      }
+    });
+  }
+
+  // 6. Shortcuts
+  if (dom.btnLottoRandNumber) {
+    dom.btnLottoRandNumber.addEventListener("click", () => {
+      soundEngine.init();
+      soundEngine.playChip();
+      telegramEngine.haptic("selection");
+      const is3D = lottoState.selectedBetType === "BA_CANG";
+      const randNum = is3D
+        ? String(Math.floor(Math.random() * 1000)).padStart(3, "0")
+        : String(Math.floor(Math.random() * 100)).padStart(2, "0");
+      lottoState.selectedNumbers.add(randNum);
+      renderLottoTray();
+      updateLottoTotalWager();
+    });
+  }
+
+  if (dom.btnLottoKepBang) {
+    dom.btnLottoKepBang.addEventListener("click", () => {
+      soundEngine.init();
+      soundEngine.playChip();
+      telegramEngine.haptic("selection");
+      if (lottoState.selectedBetType === "BA_CANG") {
+        showToast("⚠️ Kép bằng chỉ áp dụng cho cược Đề 2D (Đề Đuôi / Đề Đầu)!", "warn");
+        return;
+      }
+      ["00", "11", "22", "33", "44", "55", "66", "77", "88", "99"].forEach(n => lottoState.selectedNumbers.add(n));
+      showToast("🎯 Đã chọn dàn 10 số Kép Bằng (00..99)!", "gold");
+      renderLottoTray();
+      updateLottoTotalWager();
+    });
+  }
+
+  if (dom.btnLottoDauChan) {
+    dom.btnLottoDauChan.addEventListener("click", () => {
+      soundEngine.init();
+      soundEngine.playChip();
+      telegramEngine.haptic("selection");
+      if (lottoState.selectedBetType === "BA_CANG") {
+        showToast("⚠️ Dàn Đầu Chẵn chỉ áp dụng cho cược Đề 2D!", "warn");
+        return;
+      }
+      for (const d of [0, 2, 4, 6, 8]) {
+        for (let u = 0; u <= 9; u++) {
+          lottoState.selectedNumbers.add(`${d}${u}`);
+        }
+      }
+      showToast("🎯 Đã chọn dàn 50 số Đầu Chẵn!", "gold");
+      renderLottoTray();
+      updateLottoTotalWager();
+    });
+  }
+
+  if (dom.btnLottoDauLe) {
+    dom.btnLottoDauLe.addEventListener("click", () => {
+      soundEngine.init();
+      soundEngine.playChip();
+      telegramEngine.haptic("selection");
+      if (lottoState.selectedBetType === "BA_CANG") {
+        showToast("⚠️ Dàn Đầu Lẻ chỉ áp dụng cho cược Đề 2D!", "warn");
+        return;
+      }
+      for (const d of [1, 3, 5, 7, 9]) {
+        for (let u = 0; u <= 9; u++) {
+          lottoState.selectedNumbers.add(`${d}${u}`);
+        }
+      }
+      showToast("🎯 Đã chọn dàn 50 số Đầu Lẻ!", "gold");
+      renderLottoTray();
+      updateLottoTotalWager();
+    });
+  }
+
+  if (dom.btnLottoClearNumbers) {
+    dom.btnLottoClearNumbers.addEventListener("click", () => {
+      soundEngine.init();
+      soundEngine.playChip();
+      telegramEngine.haptic("selection");
+      lottoState.selectedNumbers.clear();
+      resetLottoMatrixDigits();
+      renderLottoTray();
+      updateLottoTotalWager();
+      showToast("🧹 Đã xóa toàn bộ số đang chọn", "cyan");
+    });
+  }
+
+  // 7. Fast Grid Cards (TAI, XIU, CHAN, LE, KEP_BANG)
+  const fastCards = document.querySelectorAll(".lfg-card");
+  fastCards.forEach(card => {
+    const door = card.dataset.door;
+    if (!door) return;
+
+    card.addEventListener("click", () => {
+      soundEngine.init();
+      soundEngine.playChip();
+      telegramEngine.haptic("selection");
+      lottoState.fastBets[door] = (lottoState.fastBets[door] || 0) + lottoState.currentChip;
+      renderFastBetsUI();
+      updateLottoTotalWager();
+    });
+
+    // Right-click or long-press reset door bet
+    card.addEventListener("contextmenu", (e) => {
+      e.preventDefault();
+      lottoState.fastBets[door] = 0;
+      renderFastBetsUI();
+      updateLottoTotalWager();
+      showToast(`Đã xóa cược cửa ${door}`, "cyan");
+    });
+  });
+
+  // 8. Chips Selection
+  const lchipBtns = document.querySelectorAll(".lchip-btn");
+  lchipBtns.forEach(btn => {
+    btn.addEventListener("click", () => {
+      soundEngine.init();
+      soundEngine.playChip();
+      telegramEngine.haptic("selection");
+
+      if (btn.id === "btnLottoAllIn") {
+        const bal = (state.session && state.session.balance) ? Math.floor(state.session.balance) : 0;
+        if (bal <= 0) {
+          showToast("Số dư không đủ để tất tay!", "warn");
+          return;
+        }
+        if (lottoState.activeSubtab === "so" && lottoState.selectedNumbers.size > 0) {
+          const perNum = Math.floor(bal / lottoState.selectedNumbers.size);
+          lottoState.currentChip = Math.max(1, perNum);
+        } else {
+          lottoState.currentChip = bal;
+        }
+        lchipBtns.forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        renderLottoTray();
+        updateLottoTotalWager();
+        return;
+      }
+
+      const val = parseInt(btn.dataset.chip, 10);
+      if (val) {
+        lottoState.currentChip = val;
+        lchipBtns.forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        renderLottoTray();
+        updateLottoTotalWager();
+      }
+    });
+  });
+
+  // 9. Submit Ticket Button
+  if (dom.btnSubmitLottoTicket) {
+    dom.btnSubmitLottoTicket.addEventListener("click", submitLottoTicket);
+  }
+
+  // Initial UI refresh
+  renderLottoTray();
+  updateLottoTotalWager();
+}
+
+function switchLottoSubtab(subtab) {
+  soundEngine.init();
+  soundEngine.playChip();
+  telegramEngine.haptic("selection");
+  lottoState.activeSubtab = subtab;
+
+  if (dom.btnSubtabSo) dom.btnSubtabSo.classList.toggle("active", subtab === "so");
+  if (dom.btnSubtabNhanh) dom.btnSubtabNhanh.classList.toggle("active", subtab === "nhanh");
+
+  if (dom.paneLottoSo) dom.paneLottoSo.style.display = (subtab === "so") ? "block" : "none";
+  if (dom.paneLottoNhanh) dom.paneLottoNhanh.style.display = (subtab === "nhanh") ? "block" : "none";
+  updateLottoTotalWager();
+}
+
+function renderLottoMatrixDigits() {
+  const setupRow = (container, rowKey) => {
+    if (!container) return;
+    container.innerHTML = "";
+    for (let d = 0; d <= 9; d++) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "lms-digit-btn";
+      btn.dataset.row = rowKey;
+      btn.dataset.digit = String(d);
+      btn.textContent = String(d);
+      btn.addEventListener("click", () => handleMatrixDigitClick(rowKey, d, btn));
+      container.appendChild(btn);
+    }
+  };
+
+  setupRow(dom.lmsDigitsTram, "tram");
+  setupRow(dom.lmsDigitsChuc, "chuc");
+  setupRow(dom.lmsDigitsDonVi, "donVi");
+}
+
+function handleMatrixDigitClick(rowKey, digit, btnEl) {
+  soundEngine.init();
+  soundEngine.playChip();
+  telegramEngine.haptic("selection");
+
+  // Toggle selection
+  if (lottoState.matrixDigits[rowKey] === digit) {
+    lottoState.matrixDigits[rowKey] = null;
+  } else {
+    lottoState.matrixDigits[rowKey] = digit;
+  }
+
+  // Update button active state in that row
+  const parent = btnEl.parentElement;
+  if (parent) {
+    parent.querySelectorAll(".lms-digit-btn").forEach(b => {
+      b.classList.toggle("active", lottoState.matrixDigits[rowKey] === parseInt(b.dataset.digit, 10));
+    });
+  }
+
+  // Check if complete number is formed
+  const is3D = lottoState.selectedBetType === "BA_CANG";
+  const { tram, chuc, donVi } = lottoState.matrixDigits;
+
+  if (is3D) {
+    if (tram !== null && chuc !== null && donVi !== null) {
+      const numStr = `${tram}${chuc}${donVi}`;
+      lottoState.selectedNumbers.add(numStr);
+      showToast(`🎯 Đã thêm 3 Càng: <strong>${numStr}</strong>`, "gold");
+      resetLottoMatrixDigits();
+      renderLottoTray();
+      updateLottoTotalWager();
+    }
+  } else {
+    if (chuc !== null && donVi !== null) {
+      const numStr = `${chuc}${donVi}`;
+      const betName = lottoState.selectedBetType === "DE_DAU" ? "Đề Đầu" : "Đề Đuôi";
+      lottoState.selectedNumbers.add(numStr);
+      showToast(`🎯 Đã thêm ${betName}: <strong>${numStr}</strong>`, "gold");
+      resetLottoMatrixDigits();
+      renderLottoTray();
+      updateLottoTotalWager();
+    }
+  }
+}
+
+function resetLottoMatrixDigits() {
+  lottoState.matrixDigits = { tram: null, chuc: null, donVi: null };
+  document.querySelectorAll(".lms-digit-btn").forEach(b => b.classList.remove("active"));
+}
+
+function addCustomLottoNumbers() {
+  if (!dom.inputLottoCustomNumbers) return;
+  const raw = dom.inputLottoCustomNumbers.value.trim();
+  if (!raw) return;
+
+  const tokens = raw.split(/[\s,;|]+/).map(t => t.trim().replace(/\D/g, "")).filter(Boolean);
+  if (tokens.length === 0) {
+    showToast("Vui lòng nhập các chữ số hợp lệ!", "warn");
+    return;
+  }
+
+  const is3D = lottoState.selectedBetType === "BA_CANG";
+  let addedCount = 0;
+
+  tokens.forEach(tok => {
+    let formatted = tok;
+    if (is3D) {
+      if (formatted.length <= 3) {
+        formatted = formatted.padStart(3, "0");
+        lottoState.selectedNumbers.add(formatted);
+        addedCount++;
+      }
+    } else {
+      if (formatted.length <= 2) {
+        formatted = formatted.padStart(2, "0");
+        lottoState.selectedNumbers.add(formatted);
+        addedCount++;
+      }
+    }
+  });
+
+  dom.inputLottoCustomNumbers.value = "";
+  if (addedCount > 0) {
+    soundEngine.init();
+    soundEngine.playChip();
+    telegramEngine.haptic("selection");
+    showToast(`✅ Đã thêm <strong>${addedCount}</strong> số vào dàn!`, "gold");
+    renderLottoTray();
+    updateLottoTotalWager();
+  } else {
+    showToast(`Các số nhập không hợp lệ cho chế độ ${is3D ? "3 Càng (3 số)" : "Đề 2D (2 số)"}!`, "warn");
+  }
+}
+
+function renderLottoTray() {
+  const count = lottoState.selectedNumbers.size;
+  if (dom.lstCount) dom.lstCount.textContent = count;
+  const estWager = count * lottoState.currentChip;
+  if (dom.lstEstWager) dom.lstEstWager.textContent = estWager.toLocaleString();
+
+  if (!dom.lstChipsWrap) return;
+  if (count === 0) {
+    dom.lstChipsWrap.innerHTML = `<span class="lst-empty-hint">Chưa chọn số nào. Bấm vào các hàng số ở trên hoặc tự gõ số.</span>`;
+    return;
+  }
+
+  const sortedNumbers = Array.from(lottoState.selectedNumbers).sort();
+  dom.lstChipsWrap.innerHTML = sortedNumbers.map(n => `
+    <div class="lst-chip" data-num="${n}">
+      <span>${n}</span>
+      <button type="button" class="lst-chip-del" data-num="${n}" title="Xóa số này">&times;</button>
+    </div>
+  `).join("");
+
+  dom.lstChipsWrap.querySelectorAll(".lst-chip-del").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const num = btn.dataset.num;
+      if (num) {
+        lottoState.selectedNumbers.delete(num);
+        renderLottoTray();
+        updateLottoTotalWager();
+      }
+    });
+  });
+}
+
+function renderFastBetsUI() {
+  document.querySelectorAll(".lfg-card").forEach(card => {
+    const door = card.dataset.door;
+    const amt = lottoState.fastBets[door] || 0;
+    const valEl = document.getElementById(`lfgBet${door}`);
+    if (valEl) {
+      valEl.textContent = amt > 0 ? `${amt.toLocaleString()} Xu` : "0";
+    }
+    card.classList.toggle("selected", amt > 0);
+  });
+}
+
+function updateLottoTotalWager() {
+  let numberWager = 0;
+  if (lottoState.selectedNumbers.size > 0) {
+    numberWager = lottoState.selectedNumbers.size * lottoState.currentChip;
+  }
+  const fastWager = Object.values(lottoState.fastBets).reduce((acc, v) => acc + (Number(v) || 0), 0);
+  const totalWager = numberWager + fastWager;
+
+  if (dom.lottoTotalWagerVal) {
+    dom.lottoTotalWagerVal.textContent = `${totalWager.toLocaleString()} Xu`;
+    const bal = state.session?.balance || 0;
+    dom.lottoTotalWagerVal.style.color = (totalWager > bal) ? "#ef4444" : "#ffd700";
+  }
+}
+
+function tickLottoChannelsTimers() {
+  const now = Date.now();
+  const channels = [
+    { id: "30s", cycle: 30 },
+    { id: "60s", cycle: 60 },
+    { id: "3m",  cycle: 180 },
+    { id: "60m", cycle: 3600 }
+  ];
+
+  channels.forEach(ch => {
+    const elapsed = Math.floor(now / 1000) % ch.cycle;
+    const left = ch.cycle - elapsed;
+    const el = document.getElementById("lchTimer" + ch.id);
+    if (el) {
+      if (ch.cycle >= 3600) {
+        const m = Math.floor(left / 60);
+        el.textContent = `${m}m`;
+      } else if (ch.cycle >= 180) {
+        const m = Math.floor(left / 60);
+        const s = left % 60;
+        el.textContent = `${m}m${s < 10 ? "0" + s : s}s`;
+      } else {
+        el.textContent = `${left}s`;
+      }
+    }
+  });
+
+  // Also smooth round banner countdown if we have current round
+  if (lottoState.currentRound && lottoState.currentRound.time_left_sec > 0) {
+    lottoState.currentRound.time_left_sec = Math.max(0, lottoState.currentRound.time_left_sec - 1);
+    if (dom.lottoTimerVal) {
+      dom.lottoTimerVal.textContent = `${lottoState.currentRound.time_left_sec}s`;
+    }
+    if (dom.lottoProgressBar) {
+      const totalDur = lottoState.currentRound.phase === "betting"
+        ? (lottoState.currentRound.betting_duration_sec || 45)
+        : (lottoState.currentRound.draw_duration_sec || 5);
+      const pct = Math.max(0, Math.min(100, (lottoState.currentRound.time_left_sec / totalDur) * 100));
+      dom.lottoProgressBar.style.width = `${pct}%`;
+    }
+  }
+}
+
+async function syncLottoState() {
+  if (state.gamePlayMode !== "lotto") return;
+  try {
+    const ch = lottoState.currentChannel || "60s";
+    const roomId = state.currentRoomId || "public";
+    const uid = getLiveUserId();
+    const uname = getLiveUserName();
+
+    const res = await fetch(`/api/lotto/state?channel=${ch}&room_id=${encodeURIComponent(roomId)}&user_id=${encodeURIComponent(uid)}&username=${encodeURIComponent(uname)}`);
+    const json = await res.json();
+    if (json.status !== "success" || !json.data) return;
+
+    const data = json.data;
+    lottoState.currentRound = data.round;
+
+    // Update balance & meters
+    if (typeof data.user_balance === "number" && state.session) {
+      state.session.balance = data.user_balance;
+      updateMeters();
+    }
+
+    // Render Banner
+    if (data.round) {
+      if (dom.lottoRoundId) dom.lottoRoundId.textContent = data.round.round_id;
+      if (dom.lottoTimerVal) dom.lottoTimerVal.textContent = `${data.round.time_left_sec}s`;
+
+      const phase = data.round.phase;
+      if (dom.lottoPhasePill && dom.lottoPhaseText) {
+        dom.lottoPhasePill.className = `lrb-phase-pill ${phase}`;
+        if (phase === "betting") {
+          dom.lottoPhaseText.textContent = "ĐANG NHẬN VÉ";
+          if (dom.btnSubmitLottoTicket) {
+            dom.btnSubmitLottoTicket.disabled = false;
+            dom.btnSubmitLottoTicket.innerHTML = `🎟️ XÁC NHẬN ĐẶT VÉ`;
+          }
+          if (dom.lottoCageStatus) dom.lottoCageStatus.textContent = "KỲ TRƯỚC VỀ:";
+          stopLottoBallSpinning();
+        } else if (phase === "drawing") {
+          dom.lottoPhaseText.textContent = "ĐANG QUAY THƯỞNG 🎰";
+          if (dom.btnSubmitLottoTicket) {
+            dom.btnSubmitLottoTicket.disabled = true;
+            dom.btnSubmitLottoTicket.innerHTML = `⏳ ĐANG QUAY THƯỞNG...`;
+          }
+          if (dom.lottoCageStatus) dom.lottoCageStatus.textContent = "ĐANG QUAY GIẢI ĐẶC BIỆT...";
+          startLottoBallSpinning();
+        } else if (phase === "payout") {
+          dom.lottoPhaseText.textContent = "TRẢ THƯỞNG 🎉";
+          if (dom.lottoCageStatus) dom.lottoCageStatus.textContent = `KẾT QUẢ KỲ #${data.round.round_id}:`;
+          stopLottoBallSpinning();
+        }
+      }
+
+      // Display official outcome digits if available
+      if (phase === "payout" && data.round.outcome) {
+        renderLottoBalls(data.round.outcome.digits);
+        renderLottoSummaryPills(data.round.outcome);
+      } else if (phase === "betting" && data.roadmap && data.roadmap.length > 0) {
+        // Show last round outcome from roadmap[0]
+        renderLottoBalls(data.roadmap[0].digits);
+        renderLottoSummaryPills(data.roadmap[0]);
+      }
+    }
+
+    // Process user settlement of previous round
+    if (data.user_last_settlement) {
+      handleLottoSettlement(data.user_last_settlement, data.user_balance);
+    }
+
+    // Render Roadmap Table
+    if (Array.isArray(data.roadmap)) {
+      renderLottoRoadmap(data.roadmap);
+    }
+
+  } catch (err) {
+    console.error("syncLottoState error:", err);
+  }
+}
+
+function startLottoBallSpinning() {
+  if (lottoState.isSpinningBalls) return;
+  lottoState.isSpinningBalls = true;
+
+  [0, 1, 2, 3, 4].forEach(i => {
+    const el = document.getElementById("lottoBall" + i);
+    if (el) el.classList.add("spinning");
+  });
+
+  if (lottoState.spinInterval) clearInterval(lottoState.spinInterval);
+  lottoState.spinInterval = setInterval(() => {
+    [0, 1, 2, 3, 4].forEach(i => {
+      const inner = document.querySelector(`#lottoBall${i} .lb-inner`);
+      if (inner) inner.textContent = Math.floor(Math.random() * 10);
+    });
+  }, 70);
+}
+
+function stopLottoBallSpinning() {
+  if (!lottoState.isSpinningBalls) return;
+  lottoState.isSpinningBalls = false;
+  if (lottoState.spinInterval) {
+    clearInterval(lottoState.spinInterval);
+    lottoState.spinInterval = null;
+  }
+  [0, 1, 2, 3, 4].forEach(i => {
+    const el = document.getElementById("lottoBall" + i);
+    if (el) el.classList.remove("spinning");
+  });
+}
+
+function renderLottoBalls(digits) {
+  if (!Array.isArray(digits) || digits.length < 5) return;
+  digits.forEach((d, i) => {
+    const inner = document.querySelector(`#lottoBall${i} .lb-inner`);
+    if (inner) inner.textContent = d;
+  });
+}
+
+function renderLottoSummaryPills(outcome) {
+  if (!outcome) return;
+  if (dom.lspDeDuoi) dom.lspDeDuoi.textContent = outcome.de_duoi || "--";
+  if (dom.lspDeDau) dom.lspDeDau.textContent = outcome.de_dau || "--";
+  if (dom.lspBaCang) dom.lspBaCang.textContent = outcome.ba_cang || "--";
+  if (dom.lspTaiXiu) {
+    dom.lspTaiXiu.textContent = `${outcome.is_tai ? "Tài" : "Xỉu"} (${outcome.de_duoi})`;
+    dom.lspTaiXiu.style.color = outcome.is_tai ? "#f87171" : "#38bdf8";
+  }
+  if (dom.lspChanLe) {
+    dom.lspChanLe.textContent = outcome.is_chan ? "Chẵn" : "Lẻ";
+    dom.lspChanLe.style.color = outcome.is_chan ? "#c084fc" : "#facc15";
+  }
+}
+
+function renderLottoRoadmap(roadmap) {
+  if (!dom.lottoRoadmapBody) return;
+  if (!roadmap || roadmap.length === 0) {
+    dom.lottoRoadmapBody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:12px;color:#64748b;">Đang tải dữ liệu kỳ quay...</td></tr>`;
+    return;
+  }
+
+  dom.lottoRoadmapBody.innerHTML = roadmap.slice(0, 20).map(item => `
+    <tr>
+      <td style="font-weight:700;color:#94a3b8">${item.round_id}</td>
+      <td><strong style="letter-spacing:2px;color:#fff">${(item.digits || []).join("")}</strong></td>
+      <td class="lrc-tag-de">${item.de_duoi}</td>
+      <td style="color:#cbd5e1">${item.de_dau}</td>
+      <td><strong style="color:#38bdf8">${item.ba_cang}</strong></td>
+      <td><span class="${item.is_tai ? "lrc-tag-tai" : "lrc-tag-xiu"}">${item.is_tai ? "Tài" : "Xỉu"}</span></td>
+      <td><span class="${item.is_chan ? "lrc-tag-chan" : "lrc-tag-le"}">${item.is_chan ? "Chẵn" : "Lẻ"}</span></td>
+    </tr>
+  `).join("");
+}
+
+function handleLottoSettlement(settlement, newBalance) {
+  if (!settlement || !settlement.payout) return;
+  if (lottoState.lastSettledRoundId === settlement.round_id) return;
+  lottoState.lastSettledRoundId = settlement.round_id;
+
+  const payout = settlement.payout;
+  if (newBalance !== undefined && state.session) {
+    state.session.balance = newBalance;
+    updateMeters(payout.total_won);
+  }
+
+  if (payout.total_won > 0) {
+    soundEngine.playBigWin();
+    telegramEngine.haptic("warning");
+    const firstHit = payout.win_details[0] || {};
+    const winTitle = firstHit.title || "Trúng Xổ Số";
+
+    showToast(`🏆 <strong>XỔ SỐ #${settlement.round_id}</strong>: Chúc mừng bạn trúng <strong>${winTitle}</strong> (+${payout.total_won.toLocaleString()} Xu)!`, "gold");
+
+    if (dom.winBanner) {
+      dom.winBannerTitle.textContent = payout.total_won >= 5000 ? "NỔ ĐỀ / SIÊU THẮNG!" : "TRÚNG THƯỞNG!";
+      dom.winBannerAmount.textContent = `+${payout.total_won.toLocaleString()}`;
+      dom.winBannerDesc.textContent = `${winTitle} • Kỳ #${settlement.round_id}`;
+      dom.winBanner.style.display = "block";
+      dom.winBanner.classList.add("show");
+    }
+
+    state.lastShareSlip = {
+      round_id: settlement.round_id,
+      amount: payout.total_won,
+      hand: `Xổ Số: ${winTitle}`
+    };
+
+    if (dom.shareWinContainer) {
+      dom.shareWinContainer.style.display = "block";
+      if (dom.quickShareWinText) {
+        dom.quickShareWinText.textContent = `KHOE CHIẾN TÍCH XỔ SỐ (+${payout.total_won.toLocaleString()} Xu) LÊN CHAT`;
+      }
+    }
+  } else {
+    showToast(`Kỳ Xổ Số #${settlement.round_id}: Không trúng. Chúc bạn may mắn kỳ sau!`, "warn");
+  }
+}
+
+async function submitLottoTicket() {
+  soundEngine.init();
+  telegramEngine.haptic("medium");
+
+  const round = lottoState.currentRound;
+  if (round && round.phase !== "betting") {
+    showToast("⚠️ Kỳ quay đang mở thưởng, vui lòng chờ kỳ tiếp theo!", "warn");
+    return;
+  }
+  if (round && round.time_left_sec <= 2) {
+    showToast("⚠️ Hết thời gian đặt vé kỳ này (chốt số trước 2 giây)!", "warn");
+    return;
+  }
+
+  const bets = {};
+  let totalNumbers = 0;
+
+  if (lottoState.selectedNumbers.size > 0) {
+    const arr = Array.from(lottoState.selectedNumbers);
+    bets[lottoState.selectedBetType] = {
+      numbers: arr,
+      amount_per_num: lottoState.currentChip
+    };
+    totalNumbers += arr.length;
+  }
+
+  Object.entries(lottoState.fastBets).forEach(([door, amt]) => {
+    if (amt > 0) bets[door] = amt;
+  });
+
+  const totalWager = (totalNumbers * lottoState.currentChip) +
+    Object.values(lottoState.fastBets).reduce((a, b) => a + (Number(b) || 0), 0);
+
+  if (totalWager <= 0) {
+    showToast("Vui lòng chọn ít nhất 1 số hoặc 1 cửa Cược Nhanh!", "warn");
+    return;
+  }
+
+  const curBal = state.session?.balance || 0;
+  if (curBal < totalWager) {
+    showToast(`Số dư không đủ (Cần ${totalWager.toLocaleString()} Xu)!`, "error");
+    return;
+  }
+
+  if (dom.btnSubmitLottoTicket) {
+    dom.btnSubmitLottoTicket.disabled = true;
+    dom.btnSubmitLottoTicket.textContent = "ĐANG XỬ LÝ VÉ...";
+  }
+
+  try {
+    const payload = {
+      channel: lottoState.currentChannel,
+      room_id: state.currentRoomId || "public",
+      user_id: getLiveUserId(),
+      username: getLiveUserName(),
+      bets: bets
+    };
+
+    const res = await fetch("/api/lotto/bet", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    const json = await res.json();
+    if (json.status === "success") {
+      soundEngine.playChip();
+      telegramEngine.haptic("success");
+      showToast(`🎟️ Đã đặt vé thành công! Tổng cược: <strong>${totalWager.toLocaleString()} Xu</strong>`, "gold");
+
+      if (json.data && typeof json.data.balance === "number" && state.session) {
+        state.session.balance = json.data.balance;
+        updateMeters();
+      }
+
+      // Clear ticket inputs
+      lottoState.selectedNumbers.clear();
+      resetLottoMatrixDigits();
+      lottoState.fastBets = { TAI: 0, XIU: 0, CHAN: 0, LE: 0, KEP_BANG: 0 };
+      renderFastBetsUI();
+      renderLottoTray();
+      updateLottoTotalWager();
+
+      syncLottoState();
+    } else {
+      showToast(json.detail || "Không thể đặt vé, vui lòng thử lại!", "error");
+    }
+  } catch (err) {
+    showToast("Lỗi gửi vé: " + err.message, "error");
+  } finally {
+    if (dom.btnSubmitLottoTicket) {
+      dom.btnSubmitLottoTicket.disabled = false;
+      dom.btnSubmitLottoTicket.textContent = "🎟️ XÁC NHẬN ĐẶT VÉ";
+    }
+  }
+}
+
+function startLottoPolling() {
+  if (lottoState.pollTimer) clearInterval(lottoState.pollTimer);
+  syncLottoState();
+  lottoState.pollTimer = setInterval(syncLottoState, 1500);
+}
+
+function stopLottoPolling() {
+  if (lottoState.pollTimer) {
+    clearInterval(lottoState.pollTimer);
+    lottoState.pollTimer = null;
+  }
+  stopLottoBallSpinning();
 }
 
 window.addEventListener("DOMContentLoaded", init);

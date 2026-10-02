@@ -8726,4 +8726,873 @@ body.chat-drawer-open .nav-tabs.is-docked-bottom {
   }
 }
 
+/* ========================================================
+   HỆ THỐNG XỔ SỐ SIÊU TỐC 5D (TURBO 5D LOTTO STYLES)
+   ======================================================== */
+.lotto-speed-tag {
+  font-size: 0.6rem;
+  font-weight: 900;
+  color: #ffd700;
+  background: rgba(255, 215, 0, 0.18);
+  border: 1px solid rgba(255, 215, 0, 0.4);
+  padding: 1px 5px;
+  border-radius: 4px;
+  margin-left: 3px;
+  letter-spacing: 0.3px;
+}
+
+.lotto-game-container {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+  padding-bottom: 24px;
+}
+
+/* 1. Channels Bar (Thanh chọn mốc thời gian) */
+.lotto-channels-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  width: 100%;
+}
+
+.lotto-ch-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #94a3b8;
+  text-align: left;
+}
+
+.lotto-ch-btn .lch-icon {
+  font-size: 1.15rem;
+  flex-shrink: 0;
+}
+
+.lotto-ch-btn .lch-text-group {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.lotto-ch-btn .lch-title {
+  font-size: 0.75rem;
+  font-weight: 800;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #cbd5e1;
+}
+
+.lotto-ch-btn .lch-timer {
+  font-size: 0.68rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #64748b;
+}
+
+.lotto-ch-btn:hover {
+  background: rgba(30, 41, 59, 0.9);
+  border-color: rgba(255, 215, 0, 0.3);
+}
+
+.lotto-ch-btn.active {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.15) 0%, rgba(255, 143, 0, 0.08) 100%);
+  border: 1.5px solid #ffd700;
+  box-shadow: 0 0 14px rgba(255, 215, 0, 0.25);
+  color: #f1f5f9;
+}
+
+.lotto-ch-btn.active .lch-title {
+  color: #ffd700;
+  text-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
+}
+
+.lotto-ch-btn.active .lch-timer {
+  color: #f8fafc;
+  font-weight: 900;
+}
+
+/* 2. Banner Kỳ Quay & Đồng Hồ */
+.lotto-round-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border: 1px solid rgba(255, 215, 0, 0.25);
+  border-radius: 10px 10px 0 0;
+}
+
+.lrb-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lrb-tag {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #94a3b8;
+}
+
+.lrb-round-id {
+  font-size: 0.82rem;
+  font-family: var(--font-numbers, monospace);
+  font-weight: 900;
+  color: #ffd700;
+}
+
+.lrb-channel-badge {
+  font-size: 0.64rem;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(2, 132, 199, 0.2);
+  border: 1px solid rgba(2, 132, 199, 0.5);
+  color: #38bdf8;
+}
+
+.lrb-phase-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.4px;
+}
+
+.lrb-phase-pill.betting {
+  background: rgba(0, 230, 118, 0.15);
+  border: 1px solid #00e676;
+  color: #00e676;
+}
+
+.lrb-phase-pill.drawing {
+  background: rgba(255, 215, 0, 0.2);
+  border: 1px solid #ffd700;
+  color: #ffd700;
+  animation: pulse-border 0.8s infinite alternate;
+}
+
+.lrb-phase-pill.payout {
+  background: rgba(2, 132, 199, 0.2);
+  border: 1px solid #38bdf8;
+  color: #38bdf8;
+}
+
+.lrb-phase-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 6px currentColor;
+}
+
+.lrb-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lrb-timer-lbl {
+  font-size: 0.68rem;
+  color: #64748b;
+  font-weight: 700;
+}
+
+.lrb-timer-val {
+  font-size: 1.1rem;
+  font-family: var(--font-numbers, monospace);
+  font-weight: 900;
+  color: #ffd700;
+}
+
+.lrb-progress-track {
+  width: 100%;
+  height: 4px;
+  background: rgba(15, 23, 42, 0.9);
+  border-radius: 0 0 10px 10px;
+  overflow: hidden;
+  margin-top: -14px;
+  border-left: 1px solid rgba(255, 215, 0, 0.25);
+  border-right: 1px solid rgba(255, 215, 0, 0.25);
+  border-bottom: 1px solid rgba(255, 215, 0, 0.25);
+}
+
+.lrb-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #ffd700, #ff8f00);
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.6);
+  transition: width 0.3s linear;
+}
+
+/* 3. Lồng Quay 5 Bóng Vàng */
+.lotto-balls-cage {
+  background: radial-gradient(circle at 50% 30%, #1e293b 0%, #090d16 100%);
+  border: 1.5px solid rgba(255, 215, 0, 0.35);
+  border-radius: 16px;
+  padding: 16px 14px 14px 14px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6), inset 0 0 20px rgba(255, 215, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  position: relative;
+  overflow: hidden;
+}
+
+.lbc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0 4px;
+}
+
+.lbc-title {
+  font-size: 0.72rem;
+  font-weight: 900;
+  color: #ffd700;
+  letter-spacing: 0.8px;
+  text-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
+}
+
+.lbc-status {
+  font-size: 0.68rem;
+  color: #94a3b8;
+  font-weight: 700;
+}
+
+.lotto-balls-row {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  padding: 8px 0;
+}
+
+.lotto-ball {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ffe066 0%, #d49a00 55%, #805b00 100%);
+  box-shadow: inset 0 -4px 6px rgba(0, 0, 0, 0.5), inset 0 3px 5px rgba(255, 255, 255, 0.8), 0 6px 14px rgba(0, 0, 0, 0.5), 0 0 12px rgba(255, 215, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: transform 0.3s ease;
+}
+
+.lotto-ball .lb-inner {
+  font-size: 1.6rem;
+  font-weight: 900;
+  font-family: var(--font-numbers, monospace);
+  color: #2b1800;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.6);
+  line-height: 1;
+}
+
+.lotto-ball.spinning {
+  animation: ball-shake 0.15s infinite alternate;
+  filter: blur(1px);
+}
+
+@keyframes ball-shake {
+  0% { transform: translateY(-4px) rotate(-6deg); }
+  100% { transform: translateY(4px) rotate(6deg); }
+}
+
+.lotto-summary-pills {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.lsp-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 6px;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 0.68rem;
+}
+
+.lsp-label {
+  color: #64748b;
+  font-weight: 700;
+}
+
+.lsp-val {
+  color: #ffd700;
+  font-weight: 800;
+}
+
+/* 4. Lotto Betting Console */
+.lotto-betting-console {
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.lotto-subtabs-bar {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  width: 100%;
+}
+
+.lotto-subtab-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px;
+  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  font-size: 0.76rem;
+  font-weight: 800;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.lotto-subtab-btn.active {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.18) 0%, rgba(255, 143, 0, 0.08) 100%);
+  border: 1px solid #ffd700;
+  color: #ffd700;
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.2);
+}
+
+.lotto-bet-type-row {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.lbt-radio {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 10px;
+  background: rgba(30, 41, 59, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.lbt-radio input {
+  display: none;
+}
+
+.lbt-radio .lbt-lbl {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #cbd5e1;
+}
+
+.lbt-radio.active {
+  background: rgba(2, 132, 199, 0.2);
+  border-color: #38bdf8;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.25);
+}
+
+.lbt-radio.active .lbt-lbl {
+  color: #38bdf8;
+}
+
+/* Bộ Chọn Số Ma Trận 2 Hàng */
+.lotto-matrix-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.lms-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lms-row-label {
+  width: 82px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+.lms-row-digits {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 5px;
+  flex: 1;
+}
+
+.lms-digit-btn {
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 800;
+  font-family: var(--font-numbers, monospace);
+  color: #e2e8f0;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.lms-digit-btn:hover {
+  background: rgba(51, 65, 85, 0.9);
+  border-color: #ffd700;
+}
+
+.lms-digit-btn.active {
+  background: linear-gradient(135deg, #ffd700 0%, #ff8f00 100%);
+  border-color: #ffe066;
+  color: #3d1c00;
+  font-weight: 900;
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
+}
+
+.lotto-quick-input-box {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.lqi-input {
+  flex: 1;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.76rem;
+  color: #f1f5f9;
+  outline: none;
+}
+
+.lqi-input:focus {
+  border-color: #ffd700;
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.3);
+}
+
+.lqi-btn-add {
+  padding: 8px 14px;
+  background: rgba(2, 132, 199, 0.25);
+  border: 1px solid #38bdf8;
+  border-radius: 8px;
+  color: #38bdf8;
+  font-size: 0.74rem;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.lqi-btn-add:hover {
+  background: rgba(2, 132, 199, 0.45);
+  color: #fff;
+}
+
+.lotto-shortcuts-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  width: 100%;
+}
+
+.lsb-btn {
+  padding: 5px 9px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 6px;
+  color: #94a3b8;
+  font-size: 0.68rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.lsb-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #cbd5e1;
+}
+
+.lsb-btn.clear {
+  color: #f87171;
+  border-color: rgba(248, 113, 113, 0.3);
+  margin-left: auto;
+}
+
+.lsb-btn.clear:hover {
+  background: rgba(248, 113, 113, 0.15);
+}
+
+.lotto-selected-tray {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px dashed rgba(255, 215, 0, 0.3);
+  border-radius: 10px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lst-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #94a3b8;
+}
+
+.lst-chips-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-height: 80px;
+  overflow-y: auto;
+}
+
+.lst-empty-hint {
+  font-size: 0.68rem;
+  color: #64748b;
+  font-style: italic;
+  padding: 4px 0;
+}
+
+.lst-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  background: rgba(255, 215, 0, 0.15);
+  border: 1px solid rgba(255, 215, 0, 0.4);
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  font-family: var(--font-numbers, monospace);
+  color: #ffd700;
+}
+
+.lst-chip-del {
+  cursor: pointer;
+  font-size: 0.62rem;
+  color: #94a3b8;
+}
+
+.lst-chip-del:hover {
+  color: #ef4444;
+}
+
+/* Fast Grid (Cược Nhanh) */
+.lotto-fast-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  width: 100%;
+}
+
+.lfg-card {
+  padding: 12px 10px;
+  background: rgba(30, 41, 59, 0.6);
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.lfg-card.tai { border-color: rgba(239, 68, 68, 0.35); }
+.lfg-card.xiu { border-color: rgba(56, 189, 248, 0.35); }
+.lfg-card.chan { border-color: rgba(168, 85, 247, 0.35); }
+.lfg-card.le { border-color: rgba(234, 179, 8, 0.35); }
+.lfg-card.kep { border-color: rgba(255, 215, 0, 0.4); }
+
+.lfg-card.full-width {
+  grid-column: span 2;
+}
+
+.lfg-card .lfg-badge {
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.3px;
+}
+
+.lfg-card.tai .lfg-badge { color: #f87171; }
+.lfg-card.xiu .lfg-badge { color: #38bdf8; }
+.lfg-card.chan .lfg-badge { color: #c084fc; }
+.lfg-card.le .lfg-badge { color: #facc15; }
+.lfg-card.kep .lfg-badge { color: #ffd700; }
+
+.lfg-num-range {
+  font-size: 0.64rem;
+  color: #94a3b8;
+}
+
+.lfg-odds {
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: #ffd700;
+}
+
+.lfg-bet-val {
+  font-size: 0.74rem;
+  font-weight: 900;
+  font-family: var(--font-numbers, monospace);
+  color: #00e676;
+  min-height: 16px;
+}
+
+.lfg-card.selected {
+  background: rgba(255, 215, 0, 0.12);
+  border-color: #ffd700;
+  box-shadow: 0 0 12px rgba(255, 215, 0, 0.3);
+  transform: translateY(-1px);
+}
+
+/* Action Footer */
+.lotto-action-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.laf-chips-selector {
+  display: flex;
+  gap: 6px;
+  width: 100%;
+}
+
+.lchip-btn {
+  flex: 1;
+  padding: 7px 4px;
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  font-family: var(--font-numbers, monospace);
+  color: #cbd5e1;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.lchip-btn:hover {
+  background: rgba(51, 65, 85, 0.9);
+}
+
+.lchip-btn.active {
+  background: linear-gradient(135deg, #ffd700, #ff8f00);
+  border-color: #ffe066;
+  color: #451a03;
+  font-weight: 900;
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
+}
+
+.lchip-btn.all-in {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: #ef4444;
+  color: #f87171;
+}
+
+.laf-submit-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.laf-summary-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.laf-sum-lbl {
+  font-size: 0.65rem;
+  color: #64748b;
+  font-weight: 700;
+}
+
+.laf-sum-val {
+  font-size: 1.05rem;
+  font-family: var(--font-numbers, monospace);
+  font-weight: 900;
+  color: #ffd700;
+}
+
+.laf-submit-btn {
+  flex: 1;
+  padding: 11px 18px;
+  background: linear-gradient(135deg, #ffd700 0%, #ff8f00 100%);
+  border: 1.5px solid #ffe066;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 900;
+  color: #3b1900;
+  cursor: pointer;
+  box-shadow: 0 4px 18px rgba(255, 215, 0, 0.35);
+  transition: all 0.2s ease;
+  letter-spacing: 0.4px;
+}
+
+.laf-submit-btn:hover {
+  background: linear-gradient(135deg, #ffe066 0%, #ffa000 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 22px rgba(255, 215, 0, 0.5);
+}
+
+.laf-submit-btn:active {
+  transform: translateY(1px);
+}
+
+/* 5. Bảng Soi Cầu Xổ Số */
+.lotto-roadmap-card {
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.lrc-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.lrc-title-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lrc-badge {
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: #38bdf8;
+}
+
+.lrc-title-group h4 {
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #f1f5f9;
+  margin: 0;
+}
+
+.lrc-channel-note {
+  font-size: 0.65rem;
+  color: #64748b;
+  font-weight: 700;
+}
+
+.lrc-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.lrc-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.72rem;
+  text-align: center;
+}
+
+.lrc-table th {
+  background: rgba(30, 41, 59, 0.9);
+  color: #94a3b8;
+  padding: 7px 8px;
+  font-weight: 800;
+  white-space: nowrap;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.lrc-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  font-family: var(--font-numbers, monospace);
+  color: #cbd5e1;
+  white-space: nowrap;
+}
+
+.lrc-table tr:hover td {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.lrc-tag-de {
+  font-weight: 900;
+  color: #ffd700;
+}
+
+.lrc-tag-tai { color: #f87171; font-weight: 800; }
+.lrc-tag-xiu { color: #38bdf8; font-weight: 800; }
+.lrc-tag-chan { color: #c084fc; font-weight: 800; }
+.lrc-tag-le { color: #facc15; font-weight: 800; }
+
+/* Responsive Mobile */
+@media (max-width: 480px) {
+  .lotto-channels-bar {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .lotto-ball {
+    width: 44px;
+    height: 44px;
+  }
+  .lotto-ball .lb-inner {
+    font-size: 1.35rem;
+  }
+  .lms-digit-btn {
+    height: 30px;
+    font-size: 0.78rem;
+  }
+  .lms-row-label {
+    width: 65px;
+    font-size: 0.6rem;
+  }
+}
+
+
 
