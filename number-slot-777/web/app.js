@@ -314,6 +314,7 @@ const dom = {
   shareWinContainer: document.getElementById("shareWinContainer"),
   btnQuickShareWin: document.getElementById("btnQuickShareWin"),
   btnQuickShareTelegram: document.getElementById("btnQuickShareTelegram"),
+  btnCloseShareWin: document.getElementById("btnCloseShareWin"),
   quickShareWinText: document.getElementById("quickShareWinText"),
   cabinetSocialBar: document.getElementById("cabinetSocialBar"),
   btnOpenChatDock: document.getElementById("btnOpenChatDock"),
@@ -2938,6 +2939,13 @@ function setupLiveRoomControls() {
   if (dom.btnQuickShareTelegram) {
     dom.btnQuickShareTelegram.addEventListener("click", handleShareWinToTelegram);
   }
+  if (dom.btnCloseShareWin) {
+    dom.btnCloseShareWin.addEventListener("click", () => {
+      if (dom.shareWinContainer) {
+        dom.shareWinContainer.style.display = "none";
+      }
+    });
+  }
 
   // Modal Phát Lộc Toàn Phòng
   if (dom.btnSendRedPacket) {
@@ -3725,6 +3733,11 @@ async function executeLiveSpinReels(outcome) {
   dom.resHand.textContent = "ĐANG QUAY CHUNG CẢ PHÒNG...";
   clearWinningHighlights();
   dom.winPillsList.innerHTML = "";
+  if (dom.shareWinContainer) dom.shareWinContainer.style.display = "none";
+  if (dom.winBanner) {
+    dom.winBanner.classList.remove("show");
+    dom.winBanner.style.display = "none";
+  }
 
   const reelPromises = [];
   for (let c = 0; c < 5; c++) {
