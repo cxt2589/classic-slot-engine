@@ -6,7 +6,7 @@
   <meta name="format-detection" content="telephone=no">
   <title>Lucky Numbers 777 - Classic 5x3 Number Slot</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <link rel="stylesheet" href="/static/style.css?v=20261002_lotto01">
+  <link rel="stylesheet" href="/static/style.css?v=20261002_lotto02">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600;1,700&family=Orbitron:wght@600;700;800;900&display=swap&subset=vietnamese" rel="stylesheet">
@@ -296,8 +296,8 @@
           </div>
         </div>
 
-        <!-- RIGHT: Interactive Betting Table -->
-        <div class="betting-board">
+        <!-- RIGHT: Interactive Betting Table (Solo / Live Mode) -->
+        <div class="betting-board" id="slotBettingBoard">
           <div class="board-header">
             <h3>BÀN ĐẶT CƯỢC DỰ ĐOÁN DÃY SỐ HÀNG GIỮA</h3>
             <p>Chọn mệnh giá chip và bấm vào các cửa bạn muốn dự đoán cho 5 số ở hàng giữa:</p>
@@ -580,6 +580,206 @@
             </div>
           </div>
         </div>
+
+        <!-- RIGHT (LOTTO MODE): Interactive 5D Lotto Betting Table -->
+        <div class="betting-board lotto-betting-board" id="lottoBettingBoard" style="display:none">
+          <!-- 1. Header with Round Status & Countdown Timer -->
+          <div class="board-header">
+            <div class="lotto-board-head-row">
+              <div class="lbh-left">
+                <h3>BÀN ĐẶT CƯỢC DỰ ĐOÁN DÃY SỐ HÀNG GIỮA</h3>
+                <p>Dự đoán 5 số giải đặc biệt trên dòng trả thưởng hàng giữa của máy quay:</p>
+              </div>
+              <div class="lbh-countdown-box">
+                <div class="lrb-phase-pill betting" id="lottoPhasePill">
+                  <span class="lrb-phase-dot"></span>
+                  <span id="lottoPhaseText">ĐANG NHẬN VÉ</span>
+                </div>
+                <div class="lbh-cd-right">
+                  <span class="lbh-cd-lbl">CÒN</span>
+                  <span class="lbh-cd-val glow-gold" id="lottoTimerVal">45s</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="lrb-progress-track">
+              <div class="lrb-progress-bar" id="lottoProgressBar" style="width: 100%"></div>
+            </div>
+
+            <!-- Round ID and Channel Note -->
+            <div class="lbh-sub-info">
+              <span class="lbh-sub-tag">KỲ QUAY: <strong class="glow-gold" id="lottoRoundId">X5D-60s-10820</strong></span>
+              <span class="lbh-sub-tag" id="lottoChannelBadge">⏱️ Tiêu Chuẩn 60s</span>
+            </div>
+          </div>
+
+          <!-- 2. Thanh Chọn Mốc Thời Gian (Channels Bar) -->
+          <div class="lotto-channels-bar" id="lottoChannelsBar">
+            <button type="button" class="lotto-ch-btn" data-channel="30s">
+              <span class="lch-icon">⚡</span>
+              <div class="lch-text-group">
+                <span class="lch-title">Siêu Tốc 30s</span>
+                <span class="lch-timer" id="lchTimer30s">--s</span>
+              </div>
+            </button>
+            <button type="button" class="lotto-ch-btn active" data-channel="60s">
+              <span class="lch-icon">⏱️</span>
+              <div class="lch-text-group">
+                <span class="lch-title">Tiêu Chuẩn 60s</span>
+                <span class="lch-timer" id="lchTimer60s">--s</span>
+              </div>
+            </button>
+            <button type="button" class="lotto-ch-btn" data-channel="3m">
+              <span class="lch-icon">☕</span>
+              <div class="lch-text-group">
+                <span class="lch-title">Keno 3 Phút</span>
+                <span class="lch-timer" id="lchTimer3m">--s</span>
+              </div>
+            </button>
+            <button type="button" class="lotto-ch-btn" data-channel="60m">
+              <span class="lch-icon">👑</span>
+              <div class="lch-text-group">
+                <span class="lch-title">Mega 1 Giờ</span>
+                <span class="lch-timer" id="lchTimer60m">--m</span>
+              </div>
+            </button>
+          </div>
+
+          <!-- 3. Subtabs: CƯỢC SỐ vs CƯỢC NHANH -->
+          <div class="lotto-subtabs-bar">
+            <button type="button" class="lotto-subtab-btn active" id="btnSubtabSo" data-subtab="so">
+              <span>🎯</span> CƯỢC SỐ (Ăn x95 - x900)
+            </button>
+            <button type="button" class="lotto-subtab-btn" id="btnSubtabNhanh" data-subtab="nhanh">
+              <span>⚡</span> CƯỢC NHANH (Tài / Xỉu / Kép)
+            </button>
+          </div>
+
+          <!-- TAB CONTENT 1: CƯỢC SỐ -->
+          <div class="lotto-tab-pane active" id="paneLottoSo">
+            <div class="lotto-bet-type-row">
+              <label class="lbt-radio active">
+                <input type="radio" name="lottoBetType" value="DE_DUOI" checked />
+                <span class="lbt-lbl">Đề Đuôi <strong class="glow-gold">x95</strong></span>
+              </label>
+              <label class="lbt-radio">
+                <input type="radio" name="lottoBetType" value="DE_DAU" />
+                <span class="lbt-lbl">Đề Đầu <strong class="glow-gold">x95</strong></span>
+              </label>
+              <label class="lbt-radio">
+                <input type="radio" name="lottoBetType" value="BA_CANG" />
+                <span class="lbt-lbl">3 Càng <strong class="glow-gold">x900</strong></span>
+              </label>
+            </div>
+
+            <!-- Bảng chọn số thông minh 2-3 hàng (Mobile First) -->
+            <div class="lotto-matrix-selector" id="lottoMatrixSelector">
+              <!-- Hàng Trăm (Chỉ hiện khi chọn 3 Càng) -->
+              <div class="lms-row" id="lmsRowTram" style="display:none">
+                <div class="lms-row-label">HÀNG TRĂM:</div>
+                <div class="lms-row-digits" id="lmsDigitsTram"></div>
+              </div>
+
+              <!-- Hàng Chục -->
+              <div class="lms-row" id="lmsRowChuc">
+                <div class="lms-row-label">HÀNG CHỤC:</div>
+                <div class="lms-row-digits" id="lmsDigitsChuc"></div>
+              </div>
+
+              <!-- Hàng Đơn Vị -->
+              <div class="lms-row" id="lmsRowDonVi">
+                <div class="lms-row-label">HÀNG ĐƠN VỊ:</div>
+                <div class="lms-row-digits" id="lmsDigitsDonVi"></div>
+              </div>
+            </div>
+
+            <!-- Ô Tự Nhập Số Nhanh Bằng Phím -->
+            <div class="lotto-quick-input-box">
+              <input type="text" id="inputLottoCustomNumbers" class="lqi-input" placeholder="Hoặc tự gõ số: 48, 79, 99..." autocomplete="off" />
+              <button type="button" class="lqi-btn-add" id="btnAddCustomNumbers">Thêm Số</button>
+            </div>
+
+            <!-- Phím Tắt Chọn Nhanh -->
+            <div class="lotto-shortcuts-bar">
+              <button type="button" class="lsb-btn" id="btnLottoRandNumber">🎲 Ngẫu Nhiên</button>
+              <button type="button" class="lsb-btn" id="btnLottoKepBang">🎯 Kép Bằng (00..99)</button>
+              <button type="button" class="lsb-btn" id="btnLottoDauChan">Đầu Chẵn</button>
+              <button type="button" class="lsb-btn" id="btnLottoDauLe">Đầu Lẻ</button>
+              <button type="button" class="lsb-btn clear" id="btnLottoClearNumbers">🧹 Xóa Hết</button>
+            </div>
+
+            <!-- Khung Các Số Đang Chọn (Selected Numbers Chips) -->
+            <div class="lotto-selected-tray">
+              <div class="lst-head">
+                <span class="lst-title">DÀN SỐ ĐANG CHỌN (<strong id="lstCount">0</strong> số):</span>
+                <span class="lst-total-est">Tạm tính: <strong id="lstEstWager" class="glow-gold">0</strong> Xu</span>
+              </div>
+              <div class="lst-chips-wrap" id="lstChipsWrap">
+                <span class="lst-empty-hint">Chưa chọn số nào. Bấm vào các hàng số ở trên hoặc tự gõ số.</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB CONTENT 2: CƯỢC NHANH (TÀI / XỈU / CHẴN / LẺ / KÉP) -->
+          <div class="lotto-tab-pane" id="paneLottoNhanh" style="display:none">
+            <div class="lotto-fast-grid">
+              <div class="lfg-card tai" data-door="TAI">
+                <div class="lfg-badge">TÀI ĐUÔI</div>
+                <div class="lfg-num-range">50 - 99</div>
+                <div class="lfg-odds">1 ĂN 1.98</div>
+                <div class="lfg-bet-val" id="lfgBetTAI">0</div>
+              </div>
+              <div class="lfg-card xiu" data-door="XIU">
+                <div class="lfg-badge">XỈU ĐUÔI</div>
+                <div class="lfg-num-range">00 - 49</div>
+                <div class="lfg-odds">1 ĂN 1.98</div>
+                <div class="lfg-bet-val" id="lfgBetXIU">0</div>
+              </div>
+              <div class="lfg-card chan" data-door="CHAN">
+                <div class="lfg-badge">CHẴN ĐUÔI</div>
+                <div class="lfg-num-range">Tận cùng 0,2,4,6,8</div>
+                <div class="lfg-odds">1 ĂN 1.98</div>
+                <div class="lfg-bet-val" id="lfgBetCHAN">0</div>
+              </div>
+              <div class="lfg-card le" data-door="LE">
+                <div class="lfg-badge">LẺ ĐUÔI</div>
+                <div class="lfg-num-range">Tận cùng 1,3,5,7,9</div>
+                <div class="lfg-odds">1 ĂN 1.98</div>
+                <div class="lfg-bet-val" id="lfgBetLE">0</div>
+              </div>
+              <div class="lfg-card kep full-width" data-door="KEP_BANG">
+                <div class="lfg-badge">⭐ KÉP BẰNG (00, 11, 22... 99)</div>
+                <div class="lfg-num-range">Trúng 1 trong 10 số kép</div>
+                <div class="lfg-odds">1 ĂN 9.5</div>
+                <div class="lfg-bet-val" id="lfgBetKEP_BANG">0</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 4. Thanh Mệnh Giá Tiền & Nút Đặt Vé -->
+          <div class="lotto-action-footer">
+            <div class="laf-chips-selector" id="lottoChipsSelector">
+              <button type="button" class="lchip-btn active" data-chip="10">10</button>
+              <button type="button" class="lchip-btn" data-chip="50">50</button>
+              <button type="button" class="lchip-btn" data-chip="100">100</button>
+              <button type="button" class="lchip-btn" data-chip="500">500</button>
+              <button type="button" class="lchip-btn" data-chip="1000">1K</button>
+              <button type="button" class="lchip-btn" data-chip="5000">5K</button>
+              <button type="button" class="lchip-btn all-in" id="btnLottoAllIn">Tất Tay</button>
+            </div>
+
+            <div class="laf-submit-row">
+              <div class="laf-summary-info">
+                <span class="laf-sum-lbl">TỔNG VÉ CƯỢC:</span>
+                <strong class="laf-sum-val glow-gold" id="lottoTotalWagerVal">0 Xu</strong>
+              </div>
+              <button type="button" class="laf-submit-btn" id="btnSubmitLottoTicket">
+                🎟️ XÁC NHẬN ĐẶT VÉ
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- DIRECT LIVE CASINO ROADMAP PANEL AT BOTTOM OF GAMEPLAY -->
@@ -662,274 +862,33 @@
         </div>
       </div>
 
-      <!-- LOTTO 5D GAME CONTAINER (XỔ SỐ SIÊU TỐC 5D) -->
-      <div class="lotto-game-container" id="lottoGameContainer" style="display:none">
-        <!-- 1. Thanh Chọn Mốc Thời Gian (Channels Bar) -->
-        <div class="lotto-channels-bar" id="lottoChannelsBar">
-          <button type="button" class="lotto-ch-btn" data-channel="30s">
-            <span class="lch-icon">⚡</span>
-            <div class="lch-text-group">
-              <span class="lch-title">Siêu Tốc 30s</span>
-              <span class="lch-timer" id="lchTimer30s">--s</span>
-            </div>
-          </button>
-          <button type="button" class="lotto-ch-btn active" data-channel="60s">
-            <span class="lch-icon">⏱️</span>
-            <div class="lch-text-group">
-              <span class="lch-title">Tiêu Chuẩn 60s</span>
-              <span class="lch-timer" id="lchTimer60s">--s</span>
-            </div>
-          </button>
-          <button type="button" class="lotto-ch-btn" data-channel="3m">
-            <span class="lch-icon">☕</span>
-            <div class="lch-text-group">
-              <span class="lch-title">Keno 3 Phút</span>
-              <span class="lch-timer" id="lchTimer3m">--s</span>
-            </div>
-          </button>
-          <button type="button" class="lotto-ch-btn" data-channel="60m">
-            <span class="lch-icon">👑</span>
-            <div class="lch-text-group">
-              <span class="lch-title">Mega 1 Giờ</span>
-              <span class="lch-timer" id="lchTimer60m">--m</span>
-            </div>
-          </button>
+      <!-- LOTTO ROADMAP (BẢNG SOI CẦU XỔ SỐ 20 KỲ) -->
+      <div class="lotto-roadmap-card" id="lottoRoadmapCard" style="display:none">
+        <div class="lrc-head">
+          <div class="lrc-title-group">
+            <span class="lrc-badge">📊 SOI CẦU XỔ SỐ</span>
+            <h4>BẢNG THỐNG KÊ 20 KỲ QUAY GẦN NHẤT</h4>
+          </div>
+          <span class="lrc-channel-note" id="lrcChannelNote">Kênh: Tiêu Chuẩn 60s</span>
         </div>
 
-        <!-- 2. Banner Kỳ Quay & Đồng Hồ Đếm Lùi -->
-        <div class="lotto-round-banner" id="lottoRoundBanner">
-          <div class="lrb-left">
-            <span class="lrb-tag">KỲ QUAY:</span>
-            <strong class="lrb-round-id glow-gold" id="lottoRoundId">X5D-60s-10820</strong>
-            <span class="lrb-channel-badge" id="lottoChannelBadge">⏱️ 60s</span>
-          </div>
-          <div class="lrb-center">
-            <div class="lrb-phase-pill betting" id="lottoPhasePill">
-              <span class="lrb-phase-dot"></span>
-              <span id="lottoPhaseText">ĐANG NHẬN VÉ</span>
-            </div>
-          </div>
-          <div class="lrb-right">
-            <span class="lrb-timer-lbl">CÒN</span>
-            <span class="lrb-timer-val glow-gold" id="lottoTimerVal">45s</span>
-          </div>
-        </div>
-
-        <div class="lrb-progress-track">
-          <div class="lrb-progress-bar" id="lottoProgressBar" style="width: 100%"></div>
-        </div>
-
-        <!-- 3. Lồng Quay 5 Quả Cầu Vàng / Bóng Neon -->
-        <div class="lotto-balls-cage" id="lottoBallsCage">
-          <div class="lbc-header">
-            <span class="lbc-title">GIẢI ĐẶC BIỆT 5 CHỮ SỐ (5D DRAW)</span>
-            <span class="lbc-status" id="lottoCageStatus">KỲ TRƯỚC VỀ:</span>
-          </div>
-
-          <div class="lotto-balls-row" id="lottoBallsRow">
-            <div class="lotto-ball ball-1" id="lottoBall0"><span class="lb-inner">7</span></div>
-            <div class="lotto-ball ball-2" id="lottoBall1"><span class="lb-inner">2</span></div>
-            <div class="lotto-ball ball-3" id="lottoBall2"><span class="lb-inner">9</span></div>
-            <div class="lotto-ball ball-4" id="lottoBall3"><span class="lb-inner">4</span></div>
-            <div class="lotto-ball ball-5" id="lottoBall4"><span class="lb-inner">8</span></div>
-          </div>
-
-          <!-- Tóm tắt kết quả phân tích nhanh -->
-          <div class="lotto-summary-pills" id="lottoSummaryPills">
-            <div class="lsp-item de-duoi">
-              <span class="lsp-label">Đề Đuôi:</span>
-              <strong class="lsp-val" id="lspDeDuoi">48</strong>
-            </div>
-            <div class="lsp-item de-dau">
-              <span class="lsp-label">Đề Đầu:</span>
-              <strong class="lsp-val" id="lspDeDau">72</strong>
-            </div>
-            <div class="lsp-item ba-cang">
-              <span class="lsp-label">3 Càng:</span>
-              <strong class="lsp-val" id="lspBaCang">948</strong>
-            </div>
-            <div class="lsp-item tai-xiu">
-              <span class="lsp-label">Đuôi:</span>
-              <strong class="lsp-val" id="lspTaiXiu">Xỉu (48)</strong>
-            </div>
-            <div class="lsp-item chan-le">
-              <span class="lsp-label">Chẵn/Lẻ:</span>
-              <strong class="lsp-val" id="lspChanLe">Chẵn</strong>
-            </div>
-          </div>
-        </div>
-
-        <!-- 4. Bàn Cược Xổ Số 5D (Lotto Betting Console) -->
-        <div class="lotto-betting-console" id="lottoBettingConsole">
-          <!-- Subtabs: CƯỢC SỐ vs CƯỢC NHANH -->
-          <div class="lotto-subtabs-bar">
-            <button type="button" class="lotto-subtab-btn active" id="btnSubtabSo" data-subtab="so">
-              <span>🎯</span> CƯỢC SỐ (Ăn x95 - x900)
-            </button>
-            <button type="button" class="lotto-subtab-btn" id="btnSubtabNhanh" data-subtab="nhanh">
-              <span>⚡</span> CƯỢC NHANH (Tài/Xỉu/Kép)
-            </button>
-          </div>
-
-          <!-- TAB CONTENT 1: CƯỢC SỐ -->
-          <div class="lotto-tab-pane active" id="paneLottoSo">
-            <div class="lotto-bet-type-row">
-              <label class="lbt-radio active">
-                <input type="radio" name="lottoBetType" value="DE_DUOI" checked />
-                <span class="lbt-lbl">Đề Đuôi <strong class="glow-gold">x95</strong></span>
-              </label>
-              <label class="lbt-radio">
-                <input type="radio" name="lottoBetType" value="DE_DAU" />
-                <span class="lbt-lbl">Đề Đầu <strong class="glow-gold">x95</strong></span>
-              </label>
-              <label class="lbt-radio">
-                <input type="radio" name="lottoBetType" value="BA_CANG" />
-                <span class="lbt-lbl">3 Càng <strong class="glow-gold">x900</strong></span>
-              </label>
-            </div>
-
-            <!-- Bảng chọn số 2 hàng thông minh (Mobile First) -->
-            <div class="lotto-matrix-selector" id="lottoMatrixSelector">
-              <!-- Hàng Trăm (Chỉ hiện khi chọn 3 Càng) -->
-              <div class="lms-row" id="lmsRowTram" style="display:none">
-                <div class="lms-row-label">HÀNG TRĂM:</div>
-                <div class="lms-row-digits" id="lmsDigitsTram">
-                  <!-- 0-9 buttons -->
-                </div>
-              </div>
-
-              <!-- Hàng Chục -->
-              <div class="lms-row" id="lmsRowChuc">
-                <div class="lms-row-label">HÀNG CHỤC:</div>
-                <div class="lms-row-digits" id="lmsDigitsChuc">
-                  <!-- 0-9 buttons -->
-                </div>
-              </div>
-
-              <!-- Hàng Đơn Vị -->
-              <div class="lms-row" id="lmsRowDonVi">
-                <div class="lms-row-label">HÀNG ĐƠN VỊ:</div>
-                <div class="lms-row-digits" id="lmsDigitsDonVi">
-                  <!-- 0-9 buttons -->
-                </div>
-              </div>
-            </div>
-
-            <!-- Ô Tự Nhập Số Nhanh Bằng Phím -->
-            <div class="lotto-quick-input-box">
-              <input type="text" id="inputLottoCustomNumbers" class="lqi-input" placeholder="Hoặc tự gõ số: 48, 79, 99..." autocomplete="off" />
-              <button type="button" class="lqi-btn-add" id="btnAddCustomNumbers">Thêm Số</button>
-            </div>
-
-            <!-- Phím Tắt Chọn Nhanh -->
-            <div class="lotto-shortcuts-bar">
-              <button type="button" class="lsb-btn" id="btnLottoRandNumber">🎲 Ngẫu Nhiên</button>
-              <button type="button" class="lsb-btn" id="btnLottoKepBang">🎯 Kép Bằng (00..99)</button>
-              <button type="button" class="lsb-btn" id="btnLottoDauChan">Đầu Chẵn</button>
-              <button type="button" class="lsb-btn" id="btnLottoDauLe">Đầu Lẻ</button>
-              <button type="button" class="lsb-btn clear" id="btnLottoClearNumbers">🧹 Xóa Hết</button>
-            </div>
-
-            <!-- Khung Các Số Đang Chọn (Selected Numbers Chips) -->
-            <div class="lotto-selected-tray">
-              <div class="lst-head">
-                <span class="lst-title">DÀN SỐ ĐANG CHỌN (<strong id="lstCount">0</strong> số):</span>
-                <span class="lst-total-est">Tạm tính: <strong id="lstEstWager" class="glow-gold">0</strong> Xu</span>
-              </div>
-              <div class="lst-chips-wrap" id="lstChipsWrap">
-                <span class="lst-empty-hint">Chưa chọn số nào. Bấm vào các hàng số ở trên hoặc nhập số.</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- TAB CONTENT 2: CƯỢC NHANH (TÀI / XỈU / CHẴN / LẺ / KÉP) -->
-          <div class="lotto-tab-pane" id="paneLottoNhanh" style="display:none">
-            <div class="lotto-fast-grid">
-              <div class="lfg-card tai" data-door="TAI">
-                <div class="lfg-badge">TÀI ĐUÔI</div>
-                <div class="lfg-num-range">50 - 99</div>
-                <div class="lfg-odds">1 ĂN 1.98</div>
-                <div class="lfg-bet-val" id="lfgBetTAI">0</div>
-              </div>
-              <div class="lfg-card xiu" data-door="XIU">
-                <div class="lfg-badge">XỈU ĐUÔI</div>
-                <div class="lfg-num-range">00 - 49</div>
-                <div class="lfg-odds">1 ĂN 1.98</div>
-                <div class="lfg-bet-val" id="lfgBetXIU">0</div>
-              </div>
-              <div class="lfg-card chan" data-door="CHAN">
-                <div class="lfg-badge">CHẴN ĐUÔI</div>
-                <div class="lfg-num-range">Tận cùng 0,2,4,6,8</div>
-                <div class="lfg-odds">1 ĂN 1.98</div>
-                <div class="lfg-bet-val" id="lfgBetCHAN">0</div>
-              </div>
-              <div class="lfg-card le" data-door="LE">
-                <div class="lfg-badge">LẺ ĐUÔI</div>
-                <div class="lfg-num-range">Tận cùng 1,3,5,7,9</div>
-                <div class="lfg-odds">1 ĂN 1.98</div>
-                <div class="lfg-bet-val" id="lfgBetLE">0</div>
-              </div>
-              <div class="lfg-card kep full-width" data-door="KEP_BANG">
-                <div class="lfg-badge">⭐ KÉP BẰNG (00, 11, 22... 99)</div>
-                <div class="lfg-num-range">Trúng 1 trong 10 số kép</div>
-                <div class="lfg-odds">1 ĂN 9.5</div>
-                <div class="lfg-bet-val" id="lfgBetKEP_BANG">0</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Thanh Mệnh Giá Tiền & Nút Đặt Vé -->
-          <div class="lotto-action-footer">
-            <div class="laf-chips-selector" id="lottoChipsSelector">
-              <button type="button" class="lchip-btn active" data-chip="10">10</button>
-              <button type="button" class="lchip-btn" data-chip="50">50</button>
-              <button type="button" class="lchip-btn" data-chip="100">100</button>
-              <button type="button" class="lchip-btn" data-chip="500">500</button>
-              <button type="button" class="lchip-btn" data-chip="1000">1K</button>
-              <button type="button" class="lchip-btn" data-chip="5000">5K</button>
-              <button type="button" class="lchip-btn all-in" id="btnLottoAllIn">Tất Tay</button>
-            </div>
-
-            <div class="laf-submit-row">
-              <div class="laf-summary-info">
-                <span class="laf-sum-lbl">TỔNG VÉ CƯỢC:</span>
-                <strong class="laf-sum-val glow-gold" id="lottoTotalWagerVal">0 Xu</strong>
-              </div>
-              <button type="button" class="laf-submit-btn" id="btnSubmitLottoTicket">
-                🎟️ XÁC NHẬN ĐẶT VÉ
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- 5. Bảng Soi Cầu Xổ Số (Lotto 20-Round Roadmap) -->
-        <div class="lotto-roadmap-card" id="lottoRoadmapCard">
-          <div class="lrc-head">
-            <div class="lrc-title-group">
-              <span class="lrc-badge">📊 SOI CẦU XỔ SỐ</span>
-              <h4>BẢNG THỐNG KÊ 20 KỲ QUAY GẦN NHẤT</h4>
-            </div>
-            <span class="lrc-channel-note" id="lrcChannelNote">Kênh: Tiêu Chuẩn 60s</span>
-          </div>
-
-          <div class="lrc-table-wrapper">
-            <table class="lrc-table" id="lottoRoadmapTable">
-              <thead>
-                <tr>
-                  <th>Kỳ Quay</th>
-                  <th>Giải ĐB (5 Số)</th>
-                  <th>Đề Đuôi</th>
-                  <th>Đề Đầu</th>
-                  <th>3 Càng</th>
-                  <th>Tài/Xỉu</th>
-                  <th>Chẵn/Lẻ</th>
-                </tr>
-              </thead>
-              <tbody id="lottoRoadmapBody">
-                <!-- Dynamically populated -->
-              </tbody>
-            </table>
-          </div>
+        <div class="lrc-table-wrapper">
+          <table class="lrc-table" id="lottoRoadmapTable">
+            <thead>
+              <tr>
+                <th>Kỳ Quay</th>
+                <th>Giải ĐB (5 Số)</th>
+                <th>Đề Đuôi</th>
+                <th>Đề Đầu</th>
+                <th>3 Càng</th>
+                <th>Tài/Xỉu</th>
+                <th>Chẵn/Lẻ</th>
+              </tr>
+            </thead>
+            <tbody id="lottoRoadmapBody">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
         </div>
       </div>
     </main>
@@ -2360,6 +2319,6 @@ Content-Type: application/json
     <div class="gja-amt glow-gold" id="gjaAmt">+50,000 Xu</div>
   </div>
 
-  <script src="/static/app.js?v=20261002_lotto01"></script>
+  <script src="/static/app.js?v=20261002_lotto02"></script>
 </body>
 </html>

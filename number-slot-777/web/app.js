@@ -82,8 +82,8 @@ const lottoState = {
   currentChip: 10,
   pollTimer: null,
   lastSettledRoundId: null,
-  isSpinningBalls: false,
-  spinInterval: null
+  lastDrawnRoundId: null,
+  isSpinningReels: false
 };
 
 // Web Audio API Synthesizer
@@ -532,29 +532,18 @@ const dom = {
   simSymbolsGrid: document.getElementById("simSymbolsGrid"),
   simSumBarsWrapper: document.getElementById("simSumBarsWrapper"),
 
+  // Betting Boards (Slot vs Lotto)
+  slotBettingBoard: document.getElementById("slotBettingBoard"),
+  lottoBettingBoard: document.getElementById("lottoBettingBoard"),
+
   // Turbo 5D Lotto Elements
-  lottoGameContainer: document.getElementById("lottoGameContainer"),
   lottoChannelsBar: document.getElementById("lottoChannelsBar"),
-  lottoRoundBanner: document.getElementById("lottoRoundBanner"),
   lottoRoundId: document.getElementById("lottoRoundId"),
   lottoChannelBadge: document.getElementById("lottoChannelBadge"),
   lottoPhasePill: document.getElementById("lottoPhasePill"),
   lottoPhaseText: document.getElementById("lottoPhaseText"),
   lottoTimerVal: document.getElementById("lottoTimerVal"),
   lottoProgressBar: document.getElementById("lottoProgressBar"),
-  lottoBallsCage: document.getElementById("lottoBallsCage"),
-  lottoCageStatus: document.getElementById("lottoCageStatus"),
-  lottoBallsRow: document.getElementById("lottoBallsRow"),
-  lottoBall0: document.getElementById("lottoBall0"),
-  lottoBall1: document.getElementById("lottoBall1"),
-  lottoBall2: document.getElementById("lottoBall2"),
-  lottoBall3: document.getElementById("lottoBall3"),
-  lottoBall4: document.getElementById("lottoBall4"),
-  lspDeDuoi: document.getElementById("lspDeDuoi"),
-  lspDeDau: document.getElementById("lspDeDau"),
-  lspBaCang: document.getElementById("lspBaCang"),
-  lspTaiXiu: document.getElementById("lspTaiXiu"),
-  lspChanLe: document.getElementById("lspChanLe"),
   btnSubtabSo: document.getElementById("btnSubtabSo"),
   btnSubtabNhanh: document.getElementById("btnSubtabNhanh"),
   paneLottoSo: document.getElementById("paneLottoSo"),
@@ -585,8 +574,9 @@ const dom = {
   lottoRoadmapBody: document.getElementById("lottoRoadmapBody")
 };
 
-// Colors mapping
+// Colors mapping (0-9 for 5D lotto & slot numbers)
 const NUMBER_COLORS = {
+  0: "#E040FB",
   1: "#00E5FF", 2: "#76FF03", 3: "#FF9100", 4: "#2979FF", 5: "#D500F9",
   6: "#FFD600", 7: "#FF1744", 8: "#00E676", 9: "#FF3D00"
 };
@@ -1119,6 +1109,10 @@ function setupActions() {
 async function triggerSpin() {
   if (state.gamePlayMode === "live") {
     await placeLiveBetAction();
+    return;
+  }
+  if (state.gamePlayMode === "lotto") {
+    await submitLottoTicket();
     return;
   }
 
@@ -3903,20 +3897,32 @@ function switchGameplayMode(mode) {
   if (dom.btnModeLotto) dom.btnModeLotto.classList.toggle("active", isLotto);
 
   const gameLayout = document.querySelector(".game-layout");
+  if (gameLayout) gameLayout.style.display = "";
+
+  const liveSoikeoPanel = document.querySelector(".game-live-soikeo-panel");
 
   if (isLotto) {
+    if (dom.slotBettingBoard) dom.slotBettingBoard.style.display = "none";
+    if (dom.lottoBettingBoard) dom.lottoBettingBoard.style.display = "";
+    if (liveSoikeoPanel) liveSoikeoPanel.style.display = "none";
+    if (dom.lottoRoadmapCard) dom.lottoRoadmapCard.style.display = "";
     if (dom.liveRoundBanner) dom.liveRoundBanner.style.display = "none";
     if (dom.liveRoomOnlinePill) dom.liveRoomOnlinePill.style.display = "none";
-    if (gameLayout) gameLayout.style.display = "none";
-    if (dom.lottoGameContainer) dom.lottoGameContainer.style.display = "flex";
 
-    showToast("🎯 Đã chuyển sang chế độ <strong>XỔ SỐ SIÊU TỐC 5D</strong>", "gold");
+    const spinMain = dom.btnSpin ? dom.btnSpin.querySelector(".spin-main") : null;
+    const spinSub = dom.btnSpin ? dom.btnSpin.querySelector(".spin-sub") : null;
+    if (spinMain) spinMain.textContent = "ĐẶT VÉ";
+    if (spinSub) spinSub.textContent = "TICKET";
+
+    showToast("🎯 Đã chuyển sang chế độ <strong>XỔ SỐ SIÊU TỐC 5D</strong> (Dự đoán dãy số hàng giữa)", "gold");
     stopLivePolling();
     syncLottoState();
     startLottoPolling();
   } else if (isLive) {
-    if (dom.lottoGameContainer) dom.lottoGameContainer.style.display = "none";
-    if (gameLayout) gameLayout.style.display = "";
+    if (dom.slotBettingBoard) dom.slotBettingBoard.style.display = "";
+    if (dom.lottoBettingBoard) dom.lottoBettingBoard.style.display = "none";
+    if (liveSoikeoPanel) liveSoikeoPanel.style.display = "";
+    if (dom.lottoRoadmapCard) dom.lottoRoadmapCard.style.display = "none";
     if (dom.liveRoundBanner) dom.liveRoundBanner.style.display = "block";
     if (dom.liveRoomOnlinePill) dom.liveRoomOnlinePill.style.display = "flex";
 
@@ -3930,8 +3936,10 @@ function switchGameplayMode(mode) {
     syncLiveRoomState();
     startLivePolling();
   } else {
-    if (dom.lottoGameContainer) dom.lottoGameContainer.style.display = "none";
-    if (gameLayout) gameLayout.style.display = "";
+    if (dom.slotBettingBoard) dom.slotBettingBoard.style.display = "";
+    if (dom.lottoBettingBoard) dom.lottoBettingBoard.style.display = "none";
+    if (liveSoikeoPanel) liveSoikeoPanel.style.display = "none";
+    if (dom.lottoRoadmapCard) dom.lottoRoadmapCard.style.display = "none";
     if (dom.liveRoundBanner) dom.liveRoundBanner.style.display = "none";
     if (dom.liveRoomOnlinePill) dom.liveRoomOnlinePill.style.display = "none";
 
@@ -5027,7 +5035,7 @@ function showGlobalJackpotAlert(bw) {
 // ==========================================
 
 function initLottoSystem() {
-  if (!dom.lottoGameContainer) return;
+  if (!dom.lottoBettingBoard) return;
 
   // 1. Channel buttons
   const chBtns = document.querySelectorAll(".lotto-ch-btn");
@@ -5516,7 +5524,7 @@ async function syncLottoState() {
       updateMeters();
     }
 
-    // Render Banner
+    // Render Banner & Countdown inside Lotto Betting Board
     if (data.round) {
       if (dom.lottoRoundId) dom.lottoRoundId.textContent = data.round.round_id;
       if (dom.lottoTimerVal) dom.lottoTimerVal.textContent = `${data.round.time_left_sec}s`;
@@ -5530,31 +5538,60 @@ async function syncLottoState() {
             dom.btnSubmitLottoTicket.disabled = false;
             dom.btnSubmitLottoTicket.innerHTML = `🎟️ XÁC NHẬN ĐẶT VÉ`;
           }
-          if (dom.lottoCageStatus) dom.lottoCageStatus.textContent = "KỲ TRƯỚC VỀ:";
-          stopLottoBallSpinning();
+          if (dom.btnSpin) dom.btnSpin.disabled = false;
         } else if (phase === "drawing") {
           dom.lottoPhaseText.textContent = "ĐANG QUAY THƯỞNG 🎰";
           if (dom.btnSubmitLottoTicket) {
             dom.btnSubmitLottoTicket.disabled = true;
             dom.btnSubmitLottoTicket.innerHTML = `⏳ ĐANG QUAY THƯỞNG...`;
           }
-          if (dom.lottoCageStatus) dom.lottoCageStatus.textContent = "ĐANG QUAY GIẢI ĐẶC BIỆT...";
-          startLottoBallSpinning();
+          if (dom.btnSpin) dom.btnSpin.disabled = true;
         } else if (phase === "payout") {
           dom.lottoPhaseText.textContent = "TRẢ THƯỞNG 🎉";
-          if (dom.lottoCageStatus) dom.lottoCageStatus.textContent = `KẾT QUẢ KỲ #${data.round.round_id}:`;
-          stopLottoBallSpinning();
+          if (dom.btnSubmitLottoTicket) {
+            dom.btnSubmitLottoTicket.disabled = true;
+            dom.btnSubmitLottoTicket.innerHTML = `🎉 TRẢ THƯỞNG`;
+          }
+          if (dom.btnSpin) dom.btnSpin.disabled = true;
         }
       }
 
-      // Display official outcome digits if available
-      if (phase === "payout" && data.round.outcome) {
-        renderLottoBalls(data.round.outcome.digits);
-        renderLottoSummaryPills(data.round.outcome);
-      } else if (phase === "betting" && data.roadmap && data.roadmap.length > 0) {
-        // Show last round outcome from roadmap[0]
-        renderLottoBalls(data.roadmap[0].digits);
-        renderLottoSummaryPills(data.roadmap[0]);
+      // Progress bar percentage
+      if (dom.lottoProgressBar && data.round.total_cycle_sec > 0) {
+        const pct = Math.max(0, Math.min(100, (data.round.time_left_sec / data.round.total_cycle_sec) * 100));
+        dom.lottoProgressBar.style.width = `${pct}%`;
+      }
+
+      // Display official outcome digits on reels if available
+      if ((phase === "drawing" || phase === "payout") && data.round.outcome) {
+        if (lottoState.lastDrawnRoundId !== data.round.round_id) {
+          lottoState.lastDrawnRoundId = data.round.round_id;
+          runLottoReelSpin(data.round.outcome.digits, data.round.outcome);
+        }
+      } else if (phase === "betting") {
+        if (!state.isSpinning && data.roadmap && data.roadmap.length > 0) {
+          const lastOutcome = data.roadmap[0];
+          if (lastOutcome && Array.isArray(lastOutcome.digits) && lastOutcome.digits.length >= 5) {
+            const curCenter = state.currentGrid ? state.currentGrid[1] : null;
+            const digitsMatch = curCenter && curCenter.every((d, i) => d === lastOutcome.digits[i]);
+            if (!digitsMatch) {
+              const digits = lastOutcome.digits;
+              const grid = [
+                digits.map(d => (d + 9) % 10),
+                [...digits],
+                digits.map(d => (d + 1) % 10)
+              ];
+              state.currentGrid = grid;
+              for (let c = 0; c < 5; c++) {
+                renderReelStatic(c, [grid[0][c], grid[1][c], grid[2][c]]);
+              }
+              dom.resSum.textContent = `Giải ĐB: ${digits.join("")}`;
+              dom.resTaiXiu.textContent = `${lastOutcome.is_tai ? "TÀI" : "XỈU"} (${lastOutcome.de_duoi})`;
+              dom.resChanLe.textContent = lastOutcome.is_chan ? "CHẴN ĐUÔI" : "LẺ ĐUÔI";
+              dom.resHand.textContent = `Đề Đuôi: ${lastOutcome.de_duoi} | 3 Càng: ${lastOutcome.ba_cang} | Đề Đầu: ${lastOutcome.de_dau}`;
+            }
+          }
+        }
       }
     }
 
@@ -5573,57 +5610,118 @@ async function syncLottoState() {
   }
 }
 
-function startLottoBallSpinning() {
-  if (lottoState.isSpinningBalls) return;
-  lottoState.isSpinningBalls = true;
-
-  [0, 1, 2, 3, 4].forEach(i => {
-    const el = document.getElementById("lottoBall" + i);
-    if (el) el.classList.add("spinning");
-  });
-
-  if (lottoState.spinInterval) clearInterval(lottoState.spinInterval);
-  lottoState.spinInterval = setInterval(() => {
-    [0, 1, 2, 3, 4].forEach(i => {
-      const inner = document.querySelector(`#lottoBall${i} .lb-inner`);
-      if (inner) inner.textContent = Math.floor(Math.random() * 10);
-    });
-  }, 70);
-}
-
-function stopLottoBallSpinning() {
-  if (!lottoState.isSpinningBalls) return;
-  lottoState.isSpinningBalls = false;
-  if (lottoState.spinInterval) {
-    clearInterval(lottoState.spinInterval);
-    lottoState.spinInterval = null;
-  }
-  [0, 1, 2, 3, 4].forEach(i => {
-    const el = document.getElementById("lottoBall" + i);
-    if (el) el.classList.remove("spinning");
-  });
-}
-
-function renderLottoBalls(digits) {
+async function runLottoReelSpin(digits, outcome) {
   if (!Array.isArray(digits) || digits.length < 5) return;
-  digits.forEach((d, i) => {
-    const inner = document.querySelector(`#lottoBall${i} .lb-inner`);
-    if (inner) inner.textContent = d;
-  });
-}
+  if (lottoState.isSpinningReels) return;
+  lottoState.isSpinningReels = true;
+  state.isSpinning = true;
 
-function renderLottoSummaryPills(outcome) {
-  if (!outcome) return;
-  if (dom.lspDeDuoi) dom.lspDeDuoi.textContent = outcome.de_duoi || "--";
-  if (dom.lspDeDau) dom.lspDeDau.textContent = outcome.de_dau || "--";
-  if (dom.lspBaCang) dom.lspBaCang.textContent = outcome.ba_cang || "--";
-  if (dom.lspTaiXiu) {
-    dom.lspTaiXiu.textContent = `${outcome.is_tai ? "Tài" : "Xỉu"} (${outcome.de_duoi})`;
-    dom.lspTaiXiu.style.color = outcome.is_tai ? "#f87171" : "#38bdf8";
+  soundEngine.init();
+  soundEngine.playSpin();
+
+  dom.resHand.textContent = "ĐANG QUAY GIẢI ĐẶC BIỆT 5D...";
+  clearWinningHighlights();
+  dom.winPillsList.innerHTML = "";
+  if (dom.winBanner) dom.winBanner.classList.remove("show");
+
+  const prevGrid = state.currentGrid || [
+    [1, 2, 3, 4, 5],
+    [7, 7, 7, 8, 9],
+    [8, 8, 8, 9, 1]
+  ];
+
+  const grid = [
+    digits.map(d => (d + 9) % 10),
+    [...digits],
+    digits.map(d => (d + 1) % 10)
+  ];
+
+  const reelPromises = [];
+  for (let c = 0; c < 5; c++) {
+    const p = new Promise(resolve => {
+      const strip = document.getElementById(`reel-${c}`);
+      if (!strip) return resolve();
+
+      const targetNums = [grid[0][c], grid[1][c], grid[2][c]];
+      const prevNums = [prevGrid[0][c], prevGrid[1][c], prevGrid[2][c]];
+      const targetTop = targetNums[0];
+      const prevTop = prevNums[0];
+
+      let delta = (prevTop - targetTop) % 10;
+      if (delta < 0) delta += 10;
+      const fullLoops = 3 + c * 2;
+      const totalItems = delta + fullLoops * 10 + 3;
+
+      const stripNums = [];
+      for (let i = 0; i < totalItems; i++) {
+        stripNums.push((targetTop + i) % 10);
+      }
+
+      strip.innerHTML = "";
+      strip.style.transition = "none";
+      stripNums.forEach((num, idx) => {
+        const color = NUMBER_COLORS[num] || "#fff";
+        const cell = document.createElement("div");
+        let rowClass = "row-top";
+        if (idx === 1) rowClass = "row-center";
+        else if (idx === 2) rowClass = "row-bottom";
+        else if (idx === totalItems - 2) rowClass = "row-center";
+        else if (idx === totalItems - 1) rowClass = "row-bottom";
+
+        cell.className = `num-cell-slot ${rowClass}`;
+        cell.innerHTML = `<span class="slot-number-text" style="color:${color}">${num}</span>`;
+        strip.appendChild(cell);
+      });
+
+      const cellH = strip.firstElementChild ? strip.firstElementChild.offsetHeight : 110;
+      const initialOffset = -((totalItems - 3) * cellH);
+      strip.style.transform = `translateY(${initialOffset}px)`;
+      const duration = 0.85 + c * 0.28;
+      void strip.offsetHeight;
+
+      strip.classList.add("strip-rolling");
+      strip.style.transition = `transform ${duration}s cubic-bezier(0.12, 0.95, 0.25, 1.08)`;
+      strip.style.transform = "translateY(0px)";
+
+      setTimeout(() => {
+        strip.classList.remove("strip-rolling");
+        soundEngine.playReelStop();
+        telegramEngine.haptic("rigid");
+        renderReelStatic(c, targetNums);
+        resolve();
+      }, duration * 1000);
+    });
+    reelPromises.push(p);
   }
-  if (dom.lspChanLe) {
-    dom.lspChanLe.textContent = outcome.is_chan ? "Chẵn" : "Lẻ";
-    dom.lspChanLe.style.color = outcome.is_chan ? "#c084fc" : "#facc15";
+
+  await Promise.all(reelPromises);
+  state.currentGrid = grid;
+  state.isSpinning = false;
+  lottoState.isSpinningReels = false;
+
+  // Cập nhật kết quả chi tiết lên Marquee của Cabinet
+  if (outcome) {
+    dom.resSum.textContent = `Giải ĐB: ${digits.join("")}`;
+    dom.resTaiXiu.textContent = `${outcome.is_tai ? "TÀI" : "XỈU"} (${outcome.de_duoi})`;
+    dom.resChanLe.textContent = outcome.is_chan ? "CHẴN ĐUÔI" : "LẺ ĐUÔI";
+    dom.resHand.textContent = `Đề Đuôi: ${outcome.de_duoi} | 3 Càng: ${outcome.ba_cang} | Đề Đầu: ${outcome.de_dau}`;
+
+    // Highlight 2 chữ số cuối (Đề Đuôi - Cuộn 3 & 4)
+    [3, 4].forEach(col => {
+      const strip = document.getElementById(`reel-${col}`);
+      if (strip) {
+        const centerCell = strip.querySelector(".row-center");
+        if (centerCell) {
+          centerCell.classList.add("cell-win-highlight");
+          if (!centerCell.querySelector(".cell-win-badge")) {
+            const badge = document.createElement("span");
+            badge.className = "cell-win-badge";
+            badge.textContent = "🎯 ĐỀ";
+            centerCell.appendChild(badge);
+          }
+        }
+      }
+    });
   }
 }
 
@@ -5799,7 +5897,7 @@ function stopLottoPolling() {
     clearInterval(lottoState.pollTimer);
     lottoState.pollTimer = null;
   }
-  stopLottoBallSpinning();
+  lottoState.isSpinningReels = false;
 }
 
 window.addEventListener("DOMContentLoaded", init);
