@@ -110,11 +110,6 @@ body {
   letter-spacing: 1px;
 }
 
-.nav-tabs-wrapper {
-  display: flex;
-  align-items: center;
-}
-
 .nav-tabs {
   display: flex;
   gap: 6px;
@@ -213,52 +208,7 @@ body {
   transform: scale(1.05);
 }
 
-/* TELEGRAM USER PILL & BADGES */
-.tg-user-pill {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: linear-gradient(135deg, rgba(36, 161, 222, 0.18) 0%, rgba(13, 20, 36, 0.85) 100%);
-  border: 1px solid rgba(36, 161, 222, 0.5);
-  padding: 4px 10px;
-  border-radius: 20px;
-  box-shadow: 0 0 14px rgba(36, 161, 222, 0.25);
-}
 
-.tg-user-avatar {
-  font-size: 1.15rem;
-  line-height: 1;
-}
-
-.tg-user-info {
-  display: flex;
-  flex-direction: column;
-}
-
-.tg-user-name {
-  font-size: 0.76rem;
-  font-weight: 800;
-  color: #fff;
-  max-width: 120px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  letter-spacing: 0.2px;
-}
-
-.tg-badge {
-  font-size: 0.54rem;
-  color: #00e5ff;
-  font-weight: 800;
-  letter-spacing: 0.8px;
-}
-
-.tg-share-btn {
-  background: linear-gradient(135deg, #24a1de 0%, #0088cc 100%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.35) !important;
-  color: #fff !important;
-  box-shadow: 0 0 12px rgba(36, 161, 222, 0.45) !important;
-}
 
 .meter-lbl-row {
   display: flex;
@@ -3683,12 +3633,11 @@ body.is-telegram-app .brand-text .subtext {
     border-radius: 12px;
   }
 
-  /* Compact 1-line top header */
-  /* Compact 1-line top header - Tuyệt đối không tràn viền trên mọi kích thước mobile */
+  /* Compact 1-line top header - Tuyệt đối không tràn viền, thoáng đãng trên mobile */
   .top-nav {
     position: relative;
-    padding: 6px 8px;
-    gap: 6px;
+    padding: 6px 10px;
+    gap: 8px;
     border-bottom: 1px solid rgba(255, 215, 0, 0.2);
     display: flex;
     justify-content: space-between;
@@ -3696,13 +3645,14 @@ body.is-telegram-app .brand-text .subtext {
     flex-wrap: nowrap;
     width: 100%;
     box-sizing: border-box;
-    overflow: hidden;
-    height: 48px;
+    overflow: visible;
+    min-height: 48px;
+    height: auto;
   }
 
   .brand {
-    gap: 5px;
-    flex-shrink: 1;
+    gap: 6px;
+    flex-shrink: 0;
     min-width: 0;
     align-items: center;
   }
@@ -3733,18 +3683,18 @@ body.is-telegram-app .brand-text .subtext {
 
   .header-actions {
     margin-left: auto;
-    gap: 5px;
+    gap: 6px;
     display: flex;
     align-items: center;
     flex-shrink: 0;
   }
 
-  /* Header VIP Pill trên mobile: Gọn gàng, sang trọng, không bao giờ tràn viền */
+  /* Header VIP Pill trên mobile: Gọn gàng, sang trọng, hiển thị đầy đủ User Telegram */
   .player-vip-pill {
-    max-width: 115px;
+    max-width: 140px;
     min-width: 0;
-    padding: 2px 7px 2px 3px;
-    gap: 5px;
+    padding: 3px 8px 3px 4px;
+    gap: 6px;
     border-radius: 999px;
   }
 
@@ -3765,12 +3715,13 @@ body.is-telegram-app .brand-text .subtext {
   }
 
   .pv-name {
-    font-size: 0.72rem;
-    max-width: 65px;
+    font-size: 0.75rem;
+    max-width: 80px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     line-height: 1.15;
+    font-weight: 700;
   }
 
   /* Trên mobile ẩn danh hiệu trong Header Pill để giữ giao diện cực kỳ thoáng đãng, người chơi chạm vào để xem đầy đủ trong Profile */
@@ -3783,30 +3734,11 @@ body.is-telegram-app .brand-text .subtext {
     display: none !important;
   }
 
-  .tg-user-pill {
-    padding: 2px 6px;
-    gap: 4px;
-    max-width: 80px;
-  }
-
-  .tg-user-name {
-    max-width: 50px;
-    font-size: 0.68rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .tg-share-btn, .icon-btn {
+  .icon-btn {
     width: 32px;
     height: 32px;
     font-size: 0.92rem;
     flex-shrink: 0;
-  }
-
-  /* Navigation tab wrapper on mobile: Ẩn khỏi Header */
-  .nav-tabs-wrapper {
-    display: none !important;
   }
 
   /* THANH ĐIỀU HƯỚNG CỐ ĐỊNH Ở ĐÁY MÀN HÌNH TRÊN MOBILE (CHUẨN APP DI ĐỘNG, MƯỢT 100%, KHÔNG GIẬT LAG) */
@@ -4202,16 +4134,6 @@ body.is-telegram-app .brand-text .subtext {
     font-size: 1.02rem;
   }
 
-  .tg-user-pill {
-    padding: 2px 6px;
-    gap: 4px;
-  }
-
-  .tg-user-name {
-    max-width: 75px;
-    font-size: 0.68rem;
-  }
-
   .icon-btn {
     width: 30px;
     height: 30px;
@@ -4248,16 +4170,6 @@ body.is-telegram-app .brand-text .subtext {
   .brand-text h1 {
     font-size: 0.88rem;
     letter-spacing: 0;
-  }
-
-  .tg-user-pill {
-    padding: 2px 4px;
-    gap: 2px;
-  }
-
-  .tg-user-name {
-    max-width: 55px;
-    font-size: 0.6rem;
   }
 
   .icon-btn {

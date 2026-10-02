@@ -184,31 +184,12 @@ const telegramEngine = {
       }
       document.body.classList.add("is-telegram-app");
 
-      // Telegram User profile display
+      // Telegram User profile display: Đồng bộ trực tiếp vào playerVipPill
       const user = this.tg.initDataUnsafe?.user;
       if (user) {
-        if (dom.tgUserPill) dom.tgUserPill.style.display = "flex";
-        if (dom.tgUserName) {
-          const displayName = user.username ? `@${user.username}` : (user.first_name || "Thành viên");
-          dom.tgUserName.textContent = displayName;
-        }
-        if (dom.tgUserAvatar) {
-          dom.tgUserAvatar.textContent = user.photo_url ? "⭐️" : "👤";
-        }
-      }
-
-      if (dom.tgShareBtn) {
-        dom.tgShareBtn.style.display = "inline-flex";
-        dom.tgShareBtn.addEventListener("click", () => {
-          this.haptic("light");
-          const shareText = encodeURIComponent("🎰 Chơi Lucky Numbers 777 nhận ngay 10,000 Xu cùng mình nhé! Trúng thưởng x5000 cực đã!");
-          const shareUrl = `https://t.me/share/url?url=https://t.me/relicspin_bot&text=${shareText}`;
-          if (typeof this.tg.openTelegramLink === "function") {
-            this.tg.openTelegramLink(shareUrl);
-          } else {
-            window.open(shareUrl, "_blank");
-          }
-        });
+        const displayName = user.username ? `@${user.username}` : (user.first_name || "Thành viên");
+        if (dom.pvName) dom.pvName.textContent = displayName;
+        if (dom.pvAvatar) dom.pvAvatar.textContent = user.photo_url ? "⭐️" : "👤";
       }
 
       // Telegram BackButton integration
@@ -254,11 +235,6 @@ const dom = {
   tabContents: document.querySelectorAll(".tab-content"),
   soundToggle: document.getElementById("soundToggle"),
 
-  // Telegram Integration
-  tgUserPill: document.getElementById("tgUserPill"),
-  tgUserAvatar: document.getElementById("tgUserAvatar"),
-  tgUserName: document.getElementById("tgUserName"),
-  tgShareBtn: document.getElementById("tgShareBtn"),
   btnQuickTopUp: document.getElementById("btnQuickTopUp"),
 
   // Marquee
