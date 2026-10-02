@@ -310,6 +310,24 @@ const TELEGRAM_BOT_TOKEN_DEFAULT = "8844960516:AAG8gcsv_WA9ORpk6xSfwB6qFrFJ2utWK
 const TELEGRAM_BOT_USERNAME = "relicspin_bot";
 const APP_BASE_URL = "https://lucky-numbers-777.pages.dev";
 
+function getTgAppUrl(roomId = "public") {
+  const clean = normalizeRoomId(roomId);
+  if (clean && clean !== "public") {
+    return `https://t.me/${TELEGRAM_BOT_USERNAME}/app?startapp=room_${clean}`;
+  }
+  return `https://t.me/${TELEGRAM_BOT_USERNAME}/app`;
+}
+
+function makePlayButton(text, roomId = "public", isGroup = false, hash = "") {
+  const clean = normalizeRoomId(roomId);
+  if (isGroup) {
+    return { text, url: getTgAppUrl(clean) };
+  } else {
+    const webUrl = (clean !== "public" ? `${APP_BASE_URL}?room=${clean}` : APP_BASE_URL) + (hash ? `#${hash}` : "");
+    return { text, web_app: { url: webUrl } };
+  }
+}
+
 async function getKVTelegramGroups(env) {
   if (env && env.LUCKY_ROOM) {
     try {
@@ -379,12 +397,18 @@ async function sendTelegramMessage(botToken, chatId, text, inlineKeyboard = null
     const resJson = await res.json();
     if (!resJson.ok) {
       console.warn("sendTelegramMessage failed:", resJson.description, "Retrying with fallback...");
-      // 1. Fallback: Nếu Telegram từ chối web_app button trong group, đổi thành regular url button
+      // 1. Fallback: Nếu Telegram từ chối web_app button trong group, đổi thành native Mini App link của Telegram
       if (payload.reply_markup && payload.reply_markup.inline_keyboard) {
         payload.reply_markup.inline_keyboard = payload.reply_markup.inline_keyboard.map(row =>
           row.map(btn => {
             if (btn.web_app && btn.web_app.url) {
-              return { text: btn.text, url: btn.web_app.url };
+              const urlStr = btn.web_app.url;
+              let roomCode = "public";
+              if (urlStr.includes("room=")) {
+                const match = urlStr.match(/room=([A-Za-z0-9_-]+)/);
+                if (match && match[1]) roomCode = match[1];
+              }
+              return { text: btn.text, url: getTgAppUrl(roomCode) };
             }
             return btn;
           })
@@ -426,8 +450,7 @@ async function broadcastTelegramNotification(env, options) {
 
     if (targetGroups.length === 0) return [];
 
-    const gameUrl = isPrivate ? `${APP_BASE_URL}?room=${targetRoomId}` : APP_BASE_URL;
-    const tgDeepLink = `https://t.me/${TELEGRAM_BOT_USERNAME}?startapp=room_${targetRoomId}`;
+    const tgAppUrl = getTgAppUrl(targetRoomId);
 
     let messageText = "";
     let keyboard = [];
@@ -445,13 +468,7 @@ async function broadcastTelegramNotification(env, options) {
         [
           {
             text: `🎰 VÀO PHÒNG SĂN HŨ NGAY 🚀`,
-            web_app: { url: gameUrl }
-          }
-        ],
-        [
-          {
-            text: `🌐 Chơi trên Web`,
-            url: gameUrl
+            url: tgAppUrl
           }
         ]
       ];
@@ -467,13 +484,7 @@ async function broadcastTelegramNotification(env, options) {
         [
           {
             text: `🎁 VÀO GIẬT LÌ XÌ NGAY (35s) 🏃‍♂️`,
-            web_app: { url: gameUrl }
-          }
-        ],
-        [
-          {
-            text: `🌐 Chơi trên Web`,
-            url: gameUrl
+            url: tgAppUrl
           }
         ]
       ];
@@ -1146,13 +1157,9 @@ export default {
               `👇 *Bấm nút bên dưới để mở Mini App và chiến ngay:*`;
 
             const grpRoom = grp ? grp.room_id : "public";
-            const grpUrl = grpRoom !== "public" ? `${appUrl}?room=${grpRoom}` : appUrl;
             const keyboard = [
               [
-                {
-                  text: "🎰 MỞ GAME TRỰC TIẾP TRÊN TELEGRAM 🚀",
-                  web_app: { url: grpUrl }
-                }
+                makePlayButton("🎰 MỞ GAME TRỰC TIẾP TRÊN TELEGRAM 🚀", grpRoom, true)
               ]
             ];
             await sendTelegramMessage(botToken, chat.id, welcomeGroupText, keyboard);
@@ -1173,13 +1180,12 @@ export default {
             if (isBotAdded) {
               const grp = await registerOrUpdateTelegramGroup(env, chat);
               const grpRoom = grp ? grp.room_id : "public";
-              const grpUrl = grpRoom !== "public" ? `${appUrl}?room=${grpRoom}` : appUrl;
               const welcomeText = `🎉 *LUCKY NUMBERS 777 ĐÃ KẾT NỐI VỚI NHÓM!* 🎉\n\n` +
                 `Nhóm đang kết nối với: *${grp.room_id === "public" ? "Phòng Toàn Server" : "Phòng " + grp.room_id}*\n` +
                 `Gõ \`/link_room <MÃ_PHÒNG>\` để liên kết nhóm với phòng riêng bất kỳ!\n\n` +
                 `👇 *Cùng vào chơi và nhận lì xì:*`;
               await sendTelegramMessage(botToken, chatId, welcomeText, [
-                [{ text: "🎰 VÀO PHÒNG CHIẾN NGAY 🚀", web_app: { url: grpUrl } }]
+                [makePlayButton("🎰 VÀO PHÒNG CHIẾN NGAY 🚀", grpRoom, true)]
               ]);
             }
           }
@@ -1213,26 +1219,53 @@ export default {
                 `💰 *Tặng ngay 10,000 Xu trải nghiệm miễn phí!*\n\n` +
                 `👇 *Bấm nút bên dưới để mở Mini App và chơi ngay:*`;
 
-              const roomUrl = targetRoom !== "public" ? `${appUrl}?room=${targetRoom}` : appUrl;
               const keyboard = [
                 [
-                  {
-                    text: targetRoom !== "public" ? `🎰 VÀO PHÒNG [${targetRoom}] NGAY 🚀` : "🎰 CHƠI NGAY TRÊN TELEGRAM 🚀",
-                    web_app: { url: roomUrl }
-                  }
-                ],
-                [
-                  {
-                    text: "📜 Luật Chơi & Trả Thưởng",
-                    url: `${appUrl}#rules`
-                  },
-                  {
-                    text: "📈 Bảng Soi Kèo",
-                    url: `${appUrl}#soikeo`
-                  }
+                  makePlayButton(targetRoom !== "public" ? `🎰 VÀO PHÒNG [${targetRoom}] NGAY 🚀` : "🎰 CHƠI NGAY TRÊN TELEGRAM 🚀", targetRoom, isGroup)
                 ]
               ];
               await sendTelegramMessage(botToken, chatId, replyText, keyboard);
+            }
+            // Lệnh /rules hoặc /luat
+            else if (lower.startsWith("/rules") || lower.startsWith("/rule") || lower.startsWith("/luat") || lower.startsWith("/luatchoi") || lower.startsWith("/cuoc") || lower === "rules" || lower === "luat") {
+              const groups = await getKVTelegramGroups(env);
+              const grp = groups.find(g => String(g.chat_id) === String(chatId));
+              const curRoom = grp ? grp.room_id : "public";
+
+              const rulesText = `📜 *BẢNG LUẬT CHƠI & TỶ LỆ TRẢ THƯỞNG* 📜\n\n` +
+                `🎯 *1. CHẾ ĐỘ SLOT 5X3 (XÉT HÀNG GIỮA):*\n` +
+                `• 🔴 *Tài* (Tổng 5 số > 25): Ăn *x2.05*\n` +
+                `• 🔵 *Xỉu* (Tổng 5 số < 25): Ăn *x2.05*\n` +
+                `• 🟡 *Hòa 25* (Tổng 5 số = 25): Ăn *x14.1*\n` +
+                `• ⚖️ *Chẵn / Lẻ* (Tổng Chẵn hoặc Lẻ): Ăn *x1.92*\n\n` +
+                `👑 *HŨ THẦN TÀI & TỔ HỢP ĐẶC BIỆT:*\n` +
+                `• 🌟 *Ngũ Quý* (5 số giống nhau, VD: 7-7-7-7-7): Ăn *x5,000* + HŨ THẦN TÀI\n` +
+                `• 🌟 *Sảnh Chuẩn* (1-2-3-4-5 dãy tăng dần): Ăn *x5,000* + HŨ THẦN TÀI\n` +
+                `• 💎 *Tứ Quý* (4 số giống nhau): Ăn *x156.0*\n` +
+                `• 💎 *Sảnh Tự Do* (5 số liên tiếp): Ăn *x94.0*\n` +
+                `• 💎 *Cù Lũ* (3 số + 1 đôi): Ăn *x78.0*\n` +
+                `• 💎 *Thùng Toàn Chẵn*: Ăn *x55.0*\n` +
+                `• 💎 *Thùng Toàn Lẻ*: Ăn *x18.0*\n` +
+                `• 💎 *Thùng*: Ăn *x13.6*\n` +
+                `• 💎 *Sám Cô* (3 số giống nhau): Ăn *x11.2*\n` +
+                `• 💎 *Hai Đôi*: Ăn *x7.45* | *Một Đôi*: Ăn *x1.86*\n\n` +
+                `🔢 *CƯỢC SỐ ĐƠN (1 Đến 9):*\n` +
+                `• Ra 1 ô: Ăn *x1.7* | Ra 2 ô: Ăn *x3.1* | Ra 3 ô: Ăn *x7.5*\n` +
+                `• Ra 4 ô: Ăn *x25.0* | Ra cả 5 ô: Ăn *x100.0*\n\n` +
+                `⚡ *2. XỔ SỐ NHANH 5D (GIẢI ĐẶC BIỆT):*\n` +
+                `• 🎯 *Đề Đầu* (2 số đầu): Ăn *x95.0*\n` +
+                `• 🎯 *Đề Đuôi* (2 số cuối 00-99): Ăn *x95.0*\n` +
+                `• 🎯 *Ba Càng* (3 số cuối 000-999): Ăn *x900.0*\n` +
+                `• ⚖️ *Tài/Xỉu/Chẵn/Lẻ 5D*: Ăn *x1.98*\n` +
+                `• 👯 *Kép Bằng* (00, 11...): Ăn *x9.5*\n\n` +
+                `👇 *Bấm nút bên dưới để mở Mini App và đặt cược:*`;
+
+              const keyboard = [
+                [
+                  makePlayButton("🎰 VÀO GAME ĐẶT CƯỢC NGAY 🚀", curRoom, isGroup)
+                ]
+              ];
+              await sendTelegramMessage(botToken, chatId, rulesText, keyboard);
             }
             // Lệnh /link_room hoặc /set_room
             else if (lower.startsWith("/link_room") || lower.startsWith("/set_room") || lower.startsWith("link_room") || lower.startsWith("link room")) {
@@ -1246,7 +1279,6 @@ export default {
               } else {
                 const newRoom = normalizeRoomId(parts[1]);
                 await registerOrUpdateTelegramGroup(env, chat, newRoom);
-                const newRoomUrl = newRoom !== "public" ? `${appUrl}?room=${newRoom}` : appUrl;
                 const confirmText = `✅ *ĐÃ LIÊN KẾT NHÓM VỚI PHÒNG: [${newRoom}]!* 🎉\n\n` +
                   `• Nhóm Telegram: *${chat.title || "Nhóm"}*\n` +
                   `• Mã phòng chơi: \`${newRoom}\`\n` +
@@ -1254,10 +1286,7 @@ export default {
                   `👇 *Mời anh em cùng vào phòng chiến:*`;
                 const keyboard = [
                   [
-                    {
-                      text: `🚀 VÀO PHÒNG [${newRoom}] NGAY`,
-                      web_app: { url: newRoomUrl }
-                    }
+                    makePlayButton(`🚀 VÀO PHÒNG [${newRoom}] NGAY`, newRoom, isGroup)
                   ]
                 ];
                 await sendTelegramMessage(botToken, chatId, confirmText, keyboard);
@@ -1278,7 +1307,7 @@ export default {
                 `_Gõ \`/link_room <MÃ>\` nếu muốn đổi sang mã phòng khác._`;
 
               await sendTelegramMessage(botToken, chatId, roomInfoText, [
-                [{ text: `🎰 VÀO PHÒNG [${curRoom}] CHIẾN NGAY 🚀`, web_app: { url: curRoomUrl } }]
+                [makePlayButton(`🎰 VÀO PHÒNG [${curRoom}] CHIẾN NGAY 🚀`, curRoom, isGroup)]
               ]);
             }
             // Lệnh /soicau
@@ -1288,7 +1317,6 @@ export default {
               const curRoom = grp ? grp.room_id : "public";
               const round = getLiveRoundInfo(curRoom);
               const roadmap = (round.roadmap || []).slice(0, 10);
-              const curRoomUrl = curRoom !== "public" ? `${appUrl}?room=${curRoom}` : appUrl;
 
               let beadStr = "";
               let taiCount = 0;
@@ -1309,7 +1337,7 @@ export default {
                 `👇 *Phiên hiện tại #${round.round_id} đang mở cược:*`;
 
               await sendTelegramMessage(botToken, chatId, soicauText, [
-                [{ text: "🎯 ĐẶT CƯỢC NGAY BÂY GIỜ", web_app: { url: curRoomUrl } }]
+                [makePlayButton("🎯 ĐẶT CƯỢC NGAY BÂY GIỜ", curRoom, isGroup)]
               ]);
             }
             // Lệnh /bxh
@@ -1326,19 +1354,23 @@ export default {
                 `👇 *Vào so kèo đua top cùng các cao thủ:*`;
 
               await sendTelegramMessage(botToken, chatId, bxhText, [
-                [{ text: "🎰 VÀO ĐUA TOP NGAY", web_app: { url: appUrl } }]
+                [makePlayButton("🎰 VÀO ĐUA TOP NGAY", "public", isGroup)]
               ]);
             }
             // Lệnh /help
             else if (lower.startsWith("/help") || lower.startsWith("help") || lower.startsWith("tro giup")) {
               const helpText = `📖 *DANH SÁCH LỆNH CỦA BOT LUCKY NUMBERS 777:*\n\n` +
+                `• \`/play\` : Mở Game Mini App trực tiếp trên Telegram\n` +
+                `• \`/rules\` : Xem chi tiết Luật Chơi & Tỷ Lệ Trả Thưởng\n` +
                 `• \`/phong\` : Xem mã phòng hiện tại của nhóm & link mời\n` +
                 `• \`/link_room <MÃ>\` : Liên kết nhóm với phòng riêng (Ví dụ: \`/link_room VIP777\`)\n` +
                 `• \`/soicau\` : Xem bảng soi cầu 10 phiên gần nhất\n` +
                 `• \`/bxh\` : Xem bảng xếp hạng cao thủ thắng lớn\n` +
-                `• \`/start\` : Mở game và nhận 10,000 Xu trải nghiệm\n\n` +
+                `• \`/start\` : Bắt đầu & nhận 10,000 Xu trải nghiệm\n\n` +
                 `💡 *Mẹo:* Bạn có thể thêm bot vào bất kỳ nhóm nào để biến nhóm thành Câu Lạc Bộ chơi riêng!`;
-              await sendTelegramMessage(botToken, chatId, helpText);
+              await sendTelegramMessage(botToken, chatId, helpText, [
+                [makePlayButton("🎰 MỞ GAME TRỰC TIẾP TRÊN TELEGRAM 🚀", "public", isGroup)]
+              ]);
             }
           }
         }
