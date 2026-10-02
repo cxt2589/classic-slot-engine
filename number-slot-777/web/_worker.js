@@ -570,6 +570,8 @@ function getLottoRoundInfo(channelId = "60s") {
       de_duoi: out.de_duoi,
       de_dau: out.de_dau,
       ba_cang: out.ba_cang,
+      is_tai: out.analysis?.side === "TAI",
+      is_chan: out.analysis?.parity === "CHAN",
       analysis: out.analysis
     });
   }
@@ -593,6 +595,7 @@ function getLottoRoundInfo(channelId = "60s") {
 function calculateLottoPayout(userBets, outcome) {
   let totalWon = 0;
   const winDetails = [];
+  if (!userBets || !outcome || !outcome.analysis) return { total_won: 0, win_details: [] };
 
   const actualDeDuoi = outcome.de_duoi;
   const actualDeDau = outcome.de_dau;
@@ -1355,147 +1358,153 @@ export default {
     // ENDPOINTS XỔ SỐ NHANH 5D (LOTTO 5D API)
     // ==========================================
     if (url.pathname === "/api/lotto/state" && request.method === "GET") {
-      const channel = url.searchParams.get("channel") || "60s";
-      const targetRoomId = normalizeRoomId(url.searchParams.get("room_id") || "public");
-      const userId = url.searchParams.get("user_id") || "guest";
-      const userName = url.searchParams.get("username") || "Khách";
+      try {
+        ensureSession();
+        const channel = url.searchParams.get("channel") || "60s";
+        const targetRoomId = normalizeRoomId(url.searchParams.get("room_id") || "public");
+        const userId = url.searchParams.get("user_id") || "guest";
+        const userName = url.searchParams.get("username") || "Khách";
 
-      const lottoRound = getLottoRoundInfo(channel);
-      const curRoundId = lottoRound.round_id;
-      const prevCycleIdx = lottoRound.cycle_index - 1;
-      const prevRoundId = `X5D-${lottoRound.channel.id}-${prevCycleIdx}`;
+        const lottoRound = getLottoRoundInfo(channel);
+        const curRoundId = lottoRound.round_id;
+        const prevCycleIdx = lottoRound.cycle_index - 1;
+        const prevRoundId = `X5D-${lottoRound.channel.id}-${prevCycleIdx}`;
 
-      // Xử lý Settlement cược kỳ trước của user (nếu có)
-      const prevBetKey = `${prevRoundId}_${userId}`;
-      const settleKey = `${prevRoundId}_${userId}`;
-      let userLastSettlement = null;
+        // Xử lý Settlement cược kỳ trước của user (nếu có)
+        const prevBetKey = `${prevRoundId}_${userId}`;
+        const settleKey = `${prevRoundId}_${userId}`;
+        let userLastSettlement = null;
 
-      // Đồng bộ cược kỳ trước từ KV nếu isolate mới khởi động
-      if (!liveRoomState.lottoBets[prevRoundId]?.[userId] && env && env.LUCKY_ROOM) {
-        try {
-          const storedBet = await env.LUCKY_ROOM.get(`lotto_bet_${prevRoundId}_${userId}`, { type: "json" });
-          if (storedBet) {
-            if (!liveRoomState.lottoBets[prevRoundId]) liveRoomState.lottoBets[prevRoundId] = {};
-            liveRoomState.lottoBets[prevRoundId][userId] = storedBet;
-          }
-        } catch (e) {}
-      }
-
-      const prevBetData = liveRoomState.lottoBets[prevRoundId]?.[userId];
-      if (prevBetData && !liveRoomState.lottoSettled[settleKey]) {
-        const prevOutcome = generateLottoOutcome(prevRoundId, lottoRound.channel.id);
-        const payoutRes = calculateLottoPayout(prevBetData.bets, prevOutcome);
-
-        if (payoutRes.total_won > 0) {
-          session.balance += payoutRes.total_won;
-          session.total_won += payoutRes.total_won;
-
-          // Nếu trúng lớn >= 2000 hoặc trúng Đề x95 / 3 Càng x900
-          const hasBigHit = payoutRes.win_details.some(w => w.multiplier >= 95 || w.won >= 5000);
-          if (hasBigHit || payoutRes.total_won >= 2000) {
-            const currentBigWins = await getKVBigWins(env);
-            const hitDetail = payoutRes.win_details[0] || {};
-            const bwObj = {
-              id: "bw-lotto-" + Date.now() + "-" + Math.random().toString(36).substr(2, 4),
-              username: userName,
-              amount: payoutRes.total_won,
-              hand: `Xổ Số 5D: ${hitDetail.title || "Trúng Thưởng"}`,
-              room_id: targetRoomId,
-              time: Date.now()
-            };
-            const updatedBigWins = [bwObj, ...currentBigWins].slice(0, 20);
-            liveRoomState.bigWins = updatedBigWins;
-            await saveKVBigWins(env, updatedBigWins);
-
-            // Bắn thông báo chúc mừng tới Telegram Group
-            broadcastTelegramNotification(env, {
-              type: "jackpot",
-              room_id: targetRoomId,
-              user_name: userName,
-              amount: payoutRes.total_won,
-              hand_title: `Xổ Số ${lottoRound.channel.title}: ${hitDetail.title || "Trúng Lớn"}`
-            }).catch(e => console.error("Broadcast lotto jackpot error:", e));
-          }
+        // Đồng bộ cược kỳ trước từ KV nếu isolate mới khởi động
+        if (!liveRoomState.lottoBets[prevRoundId]?.[userId] && env && env.LUCKY_ROOM) {
+          try {
+            const storedBet = await env.LUCKY_ROOM.get(`lotto_bet_${prevRoundId}_${userId}`, { type: "json" });
+            if (storedBet) {
+              if (!liveRoomState.lottoBets[prevRoundId]) liveRoomState.lottoBets[prevRoundId] = {};
+              liveRoomState.lottoBets[prevRoundId][userId] = storedBet;
+            }
+          } catch (e) {}
         }
 
-        liveRoomState.lottoSettled[settleKey] = {
-          round_id: prevRoundId,
-          channel: lottoRound.channel.id,
-          payout: payoutRes,
-          outcome: prevOutcome,
-          time: Date.now()
-        };
-        userLastSettlement = liveRoomState.lottoSettled[settleKey];
-      } else if (liveRoomState.lottoSettled[settleKey]) {
-        userLastSettlement = liveRoomState.lottoSettled[settleKey];
-      }
+        const prevBetData = liveRoomState.lottoBets[prevRoundId]?.[userId];
+        if (prevBetData && !liveRoomState.lottoSettled[settleKey]) {
+          const prevOutcome = generateLottoOutcome(prevRoundId, lottoRound.channel.id);
+          const payoutRes = calculateLottoPayout(prevBetData.bets, prevOutcome);
 
-      // Kiểm tra cược kỳ hiện tại của user trong KV nếu chưa có trong memory
-      if (!liveRoomState.lottoBets[curRoundId]?.[userId] && env && env.LUCKY_ROOM) {
-        try {
-          const curKvBet = await env.LUCKY_ROOM.get(`lotto_bet_${curRoundId}_${userId}`, { type: "json" });
-          if (curKvBet) {
-            if (!liveRoomState.lottoBets[curRoundId]) liveRoomState.lottoBets[curRoundId] = {};
-            liveRoomState.lottoBets[curRoundId][userId] = curKvBet;
+          if (payoutRes.total_won > 0) {
+            session.balance += payoutRes.total_won;
+            session.total_won += payoutRes.total_won;
+
+            // Nếu trúng lớn >= 2000 hoặc trúng Đề x95 / 3 Càng x900
+            const hasBigHit = payoutRes.win_details.some(w => w.multiplier >= 95 || w.won >= 5000);
+            if (hasBigHit || payoutRes.total_won >= 2000) {
+              const currentBigWins = await getKVBigWins(env);
+              const hitDetail = payoutRes.win_details[0] || {};
+              const bwObj = {
+                id: "bw-lotto-" + Date.now() + "-" + Math.random().toString(36).substr(2, 4),
+                username: userName,
+                amount: payoutRes.total_won,
+                hand: `Xổ Số 5D: ${hitDetail.title || "Trúng Thưởng"}`,
+                room_id: targetRoomId,
+                time: Date.now()
+              };
+              const updatedBigWins = [bwObj, ...currentBigWins].slice(0, 20);
+              liveRoomState.bigWins = updatedBigWins;
+              await saveKVBigWins(env, updatedBigWins);
+
+              // Bắn thông báo chúc mừng tới Telegram Group
+              broadcastTelegramNotification(env, {
+                type: "jackpot",
+                room_id: targetRoomId,
+                user_name: userName,
+                amount: payoutRes.total_won,
+                hand_title: `Xổ Số ${lottoRound.channel.title}: ${hitDetail.title || "Trúng Lớn"}`
+              }).catch(e => console.error("Broadcast lotto jackpot error:", e));
+            }
           }
-        } catch (e) {}
-      }
 
-      const userCurrentBet = liveRoomState.lottoBets[curRoundId]?.[userId] || null;
-
-      // Tính toán cấp VIP
-      const isRothschild = (userId && userId.toLowerCase().includes("marothschild")) ||
-                           (userName && userName.toLowerCase().includes("marothschild"));
-      let currentVipLevel = isRothschild ? 5 : 0;
-      if (!isRothschild) {
-        const tw = session.total_wagered || 0;
-        if (tw >= 50000) currentVipLevel = 5;
-        else if (tw >= 20000) currentVipLevel = 4;
-        else if (tw >= 8000) currentVipLevel = 3;
-        else if (tw >= 3000) currentVipLevel = 2;
-        else if (tw >= 1000) currentVipLevel = 1;
-      }
-      const VIP_TIERS = [
-        { level: 0, name: "Tân Thủ", icon: "🌱" },
-        { level: 1, name: "Đồng", icon: "🥉" },
-        { level: 2, name: "Bạc", icon: "🥈" },
-        { level: 3, name: "Vàng", icon: "🥇" },
-        { level: 4, name: "Bạch Kim", icon: "💎" },
-        { level: 5, name: "Chí Tôn", icon: "👑" }
-      ];
-      const vipTier = VIP_TIERS[currentVipLevel];
-
-      return jsonRes({
-        status: "success",
-        data: {
-          round: {
-            round_id: lottoRound.round_id,
-            channel: lottoRound.channel,
-            cycle_index: lottoRound.cycle_index,
-            phase: lottoRound.phase,
-            time_left_sec: lottoRound.time_left_sec,
-            total_cycle_sec: lottoRound.total_cycle_sec,
-            betting_duration_sec: lottoRound.betting_duration_sec,
-            draw_duration_sec: lottoRound.draw_duration_sec,
-            payout_duration_sec: lottoRound.payout_duration_sec,
-            start_time_ms: lottoRound.start_time_ms,
-            outcome: lottoRound.outcome
-          },
-          channels: Object.values(LOTTO_CHANNELS),
-          roadmap: lottoRound.roadmap,
-          user_current_bet: userCurrentBet,
-          user_last_settlement: userLastSettlement,
-          user_balance: Math.round(session.balance * 100) / 100,
-          vip_info: {
-            level: currentVipLevel,
-            name: vipTier.name,
-            icon: vipTier.icon,
-            total_wagered: session.total_wagered || 0,
-            is_rothschild: isRothschild
-          },
-          payout_rates: LOTTO_PAYOUTS
+          liveRoomState.lottoSettled[settleKey] = {
+            round_id: prevRoundId,
+            channel: lottoRound.channel.id,
+            payout: payoutRes,
+            outcome: prevOutcome,
+            time: Date.now()
+          };
+          userLastSettlement = liveRoomState.lottoSettled[settleKey];
+        } else if (liveRoomState.lottoSettled[settleKey]) {
+          userLastSettlement = liveRoomState.lottoSettled[settleKey];
         }
-      });
+
+        // Kiểm tra cược kỳ hiện tại của user trong KV nếu chưa có trong memory
+        if (!liveRoomState.lottoBets[curRoundId]?.[userId] && env && env.LUCKY_ROOM) {
+          try {
+            const curKvBet = await env.LUCKY_ROOM.get(`lotto_bet_${curRoundId}_${userId}`, { type: "json" });
+            if (curKvBet) {
+              if (!liveRoomState.lottoBets[curRoundId]) liveRoomState.lottoBets[curRoundId] = {};
+              liveRoomState.lottoBets[curRoundId][userId] = curKvBet;
+            }
+          } catch (e) {}
+        }
+
+        const userCurrentBet = liveRoomState.lottoBets[curRoundId]?.[userId] || null;
+
+        // Tính toán cấp VIP
+        const isRothschild = (userId && userId.toLowerCase().includes("marothschild")) ||
+                             (userName && userName.toLowerCase().includes("marothschild"));
+        let currentVipLevel = isRothschild ? 5 : 0;
+        if (!isRothschild) {
+          const tw = session.total_wagered || 0;
+          if (tw >= 50000) currentVipLevel = 5;
+          else if (tw >= 20000) currentVipLevel = 4;
+          else if (tw >= 8000) currentVipLevel = 3;
+          else if (tw >= 3000) currentVipLevel = 2;
+          else if (tw >= 1000) currentVipLevel = 1;
+        }
+        const VIP_TIERS = [
+          { level: 0, name: "Tân Thủ", icon: "🌱" },
+          { level: 1, name: "Đồng", icon: "🥉" },
+          { level: 2, name: "Bạc", icon: "🥈" },
+          { level: 3, name: "Vàng", icon: "🥇" },
+          { level: 4, name: "Bạch Kim", icon: "💎" },
+          { level: 5, name: "Chí Tôn", icon: "👑" }
+        ];
+        const vipTier = VIP_TIERS[currentVipLevel];
+
+        return jsonRes({
+          status: "success",
+          data: {
+            round: {
+              round_id: lottoRound.round_id,
+              channel: lottoRound.channel,
+              cycle_index: lottoRound.cycle_index,
+              phase: lottoRound.phase,
+              time_left_sec: lottoRound.time_left_sec,
+              total_cycle_sec: lottoRound.total_cycle_sec,
+              betting_duration_sec: lottoRound.betting_duration_sec,
+              draw_duration_sec: lottoRound.draw_duration_sec,
+              payout_duration_sec: lottoRound.payout_duration_sec,
+              start_time_ms: lottoRound.start_time_ms,
+              outcome: lottoRound.outcome
+            },
+            channels: Object.values(LOTTO_CHANNELS),
+            roadmap: lottoRound.roadmap,
+            user_current_bet: userCurrentBet,
+            user_last_settlement: userLastSettlement,
+            user_balance: Math.round(session.balance * 100) / 100,
+            vip_info: {
+              level: currentVipLevel,
+              name: vipTier.name,
+              icon: vipTier.icon,
+              total_wagered: session.total_wagered || 0,
+              is_rothschild: isRothschild
+            },
+            payout_rates: LOTTO_PAYOUTS
+          }
+        });
+      } catch (err) {
+        console.error("Lotto state error:", err);
+        return jsonRes({ status: "error", detail: "Lỗi tải dữ liệu xổ số: " + err.message, stack: err.stack }, 500);
+      }
     }
 
     if (url.pathname === "/api/lotto/bet" && request.method === "POST") {
