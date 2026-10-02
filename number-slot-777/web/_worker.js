@@ -753,13 +753,18 @@ export default {
     }
 
     if (url.pathname === "/api/reset" && request.method === "POST") {
+      const prevWagered = (session && session.total_wagered) ? session.total_wagered : 0.0;
+      const prevWon = (session && session.total_won) ? session.total_won : 0.0;
+      const prevSpins = (session && session.total_spins) ? session.total_spins : 0;
+      const prevHistory = (session && session.history && session.history.length > 0) ? session.history : initSampleHistory(35);
+
       session = {
-        session_id: "num-cf-" + Math.random().toString(36).substring(2, 9),
+        session_id: (session && session.session_id) ? session.session_id : ("num-cf-" + Math.random().toString(36).substring(2, 9)),
         balance: 10000.0,
-        total_wagered: 0.0,
-        total_won: 0.0,
-        total_spins: 0,
-        history: initSampleHistory(35)
+        total_wagered: prevWagered, // Bảo toàn 100% tổng tiền cược tích lũy để giữ nguyên cấp VIP
+        total_won: prevWon,
+        total_spins: prevSpins,
+        history: prevHistory
       };
       return jsonRes({ status: "success", data: session });
     }

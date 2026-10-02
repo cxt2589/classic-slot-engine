@@ -202,13 +202,25 @@ def spin_reels(req: SpinRequest = Body(...)):
 )
 def reset_session(req: ResetRequest = Body(...)):
     """
-    Resets the player session wallet back to the specified amount (default: 10,000 credits).
+    Resets the player session wallet back to the specified amount (default: 10,000 credits)
+    while preserving lifetime total_wagered, total_won, and VIP status.
     """
     global default_session
-    default_session = PlayerSession(balance=req.initial_balance)
+    prev_wagered = default_session.total_wagered if default_session else 0.0
+    prev_won = default_session.total_won if default_session else 0.0
+    prev_spins = default_session.total_spins if default_session else 0
+    prev_history = default_session.history if default_session else []
+
+    default_session = PlayerSession(
+        balance=req.initial_balance,
+        total_wagered=prev_wagered,
+        total_won=prev_won,
+        total_spins=prev_spins,
+        history=prev_history
+    )
     return {
         "status": "success",
-        "message": f"Số dư đã nạp lại {req.initial_balance:,.2f} credits",
+        "message": f"Số dư đã nạp lại {req.initial_balance:,.2f} credits (Bảo lưu nguyên vẹn cấp VIP & Tổng cược)",
         "data": default_session.to_dict(),
     }
 

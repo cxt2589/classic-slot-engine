@@ -649,6 +649,13 @@ async function loadSession() {
         }
       }
 
+      // Khôi phục tổng tiền cược tích lũy trọn đời (Bảo lưu VIP)
+      const uidKey = tgUserId ? `tg_wagered_${tgUserId}` : `lucky_lifetime_wagered_${getLiveUserId()}`;
+      const savedWagered = localStorage.getItem(uidKey) || localStorage.getItem("lucky_lifetime_wagered");
+      if (savedWagered !== null && !isNaN(parseFloat(savedWagered))) {
+        state.session.total_wagered = Math.max(state.session.total_wagered || 0, parseFloat(savedWagered));
+      }
+
       updateMeters();
       renderSoiKeo();
     }
@@ -666,10 +673,20 @@ function updateMeters(lastWin = 0) {
     dom.meterWin.textContent = lastWin.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
-  // Persist balance for Telegram user
+  // Persist balance & lifetime wagered for user
   const tgUserId = telegramEngine.tg?.initDataUnsafe?.user?.id;
   if (tgUserId && state.session?.balance !== undefined) {
     localStorage.setItem(`tg_balance_${tgUserId}`, state.session.balance);
+  }
+  if (state.session?.total_wagered !== undefined) {
+    const uidKey = tgUserId ? `tg_wagered_${tgUserId}` : `lucky_lifetime_wagered_${getLiveUserId()}`;
+    const curSaved = parseFloat(localStorage.getItem(uidKey)) || 0;
+    if (state.session.total_wagered > curSaved) {
+      localStorage.setItem(uidKey, state.session.total_wagered);
+      localStorage.setItem("lucky_lifetime_wagered", state.session.total_wagered);
+    } else if (curSaved > state.session.total_wagered) {
+      state.session.total_wagered = curSaved;
+    }
   }
 }
 
@@ -963,6 +980,7 @@ function setupActions() {
       if (state.session) {
         state.session.balance += 10000.0;
         updateMeters();
+        showToast("💰 Đã nhận thêm +10,000 Xu miễn phí! Cấp bậc VIP được giữ nguyên.", "gold");
       }
     });
   }
@@ -970,6 +988,7 @@ function setupActions() {
   dom.btnResetBalance.addEventListener("click", async () => {
     try {
       telegramEngine.haptic("medium");
+      const currentWagered = (state.session && state.session.total_wagered) || 0;
       const res = await fetch("/api/reset", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -978,9 +997,18 @@ function setupActions() {
       const json = await res.json();
       if (json.status === "success") {
         state.session = json.data;
+        // Bảo lưu 100% tổng cược tích lũy để không bao giờ bị hạ cấp VIP
+        state.session.total_wagered = Math.max(json.data.total_wagered || 0, currentWagered);
+        const tgUserId = telegramEngine.tg?.initDataUnsafe?.user?.id;
+        const uidKey = tgUserId ? `tg_wagered_${tgUserId}` : `lucky_lifetime_wagered_${getLiveUserId()}`;
+        localStorage.setItem(uidKey, state.session.total_wagered);
+        localStorage.setItem("lucky_lifetime_wagered", state.session.total_wagered);
+
         state.historyData = json.data.history || [];
         updateMeters();
         renderSoiKeo();
+        syncLiveRoomState();
+        showToast("💰 Đã nạp lại số dư 10,000 Xu! Cấp bậc VIP & Tổng cược được bảo lưu nguyên vẹn.", "gold");
       }
     } catch (e) {
       console.error(e);
