@@ -376,7 +376,30 @@ async function sendTelegramMessage(botToken, chatId, text, inlineKeyboard = null
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
     });
-    return await res.json();
+    const resJson = await res.json();
+    if (!resJson.ok) {
+      console.warn("sendTelegramMessage failed:", resJson.description, "Retrying with fallback...");
+      // 1. Fallback: Nếu Telegram từ chối web_app button trong group, đổi thành regular url button
+      if (payload.reply_markup && payload.reply_markup.inline_keyboard) {
+        payload.reply_markup.inline_keyboard = payload.reply_markup.inline_keyboard.map(row =>
+          row.map(btn => {
+            if (btn.web_app && btn.web_app.url) {
+              return { text: btn.text, url: btn.web_app.url };
+            }
+            return btn;
+          })
+        );
+      }
+      // 2. Fallback: Bỏ parse_mode Markdown để tránh lỗi ký tự đặc biệt
+      delete payload.parse_mode;
+      const retryRes = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      return await retryRes.json();
+    }
+    return resJson;
   } catch (err) {
     console.error("sendTelegramMessage error:", err);
     return null;
@@ -1161,10 +1184,14 @@ export default {
             }
           }
 
-          const text = (msg.text || "").trim();
+          const rawText = (msg.text || "").trim();
+          // Xóa tag bot (ví dụ /start@relicspin_bot -> /start)
+          const text = rawText.replace(new RegExp(`@${TELEGRAM_BOT_USERNAME}`, "ig"), "").trim();
+          const lower = text.toLowerCase();
+
           if (text) {
-            // Lệnh /start
-            if (text.startsWith("/start")) {
+            // Lệnh /start hoặc /play
+            if (lower.startsWith("/start") || lower.startsWith("/play") || lower === "start" || lower === "play") {
               const parts = text.split(/\s+/);
               const startParam = parts[1] || "";
               let targetRoom = "public";
@@ -1208,7 +1235,7 @@ export default {
               await sendTelegramMessage(botToken, chatId, replyText, keyboard);
             }
             // Lệnh /link_room hoặc /set_room
-            else if (text.startsWith("/link_room") || text.startsWith("/set_room")) {
+            else if (lower.startsWith("/link_room") || lower.startsWith("/set_room") || lower.startsWith("link_room") || lower.startsWith("link room")) {
               const parts = text.split(/\s+/);
               if (parts.length < 2 || !parts[1].trim()) {
                 const hint = `❌ *Vui lòng nhập mã phòng hợp lệ!*\n\n` +
@@ -1237,7 +1264,7 @@ export default {
               }
             }
             // Lệnh /phong hoặc /room
-            else if (text.startsWith("/phong") || text.startsWith("/room")) {
+            else if (lower.startsWith("/phong") || lower.startsWith("/room") || lower === "phong" || lower === "room") {
               const groups = await getKVTelegramGroups(env);
               const grp = groups.find(g => String(g.chat_id) === String(chatId));
               const curRoom = grp ? grp.room_id : "public";
@@ -1255,7 +1282,7 @@ export default {
               ]);
             }
             // Lệnh /soicau
-            else if (text.startsWith("/soicau")) {
+            else if (lower.startsWith("/soicau") || lower.startsWith("soicau") || lower.startsWith("soi cau")) {
               const groups = await getKVTelegramGroups(env);
               const grp = groups.find(g => String(g.chat_id) === String(chatId));
               const curRoom = grp ? grp.room_id : "public";
@@ -1286,7 +1313,7 @@ export default {
               ]);
             }
             // Lệnh /bxh
-            else if (text.startsWith("/bxh")) {
+            else if (lower.startsWith("/bxh") || lower.startsWith("bxh") || lower.startsWith("top")) {
               const bigWins = (await getKVBigWins(env)).slice(0, 5);
               let bxhStr = "";
               const medals = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣"];
@@ -1303,7 +1330,7 @@ export default {
               ]);
             }
             // Lệnh /help
-            else if (text.startsWith("/help")) {
+            else if (lower.startsWith("/help") || lower.startsWith("help") || lower.startsWith("tro giup")) {
               const helpText = `📖 *DANH SÁCH LỆNH CỦA BOT LUCKY NUMBERS 777:*\n\n` +
                 `• \`/phong\` : Xem mã phòng hiện tại của nhóm & link mời\n` +
                 `• \`/link_room <MÃ>\` : Liên kết nhóm với phòng riêng (Ví dụ: \`/link_room VIP777\`)\n` +
