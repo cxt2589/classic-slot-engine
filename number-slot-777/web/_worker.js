@@ -1395,6 +1395,14 @@ export default {
           } catch (e) {}
         }
 
+        // Khôi phục kết quả đã thanh toán từ KV nếu isolate mới
+        if (!liveRoomState.lottoSettled[settleKey] && env && env.LUCKY_ROOM) {
+          try {
+            const storedSettled = await env.LUCKY_ROOM.get(`lotto_settle_${settleKey}`, { type: "json" });
+            if (storedSettled) liveRoomState.lottoSettled[settleKey] = storedSettled;
+          } catch (e) {}
+        }
+
         const prevBetData = liveRoomState.lottoBets[prevRoundId]?.[userId];
         if (prevBetData && !liveRoomState.lottoSettled[settleKey]) {
           const prevOutcome = generateLottoOutcome(prevRoundId, lottoRound.channel.id);
@@ -1435,11 +1443,19 @@ export default {
           liveRoomState.lottoSettled[settleKey] = {
             round_id: prevRoundId,
             channel: lottoRound.channel.id,
+            bets: prevBetData.bets,
+            total_bet: prevBetData.total_bet,
             payout: payoutRes,
             outcome: prevOutcome,
             time: Date.now()
           };
           userLastSettlement = liveRoomState.lottoSettled[settleKey];
+
+          if (env && env.LUCKY_ROOM) {
+            try {
+              await env.LUCKY_ROOM.put(`lotto_settle_${settleKey}`, JSON.stringify(userLastSettlement), { expirationTtl: 1800 });
+            } catch (e) {}
+          }
         } else if (liveRoomState.lottoSettled[settleKey]) {
           userLastSettlement = liveRoomState.lottoSettled[settleKey];
         }

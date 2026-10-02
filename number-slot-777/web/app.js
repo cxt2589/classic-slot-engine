@@ -578,6 +578,7 @@ const dom = {
   lottoMyTicketBadge: document.getElementById("lottoMyTicketBadge"),
   lottoMyTicketBadgeVal: document.getElementById("lottoMyTicketBadgeVal"),
   lottoActiveTicketCard: document.getElementById("lottoActiveTicketCard"),
+  latTitle: document.getElementById("latTitle"),
   latPhaseBadge: document.getElementById("latPhaseBadge"),
   latTotalWager: document.getElementById("latTotalWager"),
   latBody: document.getElementById("latBody")
@@ -5616,9 +5617,9 @@ async function syncLottoState() {
       renderLottoRoadmap(data.roadmap);
     }
 
-    // Render Active Placed Ticket (Vé đã cược kỳ này)
+    // Render Active Placed Ticket (Vé đã cược kỳ này hoặc kỳ trước)
     lottoState.currentActiveTicket = data.user_current_bet;
-    renderLottoActiveTicket(data.user_current_bet, data.round?.outcome, data.round?.phase);
+    renderLottoActiveTicket(data.user_current_bet, data.round?.outcome, data.round?.phase, data.user_last_settlement);
     updateMeters();
 
   } catch (err) {
@@ -5761,52 +5762,13 @@ function renderLottoRoadmap(roadmap) {
   `).join("");
 }
 
-function renderLottoActiveTicket(ticket, outcome, phase) {
-  if (!dom.lottoActiveTicketCard) return;
-
-  if (!ticket || !ticket.bets || (ticket.total_bet || 0) <= 0) {
-    dom.lottoActiveTicketCard.style.display = "none";
-    if (dom.lottoMyTicketBadge) dom.lottoMyTicketBadge.style.display = "none";
+function renderTicketBetsBody(bets, outcome) {
+  if (!dom.latBody) return;
+  if (!bets) {
+    dom.latBody.innerHTML = "";
     return;
   }
 
-  // Show ticket card & header badge
-  dom.lottoActiveTicketCard.style.display = "flex";
-  if (dom.lottoMyTicketBadge) {
-    dom.lottoMyTicketBadge.style.display = "inline-flex";
-    if (dom.lottoMyTicketBadgeVal) {
-      dom.lottoMyTicketBadgeVal.textContent = `${(ticket.total_bet || 0).toLocaleString()} Xu`;
-    }
-  }
-
-  if (dom.latTotalWager) {
-    dom.latTotalWager.textContent = `${(ticket.total_bet || 0).toLocaleString()} Xu`;
-  }
-
-  // Phase badge
-  if (dom.latPhaseBadge) {
-    if (phase === "betting") {
-      dom.latPhaseBadge.className = "lat-phase-badge pending";
-      dom.latPhaseBadge.textContent = "⏳ ĐANG CHỜ MỞ THƯỞNG";
-    } else if (phase === "drawing") {
-      dom.latPhaseBadge.className = "lat-phase-badge drawing";
-      dom.latPhaseBadge.textContent = "🎰 ĐANG QUAY THƯỞNG...";
-    } else if (phase === "payout") {
-      dom.latPhaseBadge.className = "lat-phase-badge won";
-      dom.latPhaseBadge.textContent = "🎉 KẾT QUẢ KỲ QUAY";
-    }
-  }
-
-  // If in betting phase and we have bets, update Marquee to show active ticket!
-  if (phase === "betting" && !state.isSpinning) {
-    if (dom.resHand) {
-      dom.resHand.textContent = `🎟️ Vé của bạn: ${(ticket.total_bet || 0).toLocaleString()} Xu (Đang chờ quay)`;
-    }
-  }
-
-  if (!dom.latBody) return;
-
-  const bets = ticket.bets || {};
   let html = "";
 
   // 1. Đề Đuôi (x95)
@@ -5897,6 +5859,78 @@ function renderLottoActiveTicket(ticket, outcome, phase) {
   }
 
   dom.latBody.innerHTML = html;
+}
+
+function renderLottoActiveTicket(ticket, outcome, phase, lastSettlement) {
+  if (!dom.lottoActiveTicketCard) return;
+
+  const currentBetsExist = ticket && ticket.bets && (ticket.total_bet || 0) > 0;
+  const lastSettledBetsExist = !currentBetsExist && lastSettlement && lastSettlement.bets && (lastSettlement.total_bet || 0) > 0;
+
+  if (!currentBetsExist && !lastSettledBetsExist) {
+    dom.lottoActiveTicketCard.style.display = "none";
+    if (dom.lottoMyTicketBadge) dom.lottoMyTicketBadge.style.display = "none";
+    return;
+  }
+
+  dom.lottoActiveTicketCard.style.display = "flex";
+
+  if (currentBetsExist) {
+    const roundId = ticket.round_id || lottoState.currentRound?.round_id || "";
+    if (dom.latTitle) dom.latTitle.textContent = `VÉ ĐÃ ĐẶT KỲ NÀY ${roundId ? `(#${roundId})` : ""}`;
+    if (dom.lottoMyTicketBadge) {
+      dom.lottoMyTicketBadge.style.display = "inline-flex";
+      if (dom.lottoMyTicketBadgeVal) {
+        dom.lottoMyTicketBadgeVal.textContent = `${(ticket.total_bet || 0).toLocaleString()} Xu`;
+      }
+    }
+    if (dom.latTotalWager) {
+      dom.latTotalWager.textContent = `${(ticket.total_bet || 0).toLocaleString()} Xu`;
+    }
+
+    if (dom.latPhaseBadge) {
+      if (phase === "betting") {
+        dom.latPhaseBadge.className = "lat-phase-badge pending";
+        dom.latPhaseBadge.textContent = "⏳ ĐANG CHỜ MỞ THƯỞNG";
+      } else if (phase === "drawing") {
+        dom.latPhaseBadge.className = "lat-phase-badge drawing";
+        dom.latPhaseBadge.textContent = "🎰 ĐANG QUAY THƯỞNG...";
+      } else if (phase === "payout") {
+        dom.latPhaseBadge.className = "lat-phase-badge won";
+        dom.latPhaseBadge.textContent = "🎉 KẾT QUẢ KỲ QUAY";
+      }
+    }
+
+    if (phase === "betting" && !state.isSpinning) {
+      if (dom.resHand) {
+        dom.resHand.textContent = `🎟️ Vé của bạn: ${(ticket.total_bet || 0).toLocaleString()} Xu (Đang chờ quay)`;
+      }
+    }
+
+    renderTicketBetsBody(ticket.bets, outcome);
+  } else {
+    const prevRoundId = lastSettlement.round_id || "";
+    const wonAmt = lastSettlement.payout?.total_won || 0;
+    if (dom.latTitle) dom.latTitle.textContent = `KẾT QUẢ VÉ KỲ TRƯỚC (#${prevRoundId})`;
+    if (dom.lottoMyTicketBadge) dom.lottoMyTicketBadge.style.display = "none";
+    if (dom.latTotalWager) {
+      dom.latTotalWager.textContent = wonAmt > 0 
+        ? `${(lastSettlement.total_bet || 0).toLocaleString()} Xu (+${wonAmt.toLocaleString()} Xu)`
+        : `${(lastSettlement.total_bet || 0).toLocaleString()} Xu`;
+    }
+
+    if (dom.latPhaseBadge) {
+      if (wonAmt > 0) {
+        dom.latPhaseBadge.className = "lat-phase-badge won";
+        dom.latPhaseBadge.textContent = `🎉 TRÚNG (+${wonAmt.toLocaleString()} Xu)`;
+      } else {
+        dom.latPhaseBadge.className = "lat-phase-badge lost";
+        dom.latPhaseBadge.textContent = "⭕ KHÔNG TRÚNG";
+      }
+    }
+
+    renderTicketBetsBody(lastSettlement.bets, lastSettlement.outcome);
+  }
 }
 
 function handleLottoSettlement(settlement, newBalance) {
@@ -6015,8 +6049,18 @@ async function submitLottoTicket() {
 
       if (json.data && typeof json.data.balance === "number" && state.session) {
         state.session.balance = json.data.balance;
-        updateMeters();
       }
+
+      // Hiển thị ngay lập tức vé đã đặt lên bảng cược (0ms latency)
+      if (json.data && json.data.bet_entry) {
+        lottoState.currentActiveTicket = json.data.bet_entry;
+        renderLottoActiveTicket(json.data.bet_entry, null, lottoState.currentRound?.phase || "betting", null);
+        if (dom.lottoActiveTicketCard) {
+          dom.lottoActiveTicketCard.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }
+      }
+
+      updateMeters();
 
       // Clear ticket inputs
       lottoState.selectedNumbers.clear();
