@@ -346,6 +346,10 @@ const dom = {
   recentRoomsSection: document.getElementById("recentRoomsSection"),
   recentRoomsList: document.getElementById("recentRoomsList"),
   btnClearRecentRooms: document.getElementById("btnClearRecentRooms"),
+  btnRoomAddBotToGroup: document.getElementById("btnRoomAddBotToGroup"),
+  btnCopyLinkRoomCommand: document.getElementById("btnCopyLinkRoomCommand"),
+  btnTestBotBroadcast: document.getElementById("btnTestBotBroadcast"),
+  tbiCmdText: document.getElementById("tbiCmdText"),
 
   // Player VIP & Profile Elements
   playerVipPill: document.getElementById("playerVipPill"),
@@ -2903,6 +2907,9 @@ function updateRoomUI() {
   if (dom.currentRoomCard) {
     dom.currentRoomCard.classList.toggle("is-private", isPrivate);
   }
+  if (dom.tbiCmdText) {
+    dom.tbiCmdText.textContent = `/link_room ${roomId}`;
+  }
 }
 
 function joinRoom(rawRoomId, silent = false) {
@@ -3130,6 +3137,65 @@ function initRoomSystem() {
       renderRecentRooms();
       telegramEngine.haptic("light");
       showToast("Đã xóa lịch sử phòng gần đây!", "info");
+    });
+  }
+
+  // Tích hợp Telegram Bot Cho Group (Giai đoạn 3)
+  if (dom.btnRoomAddBotToGroup) {
+    dom.btnRoomAddBotToGroup.addEventListener("click", () => {
+      telegramEngine.haptic("medium");
+      const currentRoom = normalizeRoomIdClient(state.currentRoomId);
+      const addBotUrl = `https://t.me/relicspin_bot?startgroup=room_${currentRoom}`;
+      if (window.Telegram?.WebApp?.openTelegramLink) {
+        window.Telegram.WebApp.openTelegramLink(addBotUrl);
+      } else {
+        window.open(addBotUrl, "_blank");
+      }
+      showToast("🚀 Đang mở Telegram để thêm Bot vào Nhóm!", "gold");
+    });
+  }
+
+  if (dom.btnCopyLinkRoomCommand) {
+    dom.btnCopyLinkRoomCommand.addEventListener("click", () => {
+      telegramEngine.haptic("light");
+      const currentRoom = normalizeRoomIdClient(state.currentRoomId);
+      const cmdText = `/link_room ${currentRoom}`;
+      fallbackCopy(cmdText);
+      showToast(`📋 Đã sao chép: "${cmdText}". Hãy gửi vào nhóm Telegram!`, "gold");
+    });
+  }
+
+  if (dom.btnTestBotBroadcast) {
+    dom.btnTestBotBroadcast.addEventListener("click", async () => {
+      telegramEngine.haptic("medium");
+      const currentRoom = normalizeRoomIdClient(state.currentRoomId);
+      try {
+        dom.btnTestBotBroadcast.disabled = true;
+        dom.btnTestBotBroadcast.textContent = "⏳ Đang bắn thử...";
+        const res = await fetch("/api/telegram/test-notify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "jackpot",
+            room_id: currentRoom,
+            amount: 38800,
+            user_name: getLiveUserName(),
+            hand_title: "Ngũ Quý 7-7-7-7-7"
+          })
+        });
+        const data = await res.json();
+        if (data.status === "success") {
+          telegramEngine.haptic("notification", "success");
+          showToast(`🔔 ${data.message}`, "gold");
+        } else {
+          showToast(data.detail || "Không thể gửi tin nhắn thử!", "warn");
+        }
+      } catch (err) {
+        showToast("Lỗi kiểm tra: " + err.message, "error");
+      } finally {
+        dom.btnTestBotBroadcast.disabled = false;
+        dom.btnTestBotBroadcast.innerHTML = `<span>🔔</span> Bắn Thử Tin Mẫu`;
+      }
     });
   }
 

@@ -6,7 +6,7 @@
   <meta name="format-detection" content="telephone=no">
   <title>Lucky Numbers 777 - Classic 5x3 Number Slot</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <link rel="stylesheet" href="/static/style.css?v=20261002_live21">
+  <link rel="stylesheet" href="/static/style.css?v=20261002_live22">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600;1,700&family=Orbitron:wght@600;700;800;900&display=swap&subset=vietnamese" rel="stylesheet">
@@ -2043,6 +2043,33 @@ Content-Type: application/json
             <li>🔗 <strong>Deep Link Telegram:</strong> Gửi link cho bạn bè qua Telegram, chỉ cần 1 chạm là tự động vào đúng phòng!</li>
           </ul>
         </div>
+
+        <!-- Card Tích Hợp Telegram Bot Cho Group (Giai đoạn 3) -->
+        <div class="telegram-bot-integration-card" id="tgBotIntegrationCard">
+          <div class="tbi-head">
+            <span class="tbi-badge">🤖 TELEGRAM BOT TỰ ĐỘNG</span>
+            <span class="tbi-tag">ĐÃ KÍCH HOẠT</span>
+          </div>
+          <div class="tbi-title">Kéo Bot Vào Nhóm Telegram Để Báo Nổ Hũ & Lì Xì</div>
+          <p class="tbi-desc">
+            Thêm <strong>@relicspin_bot</strong> vào Group của bạn để tự động nhận thông báo khi có người nổ hũ to, phát lì xì, hoặc tra cứu soi cầu 20 phiên ngay trong nhóm chat!
+          </p>
+
+          <div class="tbi-cmd-box">
+            <span class="tbi-cmd-label">Cú pháp gán nhóm:</span>
+            <code class="tbi-cmd-text" id="tbiCmdText">/link_room PUBLIC</code>
+            <button type="button" class="tbi-copy-cmd-btn" id="btnCopyLinkRoomCommand" title="Sao chép cú pháp">📋 Chép Lệnh</button>
+          </div>
+
+          <div class="tbi-actions">
+            <button type="button" class="tbi-btn primary" id="btnRoomAddBotToGroup">
+              <span>🤖</span> Thêm Bot Vào Nhóm Telegram
+            </button>
+            <button type="button" class="tbi-btn secondary" id="btnTestBotBroadcast">
+              <span>🔔</span> Bắn Thử Tin Mẫu
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -2058,6 +2085,6 @@ Content-Type: application/json
     <div class="gja-amt glow-gold" id="gjaAmt">+50,000 Xu</div>
   </div>
 
-  <script src="/static/app.js?v=20261002_live20"></script>
+  <script src="/static/app.js?v=20261002_live22"></script>
 </body>
 </html>
