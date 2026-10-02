@@ -6,7 +6,7 @@
   <meta name="format-detection" content="telephone=no">
   <title>Lucky Numbers 777 - Classic 5x3 Number Slot</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <link rel="stylesheet" href="/static/style.css?v=20261002_lotto03">
+  <link rel="stylesheet" href="/static/style.css?v=20261002_mode01">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600;1,700&family=Orbitron:wght@600;700;800;900&display=swap&subset=vietnamese" rel="stylesheet">
@@ -97,31 +97,52 @@
     <main id="tab-game" class="tab-content active">
       <!-- GAMEPLAY MODE SWITCHER & LIVE INDICATOR (COMPACT BAR) -->
       <div class="game-mode-bar">
-        <div class="mode-switch-group">
-          <button class="mode-switch-btn active" id="btnModeSolo" data-mode="solo">
-            <span class="m-icon">👤</span>
-            <span class="m-title">CHƠI ĐƠN</span>
+        <div class="mode-switch-group" role="tablist" aria-label="Chế độ chơi">
+          <!-- 1. CHƠI ĐƠN -->
+          <button type="button" class="mode-switch-btn active" id="btnModeSolo" data-mode="solo" role="tab" aria-selected="true" title="Chế độ chơi đơn quay tự do">
+            <div class="msb-head">
+              <span class="m-icon">👤</span>
+              <span class="m-title">CHƠI ĐƠN</span>
+            </div>
+            <div class="msb-badge msb-badge-solo">Tự do</div>
           </button>
-          <button class="mode-switch-btn" id="btnModeLive" data-mode="live">
-            <span class="m-icon">👥</span>
-            <span class="m-title">TRỰC TIẾP <span class="live-dot-pulse">🔴</span> <span id="modeLiveSecLbl">30s</span></span>
+
+          <!-- 2. TRỰC TIẾP (LIVE) -->
+          <button type="button" class="mode-switch-btn" id="btnModeLive" data-mode="live" role="tab" aria-selected="false" title="Chế độ trực tiếp nhiều người chơi">
+            <div class="msb-head">
+              <span class="m-icon">👥</span>
+              <span class="m-title">TRỰC TIẾP</span>
+            </div>
+            <div class="msb-badge msb-badge-live">
+              <span class="live-dot-pulse" aria-hidden="true"></span>
+              <span id="modeLiveSecLbl">30s</span>
+            </div>
           </button>
-          <button class="mode-switch-btn" id="btnModeLotto" data-mode="lotto">
-            <span class="m-icon">🎲</span>
-            <span class="m-title">XỔ SỐ 5D <span class="lotto-speed-tag">⚡ 60s</span></span>
+
+          <!-- 3. XỔ SỐ 5D -->
+          <button type="button" class="mode-switch-btn" id="btnModeLotto" data-mode="lotto" role="tab" aria-selected="false" title="Chế độ xổ số nhanh 5D">
+            <div class="msb-head">
+              <span class="m-icon">🎲</span>
+              <span class="m-title">XỔ SỐ 5D</span>
+            </div>
+            <div class="msb-badge msb-badge-lotto">
+              <span class="bolt">⚡</span> 60s
+            </div>
           </button>
         </div>
 
-        <!-- Nút Chuyển Đổi Phòng & Huy Hiệu Phòng Riêng -->
-        <button type="button" class="room-selector-btn" id="btnOpenRoomModal" title="Đổi phòng hoặc tạo phòng riêng với bạn bè">
-          <span class="rs-icon" id="roomSelectorIcon">🌐</span>
-          <span class="rs-name" id="roomSelectorName">Toàn Server</span>
-          <span class="rs-badge-action">Đổi Phòng ▾</span>
-        </button>
+        <div class="game-mode-meta-row">
+          <!-- Nút Chuyển Đổi Phòng & Huy Hiệu Phòng Riêng -->
+          <button type="button" class="room-selector-btn" id="btnOpenRoomModal" title="Đổi phòng hoặc tạo phòng riêng với bạn bè">
+            <span class="rs-icon" id="roomSelectorIcon">🌐</span>
+            <span class="rs-name" id="roomSelectorName">Toàn Server</span>
+            <span class="rs-badge-action">Đổi Phòng ▾</span>
+          </button>
 
-        <div class="live-room-online-pill" id="liveRoomOnlinePill" style="display:none">
-          <span class="online-indicator"></span>
-          <span class="online-txt"><strong id="liveOnlineCount">148</strong> đang cược</span>
+          <div class="live-room-online-pill" id="liveRoomOnlinePill" style="display:none">
+            <span class="online-indicator"></span>
+            <span class="online-txt"><strong id="liveOnlineCount">148</strong> đang cược</span>
+          </div>
         </div>
       </div>
 
@@ -2338,6 +2359,6 @@ Content-Type: application/json
     <div class="gja-amt glow-gold" id="gjaAmt">+50,000 Xu</div>
   </div>
 
-  <script src="/static/app.js?v=20261002_lotto04"></script>
+  <script src="/static/app.js?v=20261002_mode01"></script>
 </body>
 </html>
