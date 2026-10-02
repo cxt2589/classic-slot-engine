@@ -3653,12 +3653,12 @@ body.is-telegram-app .brand-text .subtext {
   .brand {
     gap: 6px;
     flex-shrink: 0;
-    min-width: 0;
+    min-width: max-content;
     align-items: center;
   }
 
   .brand-icon {
-    font-size: 1.35rem;
+    font-size: 1.3rem;
     flex-shrink: 0;
   }
 
@@ -3667,12 +3667,15 @@ body.is-telegram-app .brand-text .subtext {
     overflow: hidden;
   }
 
+  /* Ẩn chữ NUMBERS trên mobile để logo là LUCKY 777 siêu gọn, nhường không gian tối đa cho tên người chơi */
+  .brand-word-numbers {
+    display: none !important;
+  }
+
   .brand-text h1 {
-    font-size: clamp(0.85rem, 3.2vw, 1.05rem);
+    font-size: clamp(0.85rem, 3.2vw, 0.98rem);
     letter-spacing: 0.3px;
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
     margin: 0;
     line-height: 1.1;
   }
@@ -3686,13 +3689,15 @@ body.is-telegram-app .brand-text .subtext {
     gap: 6px;
     display: flex;
     align-items: center;
-    flex-shrink: 0;
+    flex-shrink: 1;
+    min-width: 0;
   }
 
-  /* Header VIP Pill trên mobile: Gọn gàng, sang trọng, hiển thị đầy đủ User Telegram */
+  /* Header VIP Pill trên mobile: Co giãn thông minh, hiển thị trọn vẹn tên người chơi */
   .player-vip-pill {
-    max-width: 140px;
+    max-width: min(220px, 52vw);
     min-width: 0;
+    flex-shrink: 1;
     padding: 3px 8px 3px 4px;
     gap: 6px;
     border-radius: 999px;
@@ -3711,12 +3716,13 @@ body.is-telegram-app .brand-text .subtext {
 
   .pv-details {
     min-width: 0;
+    flex: 1;
     overflow: hidden;
   }
 
   .pv-name {
-    font-size: 0.75rem;
-    max-width: 80px;
+    font-size: 0.76rem;
+    max-width: 100%;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -4168,8 +4174,18 @@ body.is-telegram-app .brand-text .subtext {
   }
 
   .brand-text h1 {
-    font-size: 0.88rem;
+    font-size: 0.85rem;
     letter-spacing: 0;
+  }
+
+  .player-vip-pill {
+    max-width: min(165px, 48vw);
+    padding: 2px 6px 2px 3px;
+    gap: 4px;
+  }
+
+  .pv-name {
+    font-size: 0.72rem;
   }
 
   .icon-btn {
@@ -7292,18 +7308,18 @@ body.chat-drawer-open .nav-tabs.is-docked-bottom {
   flex-direction: column;
   line-height: 1.15;
   min-width: 0;
-  max-width: 140px;
+  max-width: 220px;
 }
 
 .pv-name {
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   font-weight: 800;
   color: #f1f5f9;
   letter-spacing: 0.2px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 130px;
+  max-width: 200px;
 }
 
 .pv-title-badge {
@@ -7314,7 +7330,7 @@ body.chat-drawer-open .nav-tabs.is-docked-bottom {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 130px;
+  max-width: 190px;
 }
 
 .leaderboard-icon-btn {
