@@ -1241,33 +1241,20 @@ export default {
               const grp = groups.find(g => String(g.chat_id) === String(chatId));
               const curRoom = grp ? grp.room_id : "public";
 
-              const rulesText = `📜 *BẢNG LUẬT CHƠI & TỶ LỆ TRẢ THƯỞNG* 📜\n\n` +
-                `🎯 *1. CHẾ ĐỘ SLOT 5X3 (XÉT HÀNG GIỮA):*\n` +
-                `• 🔴 *Tài* (Tổng 5 số > 25): Ăn *x2.05*\n` +
-                `• 🔵 *Xỉu* (Tổng 5 số < 25): Ăn *x2.05*\n` +
-                `• 🟡 *Hòa 25* (Tổng 5 số = 25): Ăn *x14.1*\n` +
-                `• ⚖️ *Chẵn / Lẻ* (Tổng Chẵn hoặc Lẻ): Ăn *x1.92*\n\n` +
+              const rulesText = `📜 *LUẬT CHƠI & TỶ LỆ THƯỞNG* 📜\n\n` +
+                `🎯 *CƯỢC CƠ BẢN (HÀNG GIỮA):*\n` +
+                `• 🔴 Tài (>25) / 🔵 Xỉu (<25): *x2.05*\n` +
+                `• ⚖️ Chẵn / Lẻ: *x1.92* | 🟡 Hòa 25: *x14.1*\n` +
+                `• 🔢 Số đơn (1-9): *x1.7 ~ x100*\n\n` +
                 `👑 *HŨ THẦN TÀI & TỔ HỢP ĐẶC BIỆT:*\n` +
-                `• 🌟 *Ngũ Quý* (5 số giống nhau, VD: 7-7-7-7-7): Ăn *x5,000* + HŨ THẦN TÀI\n` +
-                `• 🌟 *Sảnh Chuẩn* (1-2-3-4-5 dãy tăng dần): Ăn *x5,000* + HŨ THẦN TÀI\n` +
-                `• 💎 *Tứ Quý* (4 số giống nhau): Ăn *x156.0*\n` +
-                `• 💎 *Sảnh Tự Do* (5 số liên tiếp): Ăn *x94.0*\n` +
-                `• 💎 *Cù Lũ* (3 số + 1 đôi): Ăn *x78.0*\n` +
-                `• 💎 *Thùng Toàn Chẵn*: Ăn *x55.0*\n` +
-                `• 💎 *Thùng Toàn Lẻ*: Ăn *x18.0*\n` +
-                `• 💎 *Thùng*: Ăn *x13.6*\n` +
-                `• 💎 *Sám Cô* (3 số giống nhau): Ăn *x11.2*\n` +
-                `• 💎 *Hai Đôi*: Ăn *x7.45* | *Một Đôi*: Ăn *x1.86*\n\n` +
-                `🔢 *CƯỢC SỐ ĐƠN (1 Đến 9):*\n` +
-                `• Ra 1 ô: Ăn *x1.7* | Ra 2 ô: Ăn *x3.1* | Ra 3 ô: Ăn *x7.5*\n` +
-                `• Ra 4 ô: Ăn *x25.0* | Ra cả 5 ô: Ăn *x100.0*\n\n` +
-                `⚡ *2. XỔ SỐ NHANH 5D (GIẢI ĐẶC BIỆT):*\n` +
-                `• 🎯 *Đề Đầu* (2 số đầu): Ăn *x95.0*\n` +
-                `• 🎯 *Đề Đuôi* (2 số cuối 00-99): Ăn *x95.0*\n` +
-                `• 🎯 *Ba Càng* (3 số cuối 000-999): Ăn *x900.0*\n` +
-                `• ⚖️ *Tài/Xỉu/Chẵn/Lẻ 5D*: Ăn *x1.98*\n` +
-                `• 👯 *Kép Bằng* (00, 11...): Ăn *x9.5*\n\n` +
-                `👇 *Bấm nút bên dưới để mở Mini App và đặt cược:*`;
+                `• 🌟 Ngũ Quý / Sảnh Chuẩn: *x5,000 + HŨ*\n` +
+                `• 💎 Tứ Quý: *x156* | Sảnh: *x94* | Cù Lũ: *x78*\n` +
+                `• 💎 Thùng: *x13.6 ~ x55* | Sám Cô: *x11.2*\n` +
+                `• 💎 Hai Đôi: *x7.45* | Một Đôi: *x1.86*\n\n` +
+                `⚡ *XỔ SỐ NHANH 5D:*\n` +
+                `• 🎯 Đề Đầu / Đuôi: *x95* | Ba Càng: *x900*\n` +
+                `• ⚖️ Tài / Xỉu / Chẵn / Lẻ: *x1.98*\n\n` +
+                `👇 *Mở Mini App để đặt cược ngay:*`;
 
               const keyboard = makePlayKeyboard("🎰 VÀO GAME ĐẶT CƯỢC NGAY 🚀", curRoom, isGroup);
               await sendTelegramMessage(botToken, chatId, rulesText, keyboard);
@@ -1344,9 +1331,9 @@ export default {
                 bxhStr += `${medals[idx] || "•"} *${bw.username}*: +${(bw.amount || 0).toLocaleString()} Xu (${bw.hand || "Thắng lớn"})\n`;
               });
 
-              const bxhText = `🏆 *BẢNG VÀNG CAO THỦ THẮNG LỚN:* 🏆\n\n` +
+              const bxhText = `🏆 *BẢNG VÀNG CAO THỦ* 🏆\n\n` +
                 (bxhStr || "Chưa có dữ liệu vinh danh.") + `\n` +
-                `👇 *Vào so kèo đua top cùng các cao thủ:*`;
+                `👇 *Đua top cùng các cao thủ ngay:*`;
 
               await sendTelegramMessage(botToken, chatId, bxhText, makePlayKeyboard("🎰 VÀO ĐUA TOP NGAY 🚀", "public", isGroup));
             }
@@ -1354,11 +1341,11 @@ export default {
             else if (lower.startsWith("/help") || lower.startsWith("help") || lower.startsWith("tro giup")) {
               const helpText = `📖 *DANH SÁCH LỆNH CỦA BOT LUCKY NUMBERS 777:*\n\n` +
                 `• \`/play\` : Mở Game Mini App trực tiếp trên Telegram\n` +
-                `• \`/rules\` : Xem chi tiết Luật Chơi & Tỷ Lệ TrẢ Thưởng\n` +
+                `• \`/rules\` : Xem Luật Chơi & Tỷ Lệ Thưởng\n` +
                 `• \`/phong\` : Xem mã phòng hiện tại của nhóm\n` +
                 `• \`/link_room <MÃ>\` : Liên kết nhóm với phòng riêng (Ví dụ: \`/link_room VIP777\`)\n` +
                 `• \`/soicau\` : Xem bảng soi cầu 10 phiên gần nhất\n` +
-                `• \`/bxh\` : Xem bảng xếp hạng cao thủ thắng lớn\n` +
+                `• \`/bxh\` : Xem Bảng Vàng Cao Thủ\n` +
                 `• \`/start\` : Bắt đầu & nhận 10,000 Xu trải nghiệm\n\n` +
                 `💡 *Mẹo:* Bạn có thể thêm bot vào bất kỳ nhóm nào để biến nhóm thành Câu Lạc Bộ chơi riêng!`;
               await sendTelegramMessage(botToken, chatId, helpText, makePlayKeyboard("🎰 MỞ GAME TRỰC TIẾP TRÊN TELEGRAM 🚀", "public", isGroup));
