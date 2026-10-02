@@ -46,7 +46,14 @@ const state = {
   chatMessagesCache: [],
   seenReactionIds: new Set(),
   activeRedPacketIdsSpawned: new Set(),
-  lastSeenJackpotId: null
+  lastSeenJackpotId: null,
+  vipInfo: null,
+  userProfile: {
+    equippedTitle: (typeof localStorage !== "undefined" && localStorage.getItem("lucky_user_title")) || "🍀 Tân Thủ May Mắn",
+    unlockedTitles: new Set(["🍀 Tân Thủ May Mắn"])
+  },
+  leaderboardData: null,
+  currentLbTab: "winners"
 };
 
 // Web Audio API Synthesizer
@@ -329,6 +336,40 @@ const dom = {
   rxBtns: document.querySelectorAll(".rx-btn"),
   btnSendRedPacket: document.getElementById("btnSendRedPacket"),
   btnDrawerInvite: document.getElementById("btnDrawerInvite"),
+  btnDrawerLeaderboard: document.getElementById("btnDrawerLeaderboard"),
+  btnHeaderLeaderboard: document.getElementById("btnHeaderLeaderboard"),
+
+  // Player VIP & Profile Elements
+  playerVipPill: document.getElementById("playerVipPill"),
+  pvAvatar: document.getElementById("pvAvatar"),
+  pvVipIcon: document.getElementById("pvVipIcon"),
+  pvName: document.getElementById("pvName"),
+  pvTitleBadge: document.getElementById("pvTitleBadge"),
+  modalPlayerProfile: document.getElementById("modalPlayerProfile"),
+  btnCloseProfileModal: document.getElementById("btnCloseProfileModal"),
+  profAvatarIcon: document.getElementById("profAvatarIcon"),
+  profVipTag: document.getElementById("profVipTag"),
+  profName: document.getElementById("profName"),
+  profId: document.getElementById("profId"),
+  profLevelName: document.getElementById("profLevelName"),
+  profExpFill: document.getElementById("profExpFill"),
+  profExpTxt: document.getElementById("profExpTxt"),
+  profExpPct: document.getElementById("profExpPct"),
+  profileTitlesGrid: document.getElementById("profileTitlesGrid"),
+
+  // Live Roadmap Card
+  liveRoadmapCard: document.getElementById("liveRoadmapCard"),
+  roadmapBeadsTrack: document.getElementById("roadmapBeadsTrack"),
+  rmPctTai: document.getElementById("rmPctTai"),
+  rmPctXiu: document.getElementById("rmPctXiu"),
+  rmStreakTag: document.getElementById("rmStreakTag"),
+
+  // Leaderboard Elements
+  modalLeaderboard: document.getElementById("modalLeaderboard"),
+  btnCloseLeaderboard: document.getElementById("btnCloseLeaderboard"),
+  lbTabWinners: document.getElementById("lbTabWinners"),
+  lbTabDonors: document.getElementById("lbTabDonors"),
+  lbBodyContainer: document.getElementById("lbBodyContainer"),
 
   // Modal Phát Lộc Toàn Phòng
   modalSendRedPacket: document.getElementById("modalSendRedPacket"),
@@ -2996,6 +3037,298 @@ function setupLiveRoomControls() {
   if (dom.btnSaveLiveRoomConfig) {
     dom.btnSaveLiveRoomConfig.addEventListener("click", saveLiveRoomConfigAction);
   }
+
+  // Profile & VIP Modal Events
+  if (dom.playerVipPill) {
+    dom.playerVipPill.addEventListener("click", openProfileModal);
+  }
+  if (dom.btnCloseProfileModal) {
+    dom.btnCloseProfileModal.addEventListener("click", closeProfileModal);
+  }
+  if (dom.modalPlayerProfile) {
+    dom.modalPlayerProfile.addEventListener("click", (e) => {
+      if (e.target === dom.modalPlayerProfile) closeProfileModal();
+    });
+  }
+
+  // Leaderboard Modal Events
+  if (dom.btnHeaderLeaderboard) {
+    dom.btnHeaderLeaderboard.addEventListener("click", openLeaderboardModal);
+  }
+  if (dom.btnDrawerLeaderboard) {
+    dom.btnDrawerLeaderboard.addEventListener("click", openLeaderboardModal);
+  }
+  if (dom.btnCloseLeaderboard) {
+    dom.btnCloseLeaderboard.addEventListener("click", closeLeaderboardModal);
+  }
+  if (dom.modalLeaderboard) {
+    dom.modalLeaderboard.addEventListener("click", (e) => {
+      if (e.target === dom.modalLeaderboard) closeLeaderboardModal();
+    });
+  }
+  if (dom.lbTabWinners) {
+    dom.lbTabWinners.addEventListener("click", () => switchLeaderboardTab("winners"));
+  }
+  if (dom.lbTabDonors) {
+    dom.lbTabDonors.addEventListener("click", () => switchLeaderboardTab("donors"));
+  }
+}
+
+// ==========================================================================
+// VIP SYSTEM, PLAYER PROFILE & TITLES
+// ==========================================================================
+
+const TITLES_CATALOG = [
+  { id: "lucky", name: "🍀 Tân Thủ May Mắn", req: "Mặc định khi tham gia game" },
+  { id: "donor", name: "🧧 Thần Tài Tặng Lộc", req: "Đã từng phát lì xì cho phòng" },
+  { id: "rain_king", name: "🌧️ Chúa Tể Mưa Lộc", req: "Đã phát từ 1,000 Xu lì xì" },
+  { id: "streak", name: "🎯 Bậc Thầy Soi Cầu", req: "Đạt chuỗi thắng từ 3 ván liên tiếp" },
+  { id: "bigwin", name: "✨ Bàn Tay Vàng", req: "Thắng đơn ván từ 5,000 Xu trở lên" },
+  { id: "jackpot", name: "💥 Kẻ Hủy Diệt Hũ", req: "Từng nổ hũ Sảnh/Ngũ Quý hoặc VIP 3+" },
+  { id: "fortune_lock", name: "🔒 Phù Thủy Khóa Số", req: "Sử dụng tính năng Khóa Số Thần Tài" },
+  { id: "vip_royal", name: "👑 Hoàng Gia 777", req: "Đạt cấp bậc VIP 4 hoặc VIP 5" }
+];
+
+function checkTitleUnlocked(titleId) {
+  if (titleId === "lucky") return true;
+  const s = state.session || {};
+  const vipLvl = state.vipInfo?.level || 0;
+  if (titleId === "donor") return (state.totalGivenRedPackets || 0) >= 100 || (s.total_wagered || 0) >= 2000;
+  if (titleId === "rain_king") return (state.totalGivenRedPackets || 0) >= 1000 || vipLvl >= 3;
+  if (titleId === "streak") return (state.currentStreak || 0) >= 3 || (state.maxStreak || 0) >= 3;
+  if (titleId === "bigwin") return (s.total_won || 0) >= 5000 || vipLvl >= 2;
+  if (titleId === "jackpot") return (s.total_won || 0) >= 20000 || vipLvl >= 3;
+  if (titleId === "fortune_lock") return state.fortuneLockedNumbers && state.fortuneLockedNumbers.length > 0;
+  if (titleId === "vip_royal") return vipLvl >= 4;
+  return false;
+}
+
+function updateVipProfileUI(vipInfo) {
+  if (!vipInfo) return;
+  state.vipInfo = vipInfo;
+  const name = getLiveUserName();
+  const equippedTitle = state.userProfile?.equippedTitle || "🍀 Tân Thủ May Mắn";
+
+  if (dom.pvVipIcon) dom.pvVipIcon.textContent = vipInfo.icon || "🌱";
+  if (dom.pvName) dom.pvName.textContent = name;
+  if (dom.pvTitleBadge) dom.pvTitleBadge.textContent = equippedTitle;
+
+  if (dom.profName) dom.profName.textContent = name;
+  if (dom.profId) dom.profId.textContent = "ID: " + getLiveUserId();
+  if (dom.profVipTag) dom.profVipTag.textContent = "VIP " + vipInfo.level;
+  if (dom.profLevelName) dom.profLevelName.textContent = `${vipInfo.icon} ${vipInfo.name}`;
+  if (dom.profExpFill) dom.profExpFill.style.width = `${vipInfo.progress_pct}%`;
+  if (dom.profExpPct) dom.profExpPct.textContent = `${vipInfo.progress_pct}%`;
+  if (dom.profExpTxt) {
+    if (vipInfo.level >= 5) {
+      dom.profExpTxt.textContent = `Đạt cấp VIP tối đa (Tổng cược: ${(vipInfo.total_wagered || 0).toLocaleString()} Xu)`;
+    } else {
+      dom.profExpTxt.textContent = `Đã cược: ${(vipInfo.total_wagered || 0).toLocaleString()} / ${vipInfo.next_threshold.toLocaleString()} Xu để lên VIP ${vipInfo.level + 1}`;
+    }
+  }
+}
+
+function openProfileModal() {
+  if (!dom.modalPlayerProfile) return;
+  telegramEngine.haptic("medium");
+  if (state.vipInfo) updateVipProfileUI(state.vipInfo);
+  renderProfileTitlesGrid();
+  dom.modalPlayerProfile.style.display = "flex";
+}
+
+function closeProfileModal() {
+  if (!dom.modalPlayerProfile) return;
+  dom.modalPlayerProfile.style.display = "none";
+}
+
+function renderProfileTitlesGrid() {
+  if (!dom.profileTitlesGrid) return;
+  const equipped = state.userProfile?.equippedTitle || "🍀 Tân Thủ May Mắn";
+
+  dom.profileTitlesGrid.innerHTML = TITLES_CATALOG.map(t => {
+    const isUnlocked = checkTitleUnlocked(t.id);
+    const isEq = equipped === t.name;
+    return `
+      <div class="title-card-item ${isEq ? "equipped" : ""} ${!isUnlocked ? "locked" : ""}" data-title-name="${t.name}" data-unlocked="${isUnlocked}">
+        <div class="tci-info">
+          <span class="tci-name">${t.name}</span>
+          <span class="tci-req">${isUnlocked ? "✅ Đã mở khóa" : ("🔒 " + t.req)}</span>
+        </div>
+        <button class="tci-btn">${isEq ? "ĐANG ĐEO" : (isUnlocked ? "TRANG BỊ" : "CHƯA MỞ")}</button>
+      </div>
+    `;
+  }).join("");
+
+  dom.profileTitlesGrid.querySelectorAll(".title-card-item").forEach(item => {
+    item.addEventListener("click", () => {
+      const isUn = item.dataset.unlocked === "true";
+      const tName = item.dataset.titleName;
+      if (!isUn) {
+        showToast("🔒 Danh hiệu này chưa mở khóa! Hãy cược thêm để đạt yêu cầu.", "warn");
+        return;
+      }
+      equipTitleAction(tName);
+    });
+  });
+}
+
+function equipTitleAction(titleName) {
+  if (!titleName) return;
+  state.userProfile.equippedTitle = titleName;
+  try {
+    localStorage.setItem("lucky_user_title", titleName);
+  } catch (e) {}
+  telegramEngine.haptic("success");
+  soundEngine.playWinTone();
+  showToast(`👑 Đã trang bị danh hiệu: <strong>${titleName}</strong>!`, "gold");
+  if (dom.pvTitleBadge) dom.pvTitleBadge.textContent = titleName;
+  renderProfileTitlesGrid();
+}
+
+// ==========================================================================
+// LIVE ROADMAP (BẢNG SOI CẦU PHIÊN LIVE)
+// ==========================================================================
+
+function renderRoadmap(roadmapList) {
+  if (!dom.roadmapBeadsTrack || !Array.isArray(roadmapList) || roadmapList.length === 0) return;
+
+  let taiCount = 0;
+  let xiuCount = 0;
+  let hoaCount = 0;
+
+  roadmapList.forEach(r => {
+    if (r.side === "TAI") taiCount++;
+    else if (r.side === "XIU") xiuCount++;
+    else hoaCount++;
+  });
+
+  const total = roadmapList.length || 1;
+  const pctTai = Math.round((taiCount / total) * 100);
+  const pctXiu = Math.round((xiuCount / total) * 100);
+
+  if (dom.rmPctTai) dom.rmPctTai.textContent = `${pctTai}% (${taiCount})`;
+  if (dom.rmPctXiu) dom.rmPctXiu.textContent = `${pctXiu}% (${xiuCount})`;
+
+  // Tính chuỗi bệt ở đuôi mảng (phiên gần nhất)
+  if (dom.rmStreakTag && roadmapList.length > 0) {
+    const last = roadmapList[roadmapList.length - 1];
+    let streakCount = 0;
+    for (let i = roadmapList.length - 1; i >= 0; i--) {
+      if (roadmapList[i].side === last.side) streakCount++;
+      else break;
+    }
+    if (streakCount >= 3) {
+      dom.rmStreakTag.textContent = `🔥 Bệt ${last.side === "TAI" ? "Tài" : "Xỉu"} ${streakCount} cây!`;
+    } else {
+      dom.rmStreakTag.textContent = `⚡ Cầu chuyển tiếp`;
+    }
+  }
+
+  dom.roadmapBeadsTrack.innerHTML = roadmapList.map(item => {
+    const isTai = item.side === "TAI";
+    const isHoa = item.side === "HOA";
+    const cls = isTai ? "tai" : (isHoa ? "hoa" : "xiu");
+    const label = isTai ? "T" : (isHoa ? "H" : "X");
+    return `
+      <div class="rm-bead ${cls}" title="${item.round_id}: Tổng ${item.sum} (${isTai ? "Tài" : (isHoa ? "Hòa" : "Xỉu")}) • ${item.hand_title}">
+        <span>${label}</span>
+        <span class="rm-bead-sum">${item.sum}</span>
+      </div>
+    `;
+  }).join("");
+
+  dom.roadmapBeadsTrack.scrollLeft = dom.roadmapBeadsTrack.scrollWidth;
+}
+
+// ==========================================================================
+// LEADERBOARD (BẢNG XẾP HẠNG CAO THỦ)
+// ==========================================================================
+
+async function openLeaderboardModal() {
+  if (!dom.modalLeaderboard) return;
+  telegramEngine.haptic("medium");
+  dom.modalLeaderboard.style.display = "flex";
+  await fetchAndRenderLeaderboard(state.currentLbTab || "winners");
+}
+
+function closeLeaderboardModal() {
+  if (!dom.modalLeaderboard) return;
+  dom.modalLeaderboard.style.display = "none";
+}
+
+function switchLeaderboardTab(tab) {
+  state.currentLbTab = tab;
+  if (dom.lbTabWinners) dom.lbTabWinners.classList.toggle("active", tab === "winners");
+  if (dom.lbTabDonors) dom.lbTabDonors.classList.toggle("active", tab === "donors");
+  renderLeaderboardList();
+}
+
+async function fetchAndRenderLeaderboard(tab = "winners") {
+  if (!dom.lbBodyContainer) return;
+  dom.lbBodyContainer.innerHTML = `<div style="text-align:center; padding: 25px; color:#94a3b8; font-size:0.85rem;">⏳ Đang tải bảng vàng cao thủ...</div>`;
+  try {
+    const res = await fetch("/api/live/leaderboard");
+    const json = await res.json();
+    if (json.status === "success" && json.data) {
+      state.leaderboardData = json.data;
+      renderLeaderboardList();
+    }
+  } catch (e) {
+    dom.lbBodyContainer.innerHTML = `<div style="text-align:center; padding: 25px; color:#f87171;">Không thể tải bảng xếp hạng lúc này.</div>`;
+  }
+}
+
+function renderLeaderboardList() {
+  if (!dom.lbBodyContainer || !state.leaderboardData) return;
+  const tab = state.currentLbTab || "winners";
+  const list = tab === "winners" ? (state.leaderboardData.top_winners || []) : (state.leaderboardData.top_donors || []);
+
+  if (list.length === 0) {
+    dom.lbBodyContainer.innerHTML = `<div style="text-align:center; padding: 25px; color:#94a3b8;">Chưa có dữ liệu xếp hạng hôm nay.</div>`;
+    return;
+  }
+
+  dom.lbBodyContainer.innerHTML = list.map((item, idx) => {
+    const rank = idx + 1;
+    const rankCls = rank <= 3 ? `rank-${rank}` : "";
+    const vipLvl = item.vip_level || (rank === 1 ? 5 : (rank <= 3 ? 4 : 3));
+    const vipIcons = ["🌱", "🥉", "🥈", "🥇", "💎", "👑"];
+    const vipTag = `<span class="chat-vip-badge vip-${vipLvl}">${vipIcons[vipLvl]} VIP ${vipLvl}</span>`;
+
+    if (tab === "winners") {
+      return `
+        <div class="lb-item-row ${rankCls}">
+          <div class="lb-rank-badge">${rank <= 3 ? (rank === 1 ? "🥇" : (rank === 2 ? "🥈" : "🥉")) : rank}</div>
+          <div class="lb-user-info">
+            <span class="lb-avatar">${item.avatar || "👤"}</span>
+            <div class="lb-user-text">
+              <span class="lb-username">${vipTag} ${item.username}</span>
+              <span class="lb-sub">${item.hand || "Chiến tích lớn"}</span>
+            </div>
+          </div>
+          <div class="lb-val-col">
+            <span class="lb-val">+${(item.amount || 0).toLocaleString()} Xu</span>
+          </div>
+        </div>
+      `;
+    } else {
+      return `
+        <div class="lb-item-row ${rankCls}">
+          <div class="lb-rank-badge">${rank <= 3 ? (rank === 1 ? "🥇" : (rank === 2 ? "🥈" : "🥉")) : rank}</div>
+          <div class="lb-user-info">
+            <span class="lb-avatar">${item.avatar || "🧧"}</span>
+            <div class="lb-user-text">
+              <span class="lb-username">${vipTag} ${item.username}</span>
+              <span class="lb-sub">${item.title || "Thần Tài Tặng Lộc"} • ${item.count || 1} đợt phát</span>
+            </div>
+          </div>
+          <div class="lb-val-col">
+            <span class="lb-val" style="color: #ff6b6b;">-${(item.total_given || 0).toLocaleString()} Xu</span>
+          </div>
+        </div>
+      `;
+    }
+  }).join("");
 }
 
 function openSendRedPacketModal() {
@@ -3259,6 +3592,16 @@ async function syncLiveRoomState() {
           }
         }
       });
+    }
+
+    // Đồng bộ Bảng Soi Cầu phiên Live
+    if (data.roadmap && Array.isArray(data.roadmap)) {
+      renderRoadmap(data.roadmap);
+    }
+
+    // Đồng bộ Cấp Bậc VIP & Hồ Sơ Cá Nhân
+    if (data.vip_info) {
+      updateVipProfileUI(data.vip_info);
     }
 
   } catch (err) {
@@ -3529,11 +3872,15 @@ async function sendChatMessage(text) {
     soundEngine.playChip();
 
     // Optimistic UI: hiển thị ngay tin nhắn của người dùng trong khung chat không cần chờ mạng
+    const currentVipLvl = state.vipInfo?.level || 0;
+    const currentTitle = state.userProfile?.equippedTitle || "🍀 Tân Thủ May Mắn";
     const tempMsg = {
       id: "local-" + Date.now() + "-" + Math.random().toString(36).substr(2, 4),
       user_id: getLiveUserId(),
       username: getLiveUserName(),
       avatar: telegramEngine.tg?.initDataUnsafe?.user?.photo_url ? "⭐️" : "👤",
+      vip_level: currentVipLvl,
+      title: currentTitle,
       text: text,
       type: "chat",
       time: Date.now()
@@ -3550,6 +3897,8 @@ async function sendChatMessage(text) {
         user_id: getLiveUserId(),
         username: getLiveUserName(),
         avatar: telegramEngine.tg?.initDataUnsafe?.user?.photo_url ? "⭐️" : "👤",
+        vip_level: currentVipLvl,
+        title: currentTitle,
         text: text
       })
     });
@@ -3697,11 +4046,19 @@ function renderChatMessages(messages) {
         `;
       }
     }
+    const vipLvl = Number(msg.vip_level) || 0;
+    const vipIcons = ["🌱", "🥉", "🥈", "🥇", "💎", "👑"];
+    const vipBadgeHtml = !isSys ? `<span class="chat-vip-badge vip-${vipLvl}">${vipIcons[vipLvl] || "🌱"} VIP ${vipLvl}</span>` : "";
+    const titleBadgeHtml = (msg.title && !isSys) ? `<span class="chat-title-badge-tag">${msg.title}</span>` : "";
+    const isVip5 = vipLvl >= 5;
+
     return `
-      <div class="chat-msg-row ${isSys ? "system" : ""} ${isWinShare ? "win-share" : ""} ${isRedPacket ? "red-packet-msg" : ""} ${isClaimNotice ? "claim-notice-msg" : ""}">
+      <div class="chat-msg-row ${isSys ? "system" : ""} ${isWinShare ? "win-share" : ""} ${isRedPacket ? "red-packet-msg" : ""} ${isClaimNotice ? "claim-notice-msg" : ""} ${isVip5 ? "vip-5-msg" : ""}">
         <span class="chat-msg-avatar">${msg.avatar || (isClaimNotice ? "🎁" : "👤")}</span>
         <div class="chat-msg-content">
           <div class="chat-msg-header">
+            ${vipBadgeHtml}
+            ${titleBadgeHtml}
             <span class="chat-msg-author">${msg.username || "Thành viên"}</span>
             ${timeStr ? `<span class="chat-msg-time">${timeStr}</span>` : ""}
           </div>

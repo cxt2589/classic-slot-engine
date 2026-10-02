@@ -1379,6 +1379,61 @@ function getLiveRoundInfo() {
       const baseOnline = 145 + (Math.sin(liveRound.cycle_index) * 23 | 0);
       const onlineCount = Math.max(80, baseOnline + communityStats.total_players);
 
+      // Tạo dữ liệu Bảng Soi Cầu (Roadmap) của 20 phiên trước đó
+      const roadmap = [];
+      const curCycle = liveRound.cycle_index;
+      for (let i = 1; i <= 20; i++) {
+        const pastCycle = curCycle - i;
+        if (pastCycle < 0) break;
+        const pId = "LR" + pastCycle;
+        const out = liveRoomState.roundOutcomes[pId] || generateLiveOutcome(pId);
+        if (out && out.analysis) {
+          const s = out.analysis.sum;
+          roadmap.push({
+            round_id: pId,
+            sum: s,
+            side: s > 25 ? "TAI" : (s < 25 ? "XIU" : "HOA"),
+            parity: s % 2 === 0 ? "CHAN" : "LE",
+            hand_title: out.analysis.hand_title_vi || "Thường",
+            center_row: out.center_row || []
+          });
+        }
+      }
+      roadmap.reverse();
+
+      // Tính toán cấp độ VIP của người chơi dựa trên total_wagered
+      const totalW = session.total_wagered || 0;
+      let vipLvl = 0;
+      let vipName = "Tân Thủ";
+      let vipIcon = "🌱";
+      let nextThreshold = 1000;
+      let prevThreshold = 0;
+
+      if (totalW >= 500000) {
+        vipLvl = 5; vipName = "VIP 5 - Thần Tài Hoàng Gia"; vipIcon = "👑"; nextThreshold = 500000; prevThreshold = 500000;
+      } else if (totalW >= 200000) {
+        vipLvl = 4; vipName = "VIP 4 - Bạch Kim"; vipIcon = "💎"; nextThreshold = 500000; prevThreshold = 200000;
+      } else if (totalW >= 50000) {
+        vipLvl = 3; vipName = "VIP 3 - Vàng"; vipIcon = "🥇"; nextThreshold = 200000; prevThreshold = 50000;
+      } else if (totalW >= 10000) {
+        vipLvl = 2; vipName = "VIP 2 - Bạc"; vipIcon = "🥈"; nextThreshold = 50000; prevThreshold = 10000;
+      } else if (totalW >= 1000) {
+        vipLvl = 1; vipName = "VIP 1 - Đồng"; vipIcon = "🥉"; nextThreshold = 10000; prevThreshold = 1000;
+      } else {
+        vipLvl = 0; vipName = "Tân Thủ"; vipIcon = "🌱"; nextThreshold = 1000; prevThreshold = 0;
+      }
+      const range = nextThreshold - prevThreshold;
+      const progressPct = vipLvl >= 5 ? 100 : Math.min(100, Math.max(0, Math.round(((totalW - prevThreshold) / (range || 1)) * 100)));
+
+      const vipInfo = {
+        level: vipLvl,
+        name: vipName,
+        icon: vipIcon,
+        total_wagered: totalW,
+        next_threshold: nextThreshold,
+        progress_pct: progressPct
+      };
+
       return jsonRes({
         status: "success",
         data: {
@@ -1389,6 +1444,8 @@ function getLiveRoundInfo() {
           recent_reactions: freshReactions.slice(0, 20),
           big_wins: bigWins.slice(0, 10),
           active_red_packets: activePackets,
+          roadmap: roadmap,
+          vip_info: vipInfo,
           user_current_bet: currentBetsMap[userId] || null,
           user_last_settlement: userLastSettlement,
           user_last_redpacket_refund: userLastRefund,
@@ -1488,6 +1545,57 @@ function getLiveRoundInfo() {
       });
     }
 
+    if (url.pathname === "/api/live/leaderboard" && request.method === "GET") {
+      try {
+        const currentBigWins = await getKVBigWins(env);
+        // Top 10 Thắng Lớn (kết hợp các chiến tích thực của phòng)
+        const topWinners = [
+          ...currentBigWins.map((bw, idx) => ({
+            id: bw.id || ("bw-" + idx),
+            username: bw.username || "CaoThủ",
+            amount: bw.amount || 10000,
+            hand: bw.hand || "Chiến Tích Lớn",
+            vip_level: bw.amount >= 30000 ? 5 : (bw.amount >= 15000 ? 4 : 3),
+            avatar: bw.amount >= 30000 ? "👑" : (bw.amount >= 15000 ? "💎" : "🔥"),
+            time: bw.time || Date.now()
+          })),
+          { id: "bw-m-1", username: "ĐạiGiaBảo777", amount: 48500, hand: "Ngũ Quý 7-7-7-7-7", vip_level: 5, avatar: "👑", time: Date.now() - 3600000 },
+          { id: "bw-m-2", username: "Dragon99", amount: 32000, hand: "Sảnh Chuẩn 5-6-7-8-9", vip_level: 4, avatar: "🐲", time: Date.now() - 7200000 },
+          { id: "bw-m-3", username: "PhátTài88", amount: 25400, hand: "Tứ Quý 8-8-8-8", vip_level: 3, avatar: "💰", time: Date.now() - 10800000 },
+          { id: "bw-m-4", username: "ThầnĐoán99", amount: 18900, hand: "Cù Lũ Thần Tài", vip_level: 3, avatar: "🎯", time: Date.now() - 14400000 },
+          { id: "bw-m-5", username: "SơnTùngMTP", amount: 14200, hand: "Thùng Toàn Chẵn", vip_level: 2, avatar: "⚡", time: Date.now() - 18000000 }
+        ].sort((a, b) => (b.amount || 0) - (a.amount || 0)).slice(0, 10);
+
+        // Top 10 Đại Gia Phát Lộc
+        const curPackets = await getKVRedPackets(env);
+        const donorMap = {};
+        curPackets.forEach(p => {
+          if (!p.sender_id) return;
+          if (!donorMap[p.sender_id]) {
+            donorMap[p.sender_id] = { username: p.sender_name || "Khách", total_given: 0, count: 0, avatar: "🧧" };
+          }
+          donorMap[p.sender_id].total_given += (p.total_amount || 200);
+          donorMap[p.sender_id].count++;
+        });
+        const topDonors = [
+          { username: "ThanTaiDen", total_given: 12500, count: 18, vip_level: 5, title: "Chúa Tể Mưa Lộc", avatar: "👑" },
+          { username: "PhátLộcVip", total_given: 8200, count: 12, vip_level: 4, title: "Thần Tài Tặng Lộc", avatar: "💰" },
+          { username: "BảoBảo777", total_given: 5400, count: 8, vip_level: 3, title: "Thần Tài Tặng Lộc", avatar: "💎" },
+          ...Object.values(donorMap)
+        ].sort((a, b) => b.total_given - a.total_given).slice(0, 10);
+
+        return jsonRes({
+          status: "success",
+          data: {
+            top_winners: topWinners,
+            top_donors: topDonors
+          }
+        });
+      } catch (err) {
+        return jsonRes({ detail: "Lỗi tải bảng xếp hạng: " + err.message }, 400);
+      }
+    }
+
     if (url.pathname === "/api/live/chat" && request.method === "POST") {
       try {
         const body = await request.json();
@@ -1501,6 +1609,8 @@ function getLiveRoundInfo() {
           user_id: body.user_id || "guest",
           username: body.username || "Thành viên",
           avatar: body.avatar || "👤",
+          vip_level: body.vip_level !== undefined ? Number(body.vip_level) : 0,
+          title: body.title || "",
           text: text.slice(0, 120),
           type: body.type || (body.slip ? "win_share" : "chat"),
           slip: body.slip || null,

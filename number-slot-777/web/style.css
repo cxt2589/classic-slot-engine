@@ -7155,3 +7155,606 @@ body.chat-drawer-open .nav-tabs.is-docked-bottom {
   transform: scale(0.96);
 }
 
+/* ==========================================================================
+   GIAI ĐOẠN 1: VIP SYSTEM, PLAYER PROFILE, LIVE ROADMAP & LEADERBOARD
+   ========================================================================== */
+
+/* 1. Player VIP & Profile Pill in Header */
+.player-vip-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, rgba(25, 33, 58, 0.9) 0%, rgba(13, 17, 32, 0.9) 100%);
+  border: 1.5px solid rgba(255, 215, 0, 0.45);
+  border-radius: 999px;
+  padding: 4px 12px 4px 5px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5), 0 0 10px rgba(255, 215, 0, 0.2);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.player-vip-pill:hover {
+  transform: translateY(-1px);
+  border-color: #ffd700;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.6), 0 0 15px rgba(255, 215, 0, 0.4);
+}
+
+.pv-avatar-wrap {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #2a3b5c 0%, #151e33 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.pv-vip-icon {
+  position: absolute;
+  bottom: -3px;
+  right: -4px;
+  font-size: 0.72rem;
+  line-height: 1;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.8));
+}
+
+.pv-details {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.pv-name {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #f1f5f9;
+  letter-spacing: 0.2px;
+}
+
+.pv-title-badge {
+  font-size: 0.62rem;
+  color: #ffd700;
+  font-weight: 700;
+  text-shadow: 0 0 6px rgba(255, 215, 0, 0.5);
+}
+
+.leaderboard-icon-btn {
+  font-size: 1.1rem !important;
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(255, 143, 0, 0.25)) !important;
+  border-color: rgba(255, 215, 0, 0.5) !important;
+  color: #ffd700 !important;
+}
+
+.leaderboard-icon-btn:hover {
+  transform: scale(1.08);
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+}
+
+/* 2. Bảng Soi Cầu Trực Tiếp (Live Roadmap Card) */
+.live-roadmap-card {
+  margin-top: 10px;
+  background: rgba(10, 15, 30, 0.85);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  border-radius: 12px;
+  padding: 9px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.6);
+}
+
+.roadmap-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.rm-title-grp {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rm-icon {
+  font-size: 0.95rem;
+}
+
+.rm-title {
+  font-family: var(--font-display);
+  font-size: 0.74rem;
+  font-weight: 900;
+  color: #ffd700;
+  letter-spacing: 0.5px;
+}
+
+.rm-stats-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 0.68rem;
+}
+
+.rm-stat-red {
+  color: #ff4d4d;
+  font-weight: 700;
+}
+
+.rm-stat-blue {
+  color: #38bdf8;
+  font-weight: 700;
+}
+
+.rm-stat-sep {
+  opacity: 0.35;
+}
+
+.rm-streak-tag {
+  color: #facc15;
+  font-weight: 800;
+  background: rgba(234, 179, 8, 0.15);
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.roadmap-beads-track {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: thin;
+}
+
+.rm-bead {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 900;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+  position: relative;
+}
+
+.rm-bead:hover {
+  transform: scale(1.18);
+  z-index: 2;
+}
+
+.rm-bead.tai {
+  background: radial-gradient(circle at 35% 35%, #ff4d4d, #b91c1c);
+  border: 1px solid #fca5a5;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
+}
+
+.rm-bead.xiu {
+  background: radial-gradient(circle at 35% 35%, #38bdf8, #0369a1);
+  border: 1px solid #bae6fd;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.5);
+}
+
+.rm-bead.hoa {
+  background: radial-gradient(circle at 35% 35%, #facc15, #a16207);
+  border: 1px solid #fef08a;
+  box-shadow: 0 0 8px rgba(234, 179, 8, 0.5);
+}
+
+.rm-bead-sum {
+  position: absolute;
+  bottom: -2px;
+  right: -3px;
+  font-size: 0.5rem;
+  background: rgba(0, 0, 0, 0.85);
+  color: #ffffff;
+  padding: 0 2px;
+  border-radius: 3px;
+  line-height: 1;
+}
+
+/* 3. Bảng Xếp Hạng Cao Thủ (Leaderboard Modal) */
+.modal-card-custom.lb-dialog {
+  background: linear-gradient(160deg, #131a30 0%, #0a0e1c 100%);
+  border: 1.5px solid #ffd700;
+  border-radius: 16px;
+  box-shadow: 0 16px 45px rgba(0, 0, 0, 0.9), 0 0 35px rgba(255, 215, 0, 0.3);
+  width: 100%;
+  max-width: 460px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 10000051 !important;
+}
+
+.lb-tab-nav {
+  display: flex;
+  background: rgba(8, 12, 24, 0.7);
+  border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+}
+
+.lb-tab-btn {
+  flex: 1;
+  padding: 10px 14px;
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-weight: 700;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-bottom: 2px solid transparent;
+}
+
+.lb-tab-btn.active {
+  color: #ffd700;
+  border-bottom-color: #ffd700;
+  background: rgba(255, 215, 0, 0.08);
+}
+
+.lb-body-container {
+  padding: 12px;
+  overflow-y: auto;
+  max-height: 55vh;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lb-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 12px;
+  background: rgba(18, 25, 48, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  transition: all 0.15s ease;
+}
+
+.lb-item-row:hover {
+  background: rgba(255, 215, 0, 0.08);
+  border-color: rgba(255, 215, 0, 0.3);
+}
+
+.lb-rank-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  font-weight: 900;
+  color: #ffffff;
+  background: #1e293b;
+  flex-shrink: 0;
+}
+
+.lb-item-row.rank-1 .lb-rank-badge { background: linear-gradient(135deg, #ffd700, #ff8f00); color: #5c1800; box-shadow: 0 0 10px rgba(255,215,0,0.6); }
+.lb-item-row.rank-2 .lb-rank-badge { background: linear-gradient(135deg, #e2e8f0, #94a3b8); color: #0f172a; box-shadow: 0 0 8px rgba(226,232,240,0.5); }
+.lb-item-row.rank-3 .lb-rank-badge { background: linear-gradient(135deg, #f59e0b, #b45309); color: #ffffff; box-shadow: 0 0 8px rgba(245,158,11,0.5); }
+
+.lb-user-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  margin: 0 12px;
+  overflow: hidden;
+}
+
+.lb-avatar {
+  font-size: 1.2rem;
+}
+
+.lb-user-text {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.lb-username {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #f1f5f9;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.lb-sub {
+  font-size: 0.68rem;
+  color: #94a3b8;
+}
+
+.lb-val-col {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.lb-val {
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  font-weight: 900;
+  color: #ffd700;
+}
+
+/* 4. Hồ Sơ Cá Nhân & Danh Hiệu VIP Modal */
+.modal-card-custom.profile-dialog {
+  background: linear-gradient(160deg, #131a30 0%, #0a0e1c 100%);
+  border: 1.5px solid #ffd700;
+  border-radius: 16px;
+  box-shadow: 0 16px 45px rgba(0, 0, 0, 0.9), 0 0 35px rgba(255, 215, 0, 0.3);
+  width: 100%;
+  max-width: 480px;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 10000051 !important;
+}
+
+.profile-body-wrap {
+  padding: 16px;
+  overflow-y: auto;
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.profile-vip-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: linear-gradient(135deg, rgba(30, 41, 74, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%);
+  border: 1.5px solid rgba(255, 215, 0, 0.4);
+  border-radius: 14px;
+  padding: 14px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), inset 0 0 15px rgba(255, 215, 0, 0.1);
+}
+
+.pvc-avatar-wrap {
+  position: relative;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1e293b, #0f172a);
+  border: 2px solid #ffd700;
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  flex-shrink: 0;
+}
+
+.pvc-vip-badge-tag {
+  position: absolute;
+  bottom: -6px;
+  background: linear-gradient(135deg, #ffd700, #ff8f00);
+  color: #5c1800;
+  font-family: var(--font-display);
+  font-size: 0.6rem;
+  font-weight: 900;
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px solid #ffffff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.6);
+}
+
+.pvc-meta {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  overflow: hidden;
+}
+
+.pvc-name-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.pvc-name {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0;
+}
+
+.pvc-id {
+  font-size: 0.68rem;
+  color: #94a3b8;
+}
+
+.pvc-level-name {
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.pvc-exp-track {
+  width: 100%;
+  height: 8px;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.pvc-exp-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ffd700, #ff8f00);
+  border-radius: 999px;
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.7);
+  transition: width 0.3s ease;
+}
+
+.pvc-exp-info {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.65rem;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+.profile-titles-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pts-head-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pts-title {
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  font-weight: 900;
+  color: #ffd700;
+  letter-spacing: 0.5px;
+}
+
+.pts-desc {
+  font-size: 0.68rem;
+  color: #94a3b8;
+}
+
+.pts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 8px;
+}
+
+.title-card-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  background: rgba(18, 25, 48, 0.6);
+  border: 1.5px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.title-card-item:hover {
+  background: rgba(255, 215, 0, 0.08);
+  border-color: rgba(255, 215, 0, 0.3);
+}
+
+.title-card-item.equipped {
+  background: rgba(255, 215, 0, 0.15);
+  border-color: #ffd700;
+  box-shadow: 0 0 12px rgba(255, 215, 0, 0.3);
+}
+
+.title-card-item.locked {
+  opacity: 0.5;
+  cursor: not-allowed;
+  filter: grayscale(0.6);
+}
+
+.tci-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tci-name {
+  font-size: 0.76rem;
+  font-weight: 800;
+  color: #f1f5f9;
+}
+
+.tci-req {
+  font-size: 0.62rem;
+  color: #94a3b8;
+}
+
+.tci-btn {
+  font-size: 0.64rem;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.title-card-item.equipped .tci-btn {
+  background: #ffd700;
+  color: #5c1800;
+}
+
+.title-card-item:not(.equipped):not(.locked) .tci-btn {
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+}
+
+.title-card-item.locked .tci-btn {
+  background: transparent;
+  color: #64748b;
+  border: 1px solid #475569;
+}
+
+/* 5. VIP Chat Badges in Drawer */
+.chat-vip-badge {
+  font-size: 0.6rem;
+  font-weight: 900;
+  padding: 1px 5px;
+  border-radius: 4px;
+  margin-right: 4px;
+  letter-spacing: 0.3px;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.chat-vip-badge.vip-0 { background: #334155; color: #cbd5e1; }
+.chat-vip-badge.vip-1 { background: #92400e; color: #fef3c7; }
+.chat-vip-badge.vip-2 { background: #475569; color: #f1f5f9; }
+.chat-vip-badge.vip-3 { background: linear-gradient(135deg, #d97706, #b45309); color: #fffbeb; box-shadow: 0 0 6px rgba(217,119,6,0.5); }
+.chat-vip-badge.vip-4 { background: linear-gradient(135deg, #0284c7, #0369a1); color: #e0f2fe; box-shadow: 0 0 8px rgba(2,132,199,0.5); }
+.chat-vip-badge.vip-5 { background: linear-gradient(135deg, #ffd700, #ff8f00); color: #5c1800; font-weight: 900; box-shadow: 0 0 10px rgba(255,215,0,0.7); }
+
+.chat-title-badge-tag {
+  font-size: 0.58rem;
+  font-weight: 700;
+  color: #ffd700;
+  background: rgba(255, 215, 0, 0.12);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  padding: 1px 5px;
+  border-radius: 4px;
+  margin-right: 4px;
+}
+
+.chat-msg-row.vip-5-msg {
+  border-left: 2px solid #ffd700;
+  background: rgba(255, 215, 0, 0.05);
+}
+

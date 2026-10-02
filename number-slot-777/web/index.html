@@ -6,7 +6,7 @@
   <meta name="format-detection" content="telephone=no">
   <title>Lucky Numbers 777 - Classic 5x3 Number Slot</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <link rel="stylesheet" href="/static/style.css?v=20261002_live12">
+  <link rel="stylesheet" href="/static/style.css?v=20261002_live13">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600;1,700&family=Orbitron:wght@600;700;800;900&display=swap&subset=vietnamese" rel="stylesheet">
@@ -59,6 +59,20 @@
       </div>
 
       <div class="header-actions">
+        <!-- Player VIP & Profile Pill -->
+        <div id="playerVipPill" class="player-vip-pill" title="Xem Cấp VIP & Danh Hiệu Của Bạn">
+          <div class="pv-avatar-wrap" id="pvAvatarWrap">
+            <span class="pv-avatar" id="pvAvatar">👤</span>
+            <span class="pv-vip-icon" id="pvVipIcon">🌱</span>
+          </div>
+          <div class="pv-details">
+            <span class="pv-name" id="pvName">Người Chơi</span>
+            <span class="pv-title-badge" id="pvTitleBadge">🍀 Tân Thủ May Mắn</span>
+          </div>
+        </div>
+
+        <button id="btnHeaderLeaderboard" class="icon-btn leaderboard-icon-btn" title="Bảng Xếp Hạng Cao Thủ">🏆</button>
+
         <!-- Telegram Mini App User Badge -->
         <div id="tgUserPill" class="tg-user-pill" style="display:none" title="Tài khoản Telegram">
           <div class="tg-user-avatar" id="tgUserAvatar">👤</div>
@@ -142,6 +156,25 @@
           <span class="lr-comm-tag">👥 <strong id="commPlayerCount">0</strong> người cược</span>
           <span class="lr-comm-tag gold">💰 Tổng cược: <strong id="commTotalWagered">0</strong> Xu</span>
           <button class="lr-invite-btn" id="btnInviteLiveRoom" title="Mời bạn bè cùng vào cược">👥 MỜI BẠN</button>
+        </div>
+
+        <!-- BẢNG SOI CẦU PHIÊN LIVE (LIVE ROADMAP STRIP) -->
+        <div class="live-roadmap-card" id="liveRoadmapCard">
+          <div class="roadmap-head">
+            <div class="rm-title-grp">
+              <span class="rm-icon">📊</span>
+              <span class="rm-title">SOI CẦU TRỰC TIẾP (20 PHIÊN GẦN NHẤT)</span>
+            </div>
+            <div class="rm-stats-pill" id="rmStatsPill">
+              <span class="rm-stat-red">🔴 Tài: <strong id="rmPctTai">50%</strong></span>
+              <span class="rm-stat-sep">•</span>
+              <span class="rm-stat-blue">🔵 Xỉu: <strong id="rmPctXiu">50%</strong></span>
+              <span class="rm-streak-tag" id="rmStreakTag">🔥 Cầu Bằng</span>
+            </div>
+          </div>
+          <div class="roadmap-beads-track" id="roadmapBeadsTrack">
+            <!-- 20 hạt tròn Tài (T), Xỉu (X), Hòa (H) render động -->
+          </div>
         </div>
       </div>
 
@@ -1772,10 +1805,11 @@ Content-Type: application/json
         </div>
       </div>
 
-      <!-- Chat Utility Bar: Phát Lộc Cả Phòng & Mời Bạn Bè -->
+      <!-- Chat Utility Bar: Phát Lộc Cả Phòng & BXH & Mời Bạn Bè -->
       <div class="chat-utility-bar">
         <button type="button" class="chat-util-btn redpacket-btn" id="btnSendRedPacket" title="Tùy chọn số Xu phát lộc cho cả phòng">🧧 PHÁT LỘC</button>
-        <button type="button" class="chat-util-btn invite-btn" id="btnDrawerInvite" title="Mời bạn bè vào phòng chat và cược chung">👥 MỜI BẠN BÈ</button>
+        <button type="button" class="chat-util-btn leaderboard-btn" id="btnDrawerLeaderboard" title="Bảng Xếp Hạng Cao Thủ">🏆 BXH</button>
+        <button type="button" class="chat-util-btn invite-btn" id="btnDrawerInvite" title="Mời bạn bè vào phòng chat và cược chung">👥 MỜI BẠN</button>
       </div>
 
       <!-- Input Form -->
@@ -1839,6 +1873,82 @@ Content-Type: application/json
     </div>
   </div>
 
+  <!-- MODAL BẢNG XẾP HẠNG CAO THỦ (LEADERBOARD) -->
+  <div class="modal-backdrop-custom" id="modalLeaderboard" style="display:none">
+    <div class="modal-card-custom lb-dialog">
+      <div class="modal-header-custom lb-header">
+        <div class="mhc-title">
+          <span class="mhc-icon">🏆</span>
+          <div>
+            <h3>BẢNG VINH DANH CAO THỦ</h3>
+            <span class="mhc-sub">Cập nhật theo thời gian thực</span>
+          </div>
+        </div>
+        <button type="button" class="modal-close-custom" id="btnCloseLeaderboard">✕</button>
+      </div>
+
+      <div class="lb-tab-nav">
+        <button type="button" class="lb-tab-btn active" id="lbTabWinners" data-tab="winners">👑 Top Thắng Lớn</button>
+        <button type="button" class="lb-tab-btn" id="lbTabDonors" data-tab="donors">🧧 Top Đại Gia Phát Lộc</button>
+      </div>
+
+      <div class="modal-body-custom lb-body-container" id="lbBodyContainer">
+        <!-- Danh sách top 10 render động -->
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL HỒ SƠ & DANH HIỆU VIP (PLAYER PROFILE & TITLES) -->
+  <div class="modal-backdrop-custom" id="modalPlayerProfile" style="display:none">
+    <div class="modal-card-custom profile-dialog">
+      <div class="modal-header-custom profile-header">
+        <div class="mhc-title">
+          <span class="mhc-icon">👑</span>
+          <div>
+            <h3>HỒ SƠ CÁ NHÂN & CẤP BẬC VIP</h3>
+            <span class="mhc-sub">Đặc quyền cấp bậc và bộ sưu tập danh hiệu</span>
+          </div>
+        </div>
+        <button type="button" class="modal-close-custom" id="btnCloseProfileModal">✕</button>
+      </div>
+
+      <div class="modal-body-custom profile-body-wrap">
+        <!-- Thẻ Tổng Quan Cấp VIP -->
+        <div class="profile-vip-card" id="profileVipCard">
+          <div class="pvc-avatar-wrap" id="profAvatarWrap">
+            <span class="pvc-avatar" id="profAvatarIcon">👤</span>
+            <span class="pvc-vip-badge-tag" id="profVipTag">VIP 0</span>
+          </div>
+          <div class="pvc-meta">
+            <div class="pvc-name-row">
+              <h4 class="pvc-name" id="profName">Người Chơi</h4>
+              <span class="pvc-id" id="profId">ID: guest</span>
+            </div>
+            <div class="pvc-level-name glow-gold" id="profLevelName">🌱 Tân Thủ May Mắn</div>
+            <div class="pvc-exp-track">
+              <div class="pvc-exp-fill" id="profExpFill" style="width: 15%"></div>
+            </div>
+            <div class="pvc-exp-info">
+              <span id="profExpTxt">Đã cược: 0 / 1,000 Xu để lên VIP 1</span>
+              <strong class="glow-cyan" id="profExpPct">0%</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bộ Sưu Tập Danh Hiệu (Titles) -->
+        <div class="profile-titles-section">
+          <div class="pts-head-row">
+            <span class="pts-title">🎖️ DANH HIỆU CỦA BẠN</span>
+            <span class="pts-desc">Chạm vào danh hiệu đã mở khóa để trang bị</span>
+          </div>
+          <div class="pts-grid" id="profileTitlesGrid">
+            <!-- Danh hiệu render động -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- RED PACKET RAIN LAYER (MƯA LÌ XÌ RƠI TRÊN MÀN HÌNH) -->
   <div class="red-packet-rain-layer" id="redPacketRainLayer"></div>
 
@@ -1850,6 +1960,6 @@ Content-Type: application/json
     <div class="gja-amt glow-gold" id="gjaAmt">+50,000 Xu</div>
   </div>
 
-  <script src="/static/app.js?v=20261002_live12"></script>
+  <script src="/static/app.js?v=20261002_live13"></script>
 </body>
 </html>
