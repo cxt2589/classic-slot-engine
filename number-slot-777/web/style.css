@@ -6571,42 +6571,107 @@ body.chat-drawer-open .nav-tabs.is-docked-bottom {
   background: rgba(6, 10, 22, 0.72);
 }
 
-/* Banner hướng dẫn lễ hội trên đỉnh */
+/* Tiêu đề chữ nghệ thuật phát sáng lộng lẫy trên đỉnh khi mưa lì xì */
 .rp-rain-header {
   position: absolute;
-  top: 18px;
+  top: 22px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  background: linear-gradient(135deg, rgba(220, 38, 38, 0.95), rgba(153, 27, 27, 0.95));
-  border: 1.5px solid #ffd700;
-  border-radius: 999px;
-  padding: 8px 24px;
-  box-shadow: 0 8px 25px rgba(220, 38, 38, 0.6), 0 0 15px rgba(255, 215, 0, 0.5);
-  z-index: 10;
-  pointer-events: auto;
-  max-width: 90vw;
+  gap: 6px;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 16px;
+  z-index: 12;
+  pointer-events: none; /* Cho phép chạm xuyên qua để bắt lì xì rơi trên cao */
+  max-width: 95vw;
   text-align: center;
-  animation: bounceInDown 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: rainTitleAppear 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+  -webkit-user-select: none;
 }
 
-.rp-rain-title {
+@keyframes rainTitleAppear {
+  0% { transform: translate(-50%, -24px) scale(0.85); opacity: 0; }
+  100% { transform: translate(-50%, 0) scale(1); opacity: 1; }
+}
+
+.rp-sparkle-tags {
+  font-size: 1.15rem;
+  letter-spacing: 5px;
+  animation: sparkleTwinkle 1.4s infinite alternate ease-in-out;
+  filter: drop-shadow(0 0 10px #ffd700);
+}
+
+@keyframes sparkleTwinkle {
+  0% { transform: scale(0.9); opacity: 0.75; }
+  100% { transform: scale(1.18); opacity: 1; }
+}
+
+.rp-rain-glowing-title {
   font-family: var(--font-display);
-  font-size: 0.95rem;
+  font-size: clamp(1.35rem, 5.2vw, 2.1rem);
   font-weight: 900;
-  color: #ffd700;
-  letter-spacing: 0.5px;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+  color: #fffdf0;
+  text-shadow: 
+    0 0 8px #ffd700,
+    0 0 18px #ff9800,
+    0 0 32px #ff3d00,
+    0 0 50px rgba(255, 61, 0, 0.8),
+    0 4px 12px rgba(0, 0, 0, 0.9);
+  animation: rainTitlePulse 1.8s infinite alternate ease-in-out;
+  white-space: nowrap;
 }
 
-.rp-rain-sub {
-  font-size: 0.72rem;
-  color: #ffffff;
-  opacity: 0.95;
-  font-weight: 600;
+@keyframes rainTitlePulse {
+  0% {
+    transform: scale(0.98);
+    text-shadow: 
+      0 0 8px #ffd700,
+      0 0 16px #ff9800,
+      0 0 28px #ff3d00,
+      0 0 45px rgba(255, 61, 0, 0.7),
+      0 4px 10px rgba(0, 0, 0, 0.9);
+  }
+  100% {
+    transform: scale(1.03);
+    text-shadow: 
+      0 0 12px #fff3a8,
+      0 0 24px #ffd700,
+      0 0 42px #ff6d00,
+      0 0 65px rgba(255, 87, 34, 0.95),
+      0 4px 16px rgba(0, 0, 0, 0.95);
+  }
+}
+
+.rp-rain-sub-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(10, 14, 28, 0.82);
+  border: 1px solid rgba(255, 215, 0, 0.45);
+  border-radius: 999px;
+  padding: 5px 16px;
+  font-size: clamp(0.7rem, 2.7vw, 0.82rem);
+  color: #f1f5f9;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.65), 0 0 12px rgba(255, 215, 0, 0.25);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.rp-rain-sub-pill .rp-sender-name {
+  color: #ffd700;
+  font-weight: 800;
+}
+
+.rp-rain-sub-pill .rp-sep {
+  opacity: 0.5;
+  font-size: 0.7rem;
 }
 
 /* Thanh bấm nhận nhanh bên dưới màn hình */
@@ -6856,14 +6921,14 @@ body.chat-drawer-open .nav-tabs.is-docked-bottom {
   }
 }
 
-/* Modal Phát Lộc Toàn Phòng */
+/* Modal Phát Lộc Toàn Phòng (Luôn nổi lên trên khung chat drawer và các lớp khác) */
 .modal-backdrop-custom {
   position: fixed;
   inset: 0;
-  background: rgba(4, 7, 18, 0.78);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  z-index: 999999;
+  background: rgba(4, 7, 18, 0.82);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 10000050 !important;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -6875,13 +6940,14 @@ body.chat-drawer-open .nav-tabs.is-docked-bottom {
   background: linear-gradient(160deg, #161b2e 0%, #0d1222 100%);
   border: 1.5px solid #ffd700;
   border-radius: 16px;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8), 0 0 25px rgba(255, 215, 0, 0.25);
+  box-shadow: 0 16px 45px rgba(0, 0, 0, 0.9), 0 0 35px rgba(255, 215, 0, 0.35);
   width: 100%;
   max-width: 440px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   animation: zoomInDialog 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 10000051 !important;
 }
 
 @keyframes zoomInDialog {

@@ -3813,12 +3813,17 @@ function triggerRedPacketRain(packet) {
   dom.redPacketRainLayer.innerHTML = "";
   dom.redPacketRainLayer.classList.add("active");
 
-  // Header lễ hội trên đỉnh
+  // Header chữ phát sáng nghệ thuật trên đỉnh
   const headerEl = document.createElement("div");
-  headerEl.className = "rp-rain-header";
+  headerEl.className = "rp-rain-header glowing-header";
   headerEl.innerHTML = `
-    <span class="rp-rain-title">🧧 MƯA LÌ XÌ PHÁT LỘC! 🧧</span>
-    <span class="rp-rain-sub">Lộc từ ${packet.sender_name} • Chạm bao lì xì hoặc bấm nút dưới</span>
+    <div class="rp-sparkle-tags">✨ 🧧 ✨</div>
+    <div class="rp-rain-glowing-title">MƯA LÌ XÌ PHÁT LỘC!</div>
+    <div class="rp-rain-sub-pill">
+      <span>Lộc từ <strong class="rp-sender-name">${packet.sender_name}</strong></span>
+      <span class="rp-sep">•</span>
+      <span>Chạm bao lì xì rơi hoặc bấm nút dưới</span>
+    </div>
   `;
   dom.redPacketRainLayer.appendChild(headerEl);
 

@@ -1320,17 +1320,54 @@ function getLiveRoundInfo() {
       let userLastRefund = null;
       let packetsChanged = false;
       for (const p of redPackets) {
-        if (!p.is_refunded && (now - p.created_at) >= 35000) {
-          p.is_refunded = true;
-          packetsChanged = true;
-          if (p.remaining_amount > 0 && p.sender_id === userId) {
-            session.balance += p.remaining_amount;
+        const isExpired = (now - p.created_at) >= 35000;
+        const alreadyRefunded = p.is_refunded_to_sender || (p.is_refunded && p.remaining_amount <= 0);
+        if (isExpired && !alreadyRefunded) {
+          // Nếu đã phát hết toàn bộ (remaining_amount <= 0), đánh dấu đã giải quyết xong
+          if ((p.remaining_amount || 0) <= 0) {
+            p.is_refunded_to_sender = true;
+            p.is_refunded = true;
+            packetsChanged = true;
+            continue;
+          }
+
+          // Nếu còn tiền thừa chưa ai nhận:
+          // CHỈ hoàn tiền và đánh dấu khi chính người phát (p.sender_id === userId) đồng bộ!
+          if (p.sender_id === userId) {
+            const refundAmt = Math.round(p.remaining_amount * 100) / 100;
+            p.is_refunded_to_sender = true;
+            p.is_refunded = true;
+            p.remaining_amount = 0;
+            packetsChanged = true;
+            session.balance += refundAmt;
             userLastRefund = {
               packet_id: p.id,
-              amount: p.remaining_amount,
+              amount: refundAmt,
               claimed_count: Object.keys(p.claimed_by || {}).length,
               total_amount: p.total_amount
             };
+
+            // Thông báo hoàn tiền công khai vào phòng chat
+            const refundNotice = {
+              id: "msg-rf-" + Date.now() + "-" + Math.random().toString(36).substr(2, 4),
+              user_id: "sys",
+              username: "HỆ THỐNG",
+              avatar: "↩️",
+              text: `💰 Gói phát lộc của ${p.sender_name} đã kết thúc. Hệ thống đã hoàn lại +${refundAmt.toLocaleString()} Xu (chưa ai nhận) về tài khoản của ${p.sender_name}!`,
+              type: "system",
+              time: Date.now()
+            };
+            try {
+              const curMsgs = await getKVChatMessages(env);
+              const updatedMsgs = [refundNotice, ...curMsgs.filter(m => m.id !== refundNotice.id)].slice(0, 50);
+              liveRoomState.chatMessages = updatedMsgs;
+              await saveKVChatMessages(env, updatedMsgs);
+            } catch (e) {}
+          } else if ((now - p.created_at) > 600000) {
+            // Sau 10 phút nếu người phát vẫn không quay lại nhận thì dọn dẹp
+            p.is_refunded_to_sender = true;
+            p.is_refunded = true;
+            packetsChanged = true;
           }
         }
       }
@@ -1524,12 +1561,13 @@ function getLiveRoundInfo() {
           claimed_by: {},
           created_at: Date.now(),
           expires_at: Date.now() + 35000,
-          is_refunded: false
+          is_refunded: false,
+          is_refunded_to_sender: false
         };
 
         const curPackets = await getKVRedPackets(env);
         const now = Date.now();
-        const fresh = [packetObj, ...curPackets.filter(p => (now - p.created_at) < 35000)].slice(0, 10);
+        const fresh = [packetObj, ...curPackets.filter(p => !p.is_refunded_to_sender && (now - p.created_at) < 60000)].slice(0, 15);
         await saveKVRedPackets(env, fresh);
 
         // Thông báo phát lộc vào phòng chat
