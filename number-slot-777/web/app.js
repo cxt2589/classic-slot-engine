@@ -58,7 +58,12 @@ const state = {
   // Custom & Telegram Private Room System
   currentRoomId: (typeof localStorage !== "undefined" && localStorage.getItem("lucky_current_room")) || "public",
   recentRooms: (typeof localStorage !== "undefined" && localStorage.getItem("lucky_recent_rooms") ? JSON.parse(localStorage.getItem("lucky_recent_rooms")) : []),
-  currentRoomInfo: null
+  currentRoomInfo: null,
+
+  // Mode-isolated cabinet outcomes
+  soloLastOutcome: null,
+  liveLastOutcome: null,
+  lottoLastOutcome: null
 };
 
 const lottoState = {
@@ -1389,6 +1394,13 @@ async function triggerSpin() {
 }
 
 function handleResults(center_row, analysis, payout) {
+  state.soloLastOutcome = {
+    grid: state.currentGrid,
+    center_row: [...center_row],
+    analysis: analysis,
+    payout: payout
+  };
+
   // Update Marquee Result
   dom.resSum.textContent = `Tổng: ${analysis.sum}`;
   dom.resTaiXiu.textContent = analysis.is_tai ? "TÀI (26-45)" : (analysis.is_xiu ? "XỈU (5-24)" : "HÒA (25)");
@@ -3999,11 +4011,115 @@ function closeSendRedPacketModal() {
   dom.modalSendRedPacket.style.display = "none";
 }
 
+function resetOrRestoreCabinetForMode(targetMode) {
+  // 1. Dọn sạch toàn bộ hiệu ứng thắng, tia sáng, popup và badge
+  clearWinningHighlights();
+  if (dom.winPillsList) dom.winPillsList.innerHTML = "";
+  if (dom.winBanner) {
+    dom.winBanner.classList.remove("show");
+    dom.winBanner.style.display = "none";
+  }
+  if (dom.shareWinContainer) {
+    dom.shareWinContainer.style.display = "none";
+  }
+
+  // Dừng bất kỳ chuyển động cuộn dở dang
+  state.isSpinning = false;
+  lottoState.isSpinningReels = false;
+  for (let c = 0; c < 5; c++) {
+    const strip = document.getElementById(`reel-${c}`);
+    if (strip) {
+      strip.classList.remove("strip-rolling");
+      strip.style.transition = "none";
+      strip.style.transform = "translateY(0px)";
+    }
+  }
+
+  // 2. Khôi phục giao diện cuộn và bảng kết quả tương ứng theo chế độ
+  if (targetMode === "solo") {
+    if (state.soloLastOutcome && state.soloLastOutcome.grid) {
+      state.currentGrid = state.soloLastOutcome.grid;
+      for (let c = 0; c < 5; c++) {
+        renderReelStatic(c, [
+          state.soloLastOutcome.grid[0][c],
+          state.soloLastOutcome.grid[1][c],
+          state.soloLastOutcome.grid[2][c]
+        ]);
+      }
+      const an = state.soloLastOutcome.analysis;
+      if (an && dom.resSum) {
+        dom.resSum.textContent = `Tổng: ${an.sum}`;
+        dom.resTaiXiu.textContent = an.is_tai ? "TÀI (26-45)" : (an.is_xiu ? "XỈU (5-24)" : "HÒA (25)");
+        dom.resChanLe.textContent = an.is_chan ? "CHẴN" : "LẺ";
+        dom.resHand.textContent = `Dãy: [ ${state.soloLastOutcome.center_row.join(" - ")} ] ➔ ${an.hand_title_vi}`;
+      }
+    } else {
+      renderInitialReels();
+      if (dom.resSum) dom.resSum.textContent = "Tổng: --";
+      if (dom.resTaiXiu) dom.resTaiXiu.textContent = "--";
+      if (dom.resChanLe) dom.resChanLe.textContent = "--";
+      if (dom.resHand) dom.resHand.textContent = "HÃY ĐẶT CƯỢC & BẤM QUAY";
+    }
+  } else if (targetMode === "live") {
+    if (state.liveLastOutcome && state.liveLastOutcome.grid) {
+      state.currentGrid = state.liveLastOutcome.grid;
+      for (let c = 0; c < 5; c++) {
+        renderReelStatic(c, [
+          state.liveLastOutcome.grid[0][c],
+          state.liveLastOutcome.grid[1][c],
+          state.liveLastOutcome.grid[2][c]
+        ]);
+      }
+      const an = state.liveLastOutcome.analysis;
+      if (an && dom.resSum) {
+        dom.resSum.textContent = `Tổng: ${an.sum}`;
+        dom.resTaiXiu.textContent = an.is_tai ? "TÀI (26-45)" : (an.is_xiu ? "XỈU (5-24)" : "HÒA (25)");
+        dom.resChanLe.textContent = an.is_chan ? "CHẴN" : "LẺ";
+        dom.resHand.textContent = `Phiên trước: [ ${state.liveLastOutcome.center_row.join(" - ")} ] ➔ ${an.hand_title_vi}`;
+      }
+    } else {
+      renderInitialReels();
+      if (dom.resSum) dom.resSum.textContent = "Tổng: --";
+      if (dom.resTaiXiu) dom.resTaiXiu.textContent = "--";
+      if (dom.resChanLe) dom.resChanLe.textContent = "--";
+      if (dom.resHand) dom.resHand.textContent = "ĐANG ĐỒNG BỘ PHÒNG TRỰC TIẾP...";
+    }
+  } else if (targetMode === "lotto") {
+    if (state.lottoLastOutcome && state.lottoLastOutcome.digits) {
+      const digits = state.lottoLastOutcome.digits;
+      const lottoGrid = [
+        digits.map(d => (d + 9) % 10),
+        digits,
+        digits.map(d => (d + 1) % 10)
+      ];
+      state.currentGrid = lottoGrid;
+      for (let c = 0; c < 5; c++) {
+        renderReelStatic(c, [lottoGrid[0][c], lottoGrid[1][c], lottoGrid[2][c]]);
+      }
+      const out = state.lottoLastOutcome.outcome;
+      if (out && dom.resSum) {
+        dom.resSum.textContent = `ĐB: ${digits.join("")}`;
+        dom.resTaiXiu.textContent = `${out.is_tai ? "TÀI" : "XỈU"} (${out.de_duoi || ""})`;
+        dom.resChanLe.textContent = `${out.is_chan ? "CHẴN" : "LẺ"}`;
+        dom.resHand.textContent = `GIẢI ĐẶC BIỆT KỲ TRƯỚC: [ ${digits.join(" - ")} ]`;
+      }
+    } else {
+      if (dom.resSum) dom.resSum.textContent = "ĐB: -----";
+      if (dom.resTaiXiu) dom.resTaiXiu.textContent = "TÀI/XỈU";
+      if (dom.resChanLe) dom.resChanLe.textContent = "CHẴN/LẺ";
+      if (dom.resHand) dom.resHand.textContent = "DỰ ĐOÁN 5 CHỮ SỐ GIẢI ĐẶC BIỆT";
+    }
+  }
+}
+
 function switchGameplayMode(mode) {
   state.gamePlayMode = mode;
   telegramEngine.haptic("selection");
   soundEngine.init();
   soundEngine.playChip();
+
+  // Reset và khôi phục giao diện ô quay thưởng sạch sẽ theo đúng chế độ
+  resetOrRestoreCabinetForMode(mode);
 
   const isLive = mode === "live";
   const isLotto = mode === "lotto";
@@ -4503,6 +4619,12 @@ async function executeLiveSpinReels(outcome) {
   await Promise.all(reelPromises);
   state.currentGrid = grid;
   state.isSpinning = false;
+  state.liveLastOutcome = {
+    grid: grid,
+    center_row: [...center_row],
+    analysis: analysis,
+    round_id: outcome.round_id
+  };
 
   // Display results on cabinet
   dom.resSum.textContent = `Tổng: ${analysis.sum}`;
@@ -6059,6 +6181,11 @@ async function runLottoReelSpin(digits, outcome) {
   state.currentGrid = grid;
   state.isSpinning = false;
   lottoState.isSpinningReels = false;
+  state.lottoLastOutcome = {
+    digits: [...digits],
+    outcome: outcome,
+    grid: grid
+  };
 
   // Cập nhật kết quả chi tiết lên Marquee của Cabinet
   if (outcome) {
