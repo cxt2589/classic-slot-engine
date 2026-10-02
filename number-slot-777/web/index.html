@@ -6,7 +6,7 @@
   <meta name="format-detection" content="telephone=no">
   <title>Lucky Numbers 777 - Classic 5x3 Number Slot</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <link rel="stylesheet" href="/static/style.css?v=20261002_lotto02">
+  <link rel="stylesheet" href="/static/style.css?v=20261002_lotto03">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600;1,700&family=Orbitron:wght@600;700;800;900&display=swap&subset=vietnamese" rel="stylesheet">
@@ -611,6 +611,7 @@
             <div class="lbh-sub-info">
               <span class="lbh-sub-tag">KỲ QUAY: <strong class="glow-gold" id="lottoRoundId">X5D-60s-10820</strong></span>
               <span class="lbh-sub-tag" id="lottoChannelBadge">⏱️ Tiêu Chuẩn 60s</span>
+              <span class="lbh-sub-tag lat-my-ticket-badge" id="lottoMyTicketBadge" style="display:none">🎟️ ĐÃ ĐẶT: <strong id="lottoMyTicketBadgeVal" class="glow-gold">0 Xu</strong></span>
             </div>
           </div>
 
@@ -777,6 +778,24 @@
               <button type="button" class="laf-submit-btn" id="btnSubmitLottoTicket">
                 🎟️ XÁC NHẬN ĐẶT VÉ
               </button>
+            </div>
+          </div>
+
+          <!-- 5. Khung Vé Đã Đặt Kỳ Hiện Tại (Active Placed Ticket Receipt) -->
+          <div class="lotto-active-ticket-card" id="lottoActiveTicketCard" style="display:none">
+            <div class="lat-header">
+              <div class="lat-title-group">
+                <span class="lat-icon">🎟️</span>
+                <span class="lat-title">VÉ ĐÃ ĐẶT KỲ NÀY</span>
+                <span class="lat-phase-badge" id="latPhaseBadge">⏳ ĐANG CHỜ QUAY</span>
+              </div>
+              <div class="lat-total-group">
+                <span class="lat-total-lbl">TỔNG ĐÃ CƯỢC:</span>
+                <strong class="lat-total-val glow-gold" id="latTotalWager">0 Xu</strong>
+              </div>
+            </div>
+            <div class="lat-body" id="latBody">
+              <!-- Render dynamic items -->
             </div>
           </div>
         </div>
@@ -2319,6 +2338,6 @@ Content-Type: application/json
     <div class="gja-amt glow-gold" id="gjaAmt">+50,000 Xu</div>
   </div>
 
-  <script src="/static/app.js?v=20261002_lotto02"></script>
+  <script src="/static/app.js?v=20261002_lotto03"></script>
 </body>
 </html>

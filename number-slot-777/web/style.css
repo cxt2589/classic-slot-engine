@@ -9674,5 +9674,222 @@ body.chat-drawer-open .nav-tabs.is-docked-bottom {
   }
 }
 
+/* ========================================================
+   KHUNG VÉ ĐÃ CƯỢC KỲ HIỆN TẠI (ACTIVE PLACED TICKET CARD)
+   ======================================================== */
+.lat-my-ticket-badge {
+  background: rgba(255, 215, 0, 0.15);
+  border: 1px solid rgba(255, 215, 0, 0.5);
+  padding: 2px 8px;
+  border-radius: 6px;
+  color: #f1f5f9;
+}
+
+.lotto-active-ticket-card {
+  background: linear-gradient(145deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%);
+  border: 1.5px solid rgba(255, 215, 0, 0.45);
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5), inset 0 0 16px rgba(255, 215, 0, 0.08);
+  animation: fadeInTicket 0.3s ease;
+}
+
+@keyframes fadeInTicket {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.lat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 8px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.lat-title-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lat-icon {
+  font-size: 1rem;
+}
+
+.lat-title {
+  font-size: 0.76rem;
+  font-weight: 800;
+  color: #f8fafc;
+  letter-spacing: 0.3px;
+}
+
+.lat-phase-badge {
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+
+.lat-phase-badge.pending {
+  background: rgba(2, 132, 199, 0.2);
+  border: 1px solid #38bdf8;
+  color: #38bdf8;
+}
+
+.lat-phase-badge.drawing {
+  background: rgba(255, 215, 0, 0.2);
+  border: 1px solid #ffd700;
+  color: #ffd700;
+  animation: pulse-border 0.8s infinite alternate;
+}
+
+.lat-phase-badge.won {
+  background: rgba(0, 230, 118, 0.2);
+  border: 1px solid #00e676;
+  color: #00e676;
+}
+
+.lat-phase-badge.lost {
+  background: rgba(148, 163, 184, 0.15);
+  border: 1px solid #64748b;
+  color: #94a3b8;
+}
+
+.lat-total-group {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.lat-total-lbl {
+  font-size: 0.65rem;
+  color: #94a3b8;
+  font-weight: 700;
+}
+
+.lat-total-val {
+  font-size: 0.95rem;
+  font-family: var(--font-numbers, monospace);
+  font-weight: 900;
+  color: #ffd700;
+}
+
+.lat-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lat-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.lat-row-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.lat-type-tag {
+  font-size: 0.7rem;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.lat-type-tag.de-duoi {
+  background: rgba(255, 215, 0, 0.15);
+  color: #ffd700;
+}
+
+.lat-type-tag.de-dau {
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+}
+
+.lat-type-tag.ba-cang {
+  background: rgba(168, 85, 247, 0.15);
+  color: #c084fc;
+}
+
+.lat-type-tag.fast {
+  background: rgba(249, 115, 22, 0.15);
+  color: #fb923c;
+}
+
+.lat-amt-tag {
+  font-size: 0.65rem;
+  color: #94a3b8;
+  font-weight: 700;
+}
+
+.lat-chips-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.lat-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 5px;
+  font-size: 0.74rem;
+  font-weight: 800;
+  font-family: var(--font-numbers, monospace);
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #e2e8f0;
+  transition: all 0.2s ease;
+}
+
+.lat-chip.num {
+  font-size: 0.85rem;
+  color: #ffd700;
+  border-color: rgba(255, 215, 0, 0.4);
+}
+
+.lat-chip.door {
+  font-size: 0.72rem;
+  color: #38bdf8;
+  border-color: rgba(56, 189, 248, 0.35);
+}
+
+.lat-chip.won {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.35) 0%, rgba(255, 143, 0, 0.25) 100%);
+  border: 1.5px solid #ffd700;
+  color: #fff;
+  box-shadow: 0 0 12px rgba(255, 215, 0, 0.7);
+  animation: pulse-won 0.7s infinite alternate;
+}
+
+@keyframes pulse-won {
+  0% { transform: scale(1); box-shadow: 0 0 8px rgba(255, 215, 0, 0.5); }
+  100% { transform: scale(1.05); box-shadow: 0 0 16px rgba(255, 215, 0, 0.9); }
+}
+
+.lat-chip-win-badge {
+  font-size: 0.62rem;
+  font-weight: 900;
+  background: #00e676;
+  color: #032d16;
+  padding: 1px 5px;
+  border-radius: 3px;
+  margin-left: 2px;
+}
+
 
 

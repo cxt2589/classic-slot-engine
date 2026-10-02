@@ -83,7 +83,8 @@ const lottoState = {
   pollTimer: null,
   lastSettledRoundId: null,
   lastDrawnRoundId: null,
-  isSpinningReels: false
+  isSpinningReels: false,
+  currentActiveTicket: null
 };
 
 // Web Audio API Synthesizer
@@ -571,7 +572,15 @@ const dom = {
   lottoRoadmapCard: document.getElementById("lottoRoadmapCard"),
   lrcChannelNote: document.getElementById("lrcChannelNote"),
   lottoRoadmapTable: document.getElementById("lottoRoadmapTable"),
-  lottoRoadmapBody: document.getElementById("lottoRoadmapBody")
+  lottoRoadmapBody: document.getElementById("lottoRoadmapBody"),
+
+  // Placed Lotto Ticket Card & Badge
+  lottoMyTicketBadge: document.getElementById("lottoMyTicketBadge"),
+  lottoMyTicketBadgeVal: document.getElementById("lottoMyTicketBadgeVal"),
+  lottoActiveTicketCard: document.getElementById("lottoActiveTicketCard"),
+  latPhaseBadge: document.getElementById("latPhaseBadge"),
+  latTotalWager: document.getElementById("latTotalWager"),
+  latBody: document.getElementById("latBody")
 };
 
 // Colors mapping (0-9 for 5D lotto & slot numbers)
@@ -748,7 +757,9 @@ async function loadSession() {
 function updateMeters(lastWin = 0) {
   if (!state.session) return;
   dom.meterBalance.textContent = state.session.balance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const totalWager = Object.values(state.placedBets).reduce((acc, v) => acc + v, 0);
+  const totalWager = state.gamePlayMode === "lotto"
+    ? (lottoState.currentActiveTicket?.total_bet || 0)
+    : Object.values(state.placedBets).reduce((acc, v) => acc + v, 0);
   dom.meterTotalBet.textContent = totalWager.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   if (lastWin > 0) {
     dom.meterWin.textContent = lastWin.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -5605,6 +5616,11 @@ async function syncLottoState() {
       renderLottoRoadmap(data.roadmap);
     }
 
+    // Render Active Placed Ticket (Vé đã cược kỳ này)
+    lottoState.currentActiveTicket = data.user_current_bet;
+    renderLottoActiveTicket(data.user_current_bet, data.round?.outcome, data.round?.phase);
+    updateMeters();
+
   } catch (err) {
     console.error("syncLottoState error:", err);
   }
@@ -5743,6 +5759,144 @@ function renderLottoRoadmap(roadmap) {
       <td><span class="${item.is_chan ? "lrc-tag-chan" : "lrc-tag-le"}">${item.is_chan ? "Chẵn" : "Lẻ"}</span></td>
     </tr>
   `).join("");
+}
+
+function renderLottoActiveTicket(ticket, outcome, phase) {
+  if (!dom.lottoActiveTicketCard) return;
+
+  if (!ticket || !ticket.bets || (ticket.total_bet || 0) <= 0) {
+    dom.lottoActiveTicketCard.style.display = "none";
+    if (dom.lottoMyTicketBadge) dom.lottoMyTicketBadge.style.display = "none";
+    return;
+  }
+
+  // Show ticket card & header badge
+  dom.lottoActiveTicketCard.style.display = "flex";
+  if (dom.lottoMyTicketBadge) {
+    dom.lottoMyTicketBadge.style.display = "inline-flex";
+    if (dom.lottoMyTicketBadgeVal) {
+      dom.lottoMyTicketBadgeVal.textContent = `${(ticket.total_bet || 0).toLocaleString()} Xu`;
+    }
+  }
+
+  if (dom.latTotalWager) {
+    dom.latTotalWager.textContent = `${(ticket.total_bet || 0).toLocaleString()} Xu`;
+  }
+
+  // Phase badge
+  if (dom.latPhaseBadge) {
+    if (phase === "betting") {
+      dom.latPhaseBadge.className = "lat-phase-badge pending";
+      dom.latPhaseBadge.textContent = "⏳ ĐANG CHỜ MỞ THƯỞNG";
+    } else if (phase === "drawing") {
+      dom.latPhaseBadge.className = "lat-phase-badge drawing";
+      dom.latPhaseBadge.textContent = "🎰 ĐANG QUAY THƯỞNG...";
+    } else if (phase === "payout") {
+      dom.latPhaseBadge.className = "lat-phase-badge won";
+      dom.latPhaseBadge.textContent = "🎉 KẾT QUẢ KỲ QUAY";
+    }
+  }
+
+  // If in betting phase and we have bets, update Marquee to show active ticket!
+  if (phase === "betting" && !state.isSpinning) {
+    if (dom.resHand) {
+      dom.resHand.textContent = `🎟️ Vé của bạn: ${(ticket.total_bet || 0).toLocaleString()} Xu (Đang chờ quay)`;
+    }
+  }
+
+  if (!dom.latBody) return;
+
+  const bets = ticket.bets || {};
+  let html = "";
+
+  // 1. Đề Đuôi (x95)
+  if (bets.DE_DUOI && Array.isArray(bets.DE_DUOI.numbers) && bets.DE_DUOI.numbers.length > 0) {
+    const amt = bets.DE_DUOI.amount_per_num || 10;
+    const winningNum = outcome ? outcome.de_duoi : null;
+    html += `
+      <div class="lat-row">
+        <div class="lat-row-head">
+          <span class="lat-type-tag de-duoi">🎯 ĐỀ ĐUÔI (x95) • ${bets.DE_DUOI.numbers.length} số</span>
+          <span class="lat-amt-tag">${amt.toLocaleString()} Xu/số</span>
+        </div>
+        <div class="lat-chips-wrap">
+          ${bets.DE_DUOI.numbers.map(n => {
+            const isWon = outcome && winningNum && String(n).padStart(2, "0") === String(winningNum).padStart(2, "0");
+            return `<span class="lat-chip num ${isWon ? 'won' : ''}">${n}${isWon ? '<span class="lat-chip-win-badge">✨ TRÚNG</span>' : ''}</span>`;
+          }).join("")}
+        </div>
+      </div>
+    `;
+  }
+
+  // 2. Đề Đầu (x95)
+  if (bets.DE_DAU && Array.isArray(bets.DE_DAU.numbers) && bets.DE_DAU.numbers.length > 0) {
+    const amt = bets.DE_DAU.amount_per_num || 10;
+    const winningNum = outcome ? outcome.de_dau : null;
+    html += `
+      <div class="lat-row">
+        <div class="lat-row-head">
+          <span class="lat-type-tag de-dau">🎯 ĐỀ ĐẦU (x95) • ${bets.DE_DAU.numbers.length} số</span>
+          <span class="lat-amt-tag">${amt.toLocaleString()} Xu/số</span>
+        </div>
+        <div class="lat-chips-wrap">
+          ${bets.DE_DAU.numbers.map(n => {
+            const isWon = outcome && winningNum && String(n).padStart(2, "0") === String(winningNum).padStart(2, "0");
+            return `<span class="lat-chip num ${isWon ? 'won' : ''}">${n}${isWon ? '<span class="lat-chip-win-badge">✨ TRÚNG</span>' : ''}</span>`;
+          }).join("")}
+        </div>
+      </div>
+    `;
+  }
+
+  // 3. 3 Càng (x900)
+  if (bets.BA_CANG && Array.isArray(bets.BA_CANG.numbers) && bets.BA_CANG.numbers.length > 0) {
+    const amt = bets.BA_CANG.amount_per_num || 10;
+    const winningNum = outcome ? outcome.ba_cang : null;
+    html += `
+      <div class="lat-row">
+        <div class="lat-row-head">
+          <span class="lat-type-tag ba-cang">⭐ 3 CÀNG (x900) • ${bets.BA_CANG.numbers.length} số</span>
+          <span class="lat-amt-tag">${amt.toLocaleString()} Xu/số</span>
+        </div>
+        <div class="lat-chips-wrap">
+          ${bets.BA_CANG.numbers.map(n => {
+            const isWon = outcome && winningNum && String(n).padStart(3, "0") === String(winningNum).padStart(3, "0");
+            return `<span class="lat-chip num ${isWon ? 'won' : ''}">${n}${isWon ? '<span class="lat-chip-win-badge">✨ TRÚNG</span>' : ''}</span>`;
+          }).join("")}
+        </div>
+      </div>
+    `;
+  }
+
+  // 4. Cược Nhanh (TAI, XIU, CHAN, LE, KEP_BANG)
+  const fastDoors = [
+    { key: "TAI", label: "Tài Đuôi (50-99)", mult: "x1.98", check: (o) => o?.analysis?.side === "TAI" },
+    { key: "XIU", label: "Xỉu Đuôi (00-49)", mult: "x1.98", check: (o) => o?.analysis?.side === "XIU" },
+    { key: "CHAN", label: "Chẵn Đuôi", mult: "x1.98", check: (o) => o?.analysis?.parity === "CHAN" },
+    { key: "LE", label: "Lẻ Đuôi", mult: "x1.98", check: (o) => o?.analysis?.parity === "LE" },
+    { key: "KEP_BANG", label: "Kép Bằng", mult: "x9.5", check: (o) => o?.analysis?.is_kep_bang === true }
+  ];
+
+  const activeFast = fastDoors.filter(d => Number(bets[d.key]) > 0);
+  if (activeFast.length > 0) {
+    html += `
+      <div class="lat-row">
+        <div class="lat-row-head">
+          <span class="lat-type-tag fast">⚡ CƯỢC NHANH</span>
+        </div>
+        <div class="lat-chips-wrap">
+          ${activeFast.map(d => {
+            const amt = Number(bets[d.key]);
+            const isWon = outcome && d.check(outcome);
+            return `<span class="lat-chip door ${isWon ? 'won' : ''}">${d.label}: ${amt.toLocaleString()} Xu (${d.mult})${isWon ? '<span class="lat-chip-win-badge">✨ TRÚNG</span>' : ''}</span>`;
+          }).join("")}
+        </div>
+      </div>
+    `;
+  }
+
+  dom.latBody.innerHTML = html;
 }
 
 function handleLottoSettlement(settlement, newBalance) {

@@ -1573,14 +1573,40 @@ export default {
         if (!liveRoomState.lottoBets[roundId]) liveRoomState.lottoBets[roundId] = {};
 
         const existingBet = liveRoomState.lottoBets[roundId][userId];
+        let mergedBets = { ...bets };
+        let finalTotalWager = totalWager;
+
+        if (existingBet && existingBet.bets) {
+          finalTotalWager += (existingBet.total_bet || 0);
+          mergedBets = { ...existingBet.bets };
+
+          ["DE_DUOI", "DE_DAU", "BA_CANG"].forEach(type => {
+            if (bets[type] && Array.isArray(bets[type].numbers)) {
+              if (!mergedBets[type] || !Array.isArray(mergedBets[type].numbers)) {
+                mergedBets[type] = { numbers: [], amount_per_num: bets[type].amount_per_num || 10 };
+              }
+              const set = new Set(mergedBets[type].numbers);
+              bets[type].numbers.forEach(n => set.add(n));
+              mergedBets[type].numbers = Array.from(set);
+              mergedBets[type].amount_per_num = Math.max(mergedBets[type].amount_per_num || 0, bets[type].amount_per_num || 0);
+            }
+          });
+
+          ["TAI", "XIU", "CHAN", "LE", "KEP_BANG"].forEach(door => {
+            if (bets[door] && Number(bets[door]) > 0) {
+              mergedBets[door] = (Number(mergedBets[door]) || 0) + Number(bets[door]);
+            }
+          });
+        }
+
         const newBetEntry = {
           round_id: roundId,
           channel: lottoRound.channel.id,
           user_id: userId,
           username: userName,
           room_id: targetRoomId,
-          bets: bets,
-          total_bet: totalWager,
+          bets: mergedBets,
+          total_bet: finalTotalWager,
           placed_at: Date.now()
         };
 
