@@ -169,13 +169,15 @@ const liveRoomState = {
   telegramGroups: [], // [{ chat_id, title, type, room_id, created_at, updated_at }]
   lottoOutcomes: {}, // round_id -> lotto outcome object
   lottoBets: {}, // round_id -> { user_id -> betData }
-  lottoSettled: {} // "roundId_userId" -> result
+  lottoSettled: {}, // "roundId_userId" -> result
+  redPackets: [] // in-memory red packet cache across worker calls
 };
 
 function normalizeRoomId(raw) {
   if (!raw || typeof raw !== "string") return "public";
   const cleaned = raw.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, "");
-  return cleaned ? cleaned.slice(0, 20) : "public";
+  if (!cleaned || cleaned === "PUBLIC") return "public";
+  return cleaned.slice(0, 20);
 }
 
 function hashString(str) {
@@ -194,7 +196,17 @@ async function getKVChatMessages(env, roomId = "public") {
 
   if (env && env.LUCKY_ROOM) {
     try {
-      const stored = await env.LUCKY_ROOM.get(kvKey, { type: "json" });
+      let stored = await env.LUCKY_ROOM.get(kvKey, { type: "json" });
+      // Migrate from live_chat_messages_PUBLIC if needed
+      if (normRoom === "public" && (!stored || !Array.isArray(stored) || stored.length === 0)) {
+        try {
+          const oldStored = await env.LUCKY_ROOM.get("live_chat_messages_PUBLIC", { type: "json" });
+          if (Array.isArray(oldStored) && oldStored.length > 0) {
+            stored = oldStored;
+            await env.LUCKY_ROOM.put("live_chat_messages", JSON.stringify(oldStored));
+          }
+        } catch (eOld) {}
+      }
       if (Array.isArray(stored) && stored.length > 0) {
         liveRoomState.chatMessagesByRoom[normRoom] = stored;
         if (normRoom === "public") liveRoomState.chatMessages = stored;
@@ -287,18 +299,26 @@ async function saveKVBigWins(env, wins) {
 }
 
 async function getKVRedPackets(env) {
+  let list = liveRoomState.redPackets || [];
   if (env && env.LUCKY_ROOM) {
     try {
       const stored = await env.LUCKY_ROOM.get("live_red_packets", { type: "json" });
-      if (Array.isArray(stored)) {
-        return stored;
+      if (Array.isArray(stored) && stored.length > 0) {
+        const map = new Map();
+        [...stored, ...list].forEach(p => {
+          if (p && p.id && !map.has(p.id)) map.set(p.id, p);
+        });
+        list = Array.from(map.values());
+        liveRoomState.redPackets = list;
+        return list;
       }
     } catch (e) {}
   }
-  return [];
+  return list;
 }
 
 async function saveKVRedPackets(env, packets) {
+  liveRoomState.redPackets = packets || [];
   if (env && env.LUCKY_ROOM) {
     try {
       await env.LUCKY_ROOM.put("live_red_packets", JSON.stringify(packets));
@@ -2288,8 +2308,8 @@ function getLiveRoundInfo(roomId = "public") {
 
       // Giữ reactions 15s gần nhất, lì xì 35s gần nhất (lọc theo room_id)
       const now = Date.now();
-      const freshReactions = reactions.filter(r => (r.room_id || "public") === targetRoomId && (now - r.time) < 15000);
-      const activePackets = redPackets.filter(p => (p.room_id || "public") === targetRoomId && (now - p.created_at) < 35000);
+      const freshReactions = reactions.filter(r => normalizeRoomId(r.room_id || "public") === targetRoomId && (now - r.time) < 15000);
+      const activePackets = redPackets.filter(p => normalizeRoomId(p.room_id || "public") === targetRoomId && (now - p.created_at) < 35000);
 
       // Quét tự động hoàn tiền lộc chưa có người nhận cho người phát (sau 35s)
       let userLastRefund = null;

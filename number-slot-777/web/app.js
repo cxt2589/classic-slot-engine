@@ -3019,7 +3019,8 @@ function getLiveUserName() {
 function normalizeRoomIdClient(raw) {
   if (!raw || typeof raw !== "string") return "public";
   const cleaned = raw.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, "");
-  return cleaned ? cleaned.slice(0, 20) : "public";
+  if (!cleaned || cleaned === "PUBLIC") return "public";
+  return cleaned.slice(0, 20);
 }
 
 function updateRoomUI() {
@@ -4090,6 +4091,7 @@ function switchGameplayMode(mode) {
 }
 
 let savedChatScrollY = 0;
+let chatDrawerPollTimer = null;
 
 function openChatDrawer() {
   if (!dom.chatDrawerBackdrop) return;
@@ -4113,6 +4115,11 @@ function openChatDrawer() {
   if (dom.chatMessagesContainer) {
     dom.chatMessagesContainer.scrollTop = dom.chatMessagesContainer.scrollHeight;
   }
+
+  // Đồng bộ ngay lập tức tin nhắn mới nhất và duy trì polling 1.5s khi đang mở khung chat
+  syncLiveRoomState();
+  if (chatDrawerPollTimer) clearInterval(chatDrawerPollTimer);
+  chatDrawerPollTimer = setInterval(syncLiveRoomState, 1500);
 }
 
 function closeChatDrawer() {
@@ -4122,6 +4129,10 @@ function closeChatDrawer() {
   document.documentElement.classList.remove("chat-drawer-open");
   window.scrollTo(0, savedChatScrollY);
   telegramEngine.haptic("light");
+  if (chatDrawerPollTimer) {
+    clearInterval(chatDrawerPollTimer);
+    chatDrawerPollTimer = null;
+  }
   if (typeof window.recheckScrollNav === "function") {
     window.recheckScrollNav();
   }
@@ -4271,14 +4282,38 @@ async function syncLiveRoomState() {
       }
     }
 
-    // Kích hoạt mưa lì xì nếu phòng có người phát lộc mới (hiện cho toàn bộ người chơi trong phòng)
-    if (data.active_red_packets && data.active_red_packets.length > 0) {
-      for (const rp of data.active_red_packets) {
-        if (!state.activeRedPacketIdsSpawned.has(rp.id)) {
-          state.activeRedPacketIdsSpawned.add(rp.id);
-          const isSender = Boolean(rp.sender_id && rp.sender_id === getLiveUserId());
-          triggerRedPacketRain(rp, isSender);
+    // Kích hoạt mưa lì xì cho người chơi khác trong phòng từ cả 2 nguồn: active_red_packets và recent_messages
+    const candidatePackets = [];
+    if (data.active_red_packets && Array.isArray(data.active_red_packets)) {
+      candidatePackets.push(...data.active_red_packets);
+    }
+    // Bổ trợ: Nhận diện gói phát lộc từ tin nhắn chat mới (dưới 35s) để hiển thị tức thì
+    if (data.recent_messages && Array.isArray(data.recent_messages)) {
+      const now = Date.now();
+      data.recent_messages.forEach(m => {
+        if (m.type === "red_packet" && m.packet_id && (now - (Number(m.time) || 0)) < 35000) {
+          if (!candidatePackets.some(p => p.id === m.packet_id)) {
+            candidatePackets.push({
+              id: m.packet_id,
+              sender_id: m.sender_id,
+              sender_name: m.sender_name || (m.text?.match(/🧧 (.*?) vừa PHÁT LỘC/)?.[1]) || "Bạn bè",
+              total_amount: m.amount || 200,
+              room_id: m.room_id || "public"
+            });
+          }
         }
+      });
+    }
+
+    const myUid = getLiveUserId();
+    for (const rp of candidatePackets) {
+      if (!state.activeRedPacketIdsSpawned.has(rp.id)) {
+        state.activeRedPacketIdsSpawned.add(rp.id);
+        // Người phát TUYỆT ĐỐI KHÔNG hiện hiệu ứng phong bì rơi
+        if (rp.sender_id && rp.sender_id === myUid) {
+          continue;
+        }
+        triggerRedPacketRain(rp);
       }
     }
 
@@ -4732,8 +4767,7 @@ function shareWinSlipAction() {
   });
 }
 
-let lastRenderedChatMsgId = "";
-let lastRenderedChatCount = 0;
+let lastRenderedChatKey = "";
 
 function renderChatMessages(messages) {
   if (!dom.chatMessagesContainer || !messages) return;
@@ -4741,11 +4775,13 @@ function renderChatMessages(messages) {
   // Sắp xếp tin nhắn: tin cũ ở trên, tin mới nhất ở dưới đáy
   const sorted = [...messages].sort((a, b) => (Number(a.time) || 0) - (Number(b.time) || 0));
   const latestId = sorted.length > 0 ? sorted[sorted.length - 1].id : "";
-  if (sorted.length === lastRenderedChatCount && latestId === lastRenderedChatMsgId) {
+  const firstId = sorted.length > 0 ? sorted[0].id : "";
+  const latestTime = sorted.length > 0 ? (sorted[sorted.length - 1].time || "") : "";
+  const cacheKey = `${sorted.length}_${firstId}_${latestId}_${latestTime}`;
+  if (cacheKey === lastRenderedChatKey) {
     return;
   }
-  lastRenderedChatCount = sorted.length;
-  lastRenderedChatMsgId = latestId;
+  lastRenderedChatKey = cacheKey;
 
   dom.chatMessagesContainer.innerHTML = sorted.map(msg => {
     const isSys = msg.type === "system";
@@ -4907,19 +4943,19 @@ function dismissRedPacketRain() {
   }, 300);
 }
 
-function triggerRedPacketRain(packet, isSender = false) {
+function triggerRedPacketRain(packet) {
   if (!dom.redPacketRainLayer || !packet) return;
 
-  const isOwner = Boolean(isSender || (packet.sender_id && packet.sender_id === getLiveUserId()));
+  const currentUserId = getLiveUserId();
+  if (packet.sender_id && packet.sender_id === currentUserId) {
+    // Người phát lộc TUYỆT ĐỐI KHÔNG hiện hiệu ứng phong bì rơi
+    return;
+  }
 
   soundEngine.init();
   soundEngine.playWinTone();
   telegramEngine.haptic("warning");
-  if (isOwner) {
-    showToast(`🧧 Bạn vừa PHÁT LỘC <strong>${(packet.total_amount || 200).toLocaleString()} Xu</strong> cho cả phòng!`, "gold");
-  } else {
-    showToast(`🧧 <strong>${packet.sender_name}</strong> vừa PHÁT LỘC <strong>${(packet.total_amount || 200).toLocaleString()} Xu</strong>! Mau nhặt bao lì xì!`, "gold");
-  }
+  showToast(`🧧 <strong>${packet.sender_name || "Thành viên"}</strong> vừa PHÁT LỘC <strong>${(packet.total_amount || 200).toLocaleString()} Xu</strong>! Mau nhặt bao lì xì!`, "gold");
 
   // Kích hoạt lớp phủ chống chạm nhầm xuống bàn cược
   dom.redPacketRainLayer.innerHTML = "";
@@ -4930,11 +4966,11 @@ function triggerRedPacketRain(packet, isSender = false) {
   headerEl.className = "rp-rain-header glowing-header";
   headerEl.innerHTML = `
     <div class="rp-sparkle-tags">✨ 🧧 ✨</div>
-    <div class="rp-rain-glowing-title">${isOwner ? "BẠN VỪA PHÁT LỘC!" : "MƯA LÌ XÌ PHÁT LỘC!"}</div>
+    <div class="rp-rain-glowing-title">MƯA LÌ XÌ PHÁT LỘC!</div>
     <div class="rp-rain-sub-pill">
-      <span>${isOwner ? "Đã phát lộc" : "Lộc từ"} <strong class="rp-sender-name">${isOwner ? `+${(packet.total_amount || 200).toLocaleString()} Xu` : packet.sender_name}</strong></span>
+      <span>Lộc từ <strong class="rp-sender-name">${packet.sender_name || "Bạn bè"}</strong> (+${(packet.total_amount || 200).toLocaleString()} Xu)</span>
       <span class="rp-sep">•</span>
-      <span>${isOwner ? "Cả phòng đang tranh nhau nhặt lì xì! 🎉" : "Chạm bao lì xì rơi hoặc bấm nút dưới"}</span>
+      <span>Chạm bao lì xì rơi hoặc bấm nút dưới</span>
     </div>
   `;
   dom.redPacketRainLayer.appendChild(headerEl);
@@ -4942,21 +4978,12 @@ function triggerRedPacketRain(packet, isSender = false) {
   // Thanh nút bấm nhận nhanh bên dưới màn hình
   const quickWrap = document.createElement("div");
   quickWrap.className = "rp-quick-claim-wrap";
-  if (isOwner) {
-    quickWrap.innerHTML = `
-      <button class="rp-quick-claim-btn is-sender" id="btnQuickClaimRain">
-        <span>👑</span> <span>BẠN LÀ NGƯỜI PHÁT LỘC (+${(packet.total_amount || 200).toLocaleString()} Xu)</span>
-      </button>
-      <span class="rp-dismiss-hint" id="btnDismissRain">Đóng lại / Bỏ qua</span>
-    `;
-  } else {
-    quickWrap.innerHTML = `
-      <button class="rp-quick-claim-btn" id="btnQuickClaimRain">
-        <span>🧧</span> <span>BẤM NHẬN LỘC NGAY (+Xu)</span>
-      </button>
-      <span class="rp-dismiss-hint" id="btnDismissRain">Đóng lại / Bỏ qua</span>
-    `;
-  }
+  quickWrap.innerHTML = `
+    <button class="rp-quick-claim-btn" id="btnQuickClaimRain">
+      <span>🧧</span> <span>BẤM NHẬN LỘC NGAY (+Xu)</span>
+    </button>
+    <span class="rp-dismiss-hint" id="btnDismissRain">Đóng lại / Bỏ qua</span>
+  `;
   dom.redPacketRainLayer.appendChild(quickWrap);
 
   const quickBtn = quickWrap.querySelector("#btnQuickClaimRain");
@@ -4964,14 +4991,7 @@ function triggerRedPacketRain(packet, isSender = false) {
     quickBtn.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
-      if (isOwner) {
-        soundEngine.playWinTone();
-        telegramEngine.haptic("success");
-        showToast("👑 Bạn là người phát lộc! Cả phòng đang hưởng lộc may mắn từ bạn!", "gold");
-        spawnFloatingEmoji("✨");
-      } else {
-        claimRedPacketAction(packet.id, quickBtn);
-      }
+      claimRedPacketAction(packet.id, quickBtn);
     });
   }
 
@@ -5003,14 +5023,7 @@ function triggerRedPacketRain(packet, isSender = false) {
       }
     });
     if (closest) {
-      if (isOwner) {
-        soundEngine.playChip();
-        telegramEngine.haptic("selection");
-        spawnFloatingEmoji("✨");
-        showToast("✨ Chúc bạn gặp nhiều may mắn và nổ hũ siêu to!", "gold");
-      } else {
-        claimRedPacketAction(packet.id, closest);
-      }
+      claimRedPacketAction(packet.id, closest);
     }
   };
   dom.redPacketRainLayer.addEventListener("pointerdown", onLayerPointer);
@@ -5156,7 +5169,6 @@ async function sendRedPacketAction(amount = 200) {
         total_amount: amount
       };
       state.activeRedPacketIdsSpawned.add(pkt.id);
-      triggerRedPacketRain(pkt, true);
 
       syncLiveRoomState();
     } else {
