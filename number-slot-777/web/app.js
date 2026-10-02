@@ -4483,6 +4483,14 @@ function handleLiveSettlement(settlement, newBalance) {
       dom.winBannerDesc.textContent = `${settlement.analysis?.hand_title_vi} • Phiên Live: ${settlement.round_id}`;
       dom.winBanner.style.display = "block";
       dom.winBanner.classList.add("show");
+
+      if (state.winBannerTimer) clearTimeout(state.winBannerTimer);
+      state.winBannerTimer = setTimeout(() => {
+        if (dom.winBanner) {
+          dom.winBanner.classList.remove("show");
+          dom.winBanner.style.display = "none";
+        }
+      }, 3500);
     }
   } else {
     showToast(`Kết quả phiên ${settlement.round_id}: Không trúng. Chúc bạn may mắn phiên sau!`, "warn");
@@ -5686,10 +5694,10 @@ async function syncLottoState() {
               for (let c = 0; c < 5; c++) {
                 renderReelStatic(c, [grid[0][c], grid[1][c], grid[2][c]]);
               }
-              dom.resSum.textContent = `Giải ĐB: ${digits.join("")}`;
+              dom.resSum.textContent = `ĐB: ${digits.join("")}`;
               dom.resTaiXiu.textContent = `${lastOutcome.is_tai ? "TÀI" : "XỈU"} (${lastOutcome.de_duoi})`;
-              dom.resChanLe.textContent = lastOutcome.is_chan ? "CHẴN ĐUÔI" : "LẺ ĐUÔI";
-              dom.resHand.textContent = `Đề Đuôi: ${lastOutcome.de_duoi} | 3 Càng: ${lastOutcome.ba_cang} | Đề Đầu: ${lastOutcome.de_dau}`;
+              dom.resChanLe.textContent = lastOutcome.is_chan ? "CHẴN" : "LẺ";
+              dom.resHand.textContent = `Đề: ${lastOutcome.de_duoi} | 3 Càng: ${lastOutcome.ba_cang} | Đầu: ${lastOutcome.de_dau}`;
             }
           }
         }
@@ -5836,10 +5844,10 @@ async function runLottoReelSpin(digits, outcome) {
 
   // Cập nhật kết quả chi tiết lên Marquee của Cabinet
   if (outcome) {
-    dom.resSum.textContent = `Giải ĐB: ${digits.join("")}`;
+    dom.resSum.textContent = `ĐB: ${digits.join("")}`;
     dom.resTaiXiu.textContent = `${outcome.is_tai ? "TÀI" : "XỈU"} (${outcome.de_duoi})`;
-    dom.resChanLe.textContent = outcome.is_chan ? "CHẴN ĐUÔI" : "LẺ ĐUÔI";
-    dom.resHand.textContent = `Đề Đuôi: ${outcome.de_duoi} | 3 Càng: ${outcome.ba_cang} | Đề Đầu: ${outcome.de_dau}`;
+    dom.resChanLe.textContent = outcome.is_chan ? "CHẴN" : "LẺ";
+    dom.resHand.textContent = `Đề: ${outcome.de_duoi} | 3 Càng: ${outcome.ba_cang} | Đầu: ${outcome.de_dau}`;
 
     // Highlight 2 chữ số cuối (Đề Đuôi - Cuộn 3 & 4)
     [3, 4].forEach(col => {
@@ -6093,6 +6101,14 @@ function handleLottoSettlement(settlement, newBalance) {
       dom.winBannerDesc.textContent = `${winTitle} • Kỳ #${settlement.round_id}`;
       dom.winBanner.style.display = "block";
       dom.winBanner.classList.add("show");
+
+      if (state.winBannerTimer) clearTimeout(state.winBannerTimer);
+      state.winBannerTimer = setTimeout(() => {
+        if (dom.winBanner) {
+          dom.winBanner.classList.remove("show");
+          dom.winBanner.style.display = "none";
+        }
+      }, 3500);
     }
 
     state.lastShareSlip = {
