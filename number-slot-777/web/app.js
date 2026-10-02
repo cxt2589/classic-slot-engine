@@ -3409,6 +3409,29 @@ function setupLiveRoomControls() {
         closeChatDrawer();
       }
     });
+
+    // Chặn hoàn toàn việc vuốt chạm làm trôi background phía sau khung chat
+    dom.chatDrawerBackdrop.addEventListener("touchmove", (e) => {
+      const msgBox = e.target.closest("#chatMessagesContainer");
+      const cannedBox = e.target.closest(".chat-canned-bar");
+      if (!msgBox && !cannedBox) {
+        e.preventDefault();
+      }
+    }, { passive: false });
+  }
+
+  if (dom.chatMessagesContainer) {
+    // Ngăn chặn hiệu ứng cao su (rubber-band) của iOS kéo lan ra ngoài background
+    dom.chatMessagesContainer.addEventListener("touchstart", () => {
+      const top = dom.chatMessagesContainer.scrollTop;
+      const total = dom.chatMessagesContainer.scrollHeight;
+      const current = top + dom.chatMessagesContainer.offsetHeight;
+      if (top <= 0) {
+        dom.chatMessagesContainer.scrollTop = 1;
+      } else if (current >= total) {
+        dom.chatMessagesContainer.scrollTop = top - 1;
+      }
+    }, { passive: true });
   }
 
   if (dom.chatDrawerPanel) {
@@ -4066,10 +4089,14 @@ function switchGameplayMode(mode) {
   }
 }
 
+let savedChatScrollY = 0;
+
 function openChatDrawer() {
   if (!dom.chatDrawerBackdrop) return;
+  savedChatScrollY = window.scrollY || window.pageYOffset || 0;
   dom.chatDrawerBackdrop.classList.add("open");
   document.body.classList.add("chat-drawer-open");
+  document.documentElement.classList.add("chat-drawer-open");
   
   // Gỡ bỏ ngay lập tức thanh menu dock dưới đáy màn hình để không chèn vào ô nhập chat
   const mainNavTabs = document.getElementById("mainNavTabs");
@@ -4092,6 +4119,8 @@ function closeChatDrawer() {
   if (!dom.chatDrawerBackdrop) return;
   dom.chatDrawerBackdrop.classList.remove("open");
   document.body.classList.remove("chat-drawer-open");
+  document.documentElement.classList.remove("chat-drawer-open");
+  window.scrollTo(0, savedChatScrollY);
   telegramEngine.haptic("light");
   if (typeof window.recheckScrollNav === "function") {
     window.recheckScrollNav();
@@ -4242,14 +4271,13 @@ async function syncLiveRoomState() {
       }
     }
 
-    // Kích hoạt mưa lì xì nếu phòng có người phát lộc mới (chỉ hiện cho người khác, không hiện cho người phát)
+    // Kích hoạt mưa lì xì nếu phòng có người phát lộc mới (hiện cho toàn bộ người chơi trong phòng)
     if (data.active_red_packets && data.active_red_packets.length > 0) {
       for (const rp of data.active_red_packets) {
         if (!state.activeRedPacketIdsSpawned.has(rp.id)) {
           state.activeRedPacketIdsSpawned.add(rp.id);
-          if (rp.sender_id !== getLiveUserId()) {
-            triggerRedPacketRain(rp);
-          }
+          const isSender = Boolean(rp.sender_id && rp.sender_id === getLiveUserId());
+          triggerRedPacketRain(rp, isSender);
         }
       }
     }
@@ -4879,15 +4907,19 @@ function dismissRedPacketRain() {
   }, 300);
 }
 
-function triggerRedPacketRain(packet) {
+function triggerRedPacketRain(packet, isSender = false) {
   if (!dom.redPacketRainLayer || !packet) return;
-  // Người phát lộc không nhìn thấy mưa lì xì hoặc nút nhận của chính mình
-  if (packet.sender_id === getLiveUserId()) return;
+
+  const isOwner = Boolean(isSender || (packet.sender_id && packet.sender_id === getLiveUserId()));
 
   soundEngine.init();
   soundEngine.playWinTone();
   telegramEngine.haptic("warning");
-  showToast(`🧧 <strong>${packet.sender_name}</strong> vừa PHÁT LỘC <strong>${(packet.total_amount || 200).toLocaleString()} Xu</strong>! Mau nhặt bao lì xì!`, "gold");
+  if (isOwner) {
+    showToast(`🧧 Bạn vừa PHÁT LỘC <strong>${(packet.total_amount || 200).toLocaleString()} Xu</strong> cho cả phòng!`, "gold");
+  } else {
+    showToast(`🧧 <strong>${packet.sender_name}</strong> vừa PHÁT LỘC <strong>${(packet.total_amount || 200).toLocaleString()} Xu</strong>! Mau nhặt bao lì xì!`, "gold");
+  }
 
   // Kích hoạt lớp phủ chống chạm nhầm xuống bàn cược
   dom.redPacketRainLayer.innerHTML = "";
@@ -4898,11 +4930,11 @@ function triggerRedPacketRain(packet) {
   headerEl.className = "rp-rain-header glowing-header";
   headerEl.innerHTML = `
     <div class="rp-sparkle-tags">✨ 🧧 ✨</div>
-    <div class="rp-rain-glowing-title">MƯA LÌ XÌ PHÁT LỘC!</div>
+    <div class="rp-rain-glowing-title">${isOwner ? "BẠN VỪA PHÁT LỘC!" : "MƯA LÌ XÌ PHÁT LỘC!"}</div>
     <div class="rp-rain-sub-pill">
-      <span>Lộc từ <strong class="rp-sender-name">${packet.sender_name}</strong></span>
+      <span>${isOwner ? "Đã phát lộc" : "Lộc từ"} <strong class="rp-sender-name">${isOwner ? `+${(packet.total_amount || 200).toLocaleString()} Xu` : packet.sender_name}</strong></span>
       <span class="rp-sep">•</span>
-      <span>Chạm bao lì xì rơi hoặc bấm nút dưới</span>
+      <span>${isOwner ? "Cả phòng đang tranh nhau nhặt lì xì! 🎉" : "Chạm bao lì xì rơi hoặc bấm nút dưới"}</span>
     </div>
   `;
   dom.redPacketRainLayer.appendChild(headerEl);
@@ -4910,12 +4942,21 @@ function triggerRedPacketRain(packet) {
   // Thanh nút bấm nhận nhanh bên dưới màn hình
   const quickWrap = document.createElement("div");
   quickWrap.className = "rp-quick-claim-wrap";
-  quickWrap.innerHTML = `
-    <button class="rp-quick-claim-btn" id="btnQuickClaimRain">
-      <span>🧧</span> <span>BẤM NHẬN LỘC NGAY (+Xu)</span>
-    </button>
-    <span class="rp-dismiss-hint" id="btnDismissRain">Đóng lại / Bỏ qua</span>
-  `;
+  if (isOwner) {
+    quickWrap.innerHTML = `
+      <button class="rp-quick-claim-btn is-sender" id="btnQuickClaimRain">
+        <span>👑</span> <span>BẠN LÀ NGƯỜI PHÁT LỘC (+${(packet.total_amount || 200).toLocaleString()} Xu)</span>
+      </button>
+      <span class="rp-dismiss-hint" id="btnDismissRain">Đóng lại / Bỏ qua</span>
+    `;
+  } else {
+    quickWrap.innerHTML = `
+      <button class="rp-quick-claim-btn" id="btnQuickClaimRain">
+        <span>🧧</span> <span>BẤM NHẬN LỘC NGAY (+Xu)</span>
+      </button>
+      <span class="rp-dismiss-hint" id="btnDismissRain">Đóng lại / Bỏ qua</span>
+    `;
+  }
   dom.redPacketRainLayer.appendChild(quickWrap);
 
   const quickBtn = quickWrap.querySelector("#btnQuickClaimRain");
@@ -4923,7 +4964,14 @@ function triggerRedPacketRain(packet) {
     quickBtn.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
-      claimRedPacketAction(packet.id, quickBtn);
+      if (isOwner) {
+        soundEngine.playWinTone();
+        telegramEngine.haptic("success");
+        showToast("👑 Bạn là người phát lộc! Cả phòng đang hưởng lộc may mắn từ bạn!", "gold");
+        spawnFloatingEmoji("✨");
+      } else {
+        claimRedPacketAction(packet.id, quickBtn);
+      }
     });
   }
 
@@ -4955,7 +5003,14 @@ function triggerRedPacketRain(packet) {
       }
     });
     if (closest) {
-      claimRedPacketAction(packet.id, closest);
+      if (isOwner) {
+        soundEngine.playChip();
+        telegramEngine.haptic("selection");
+        spawnFloatingEmoji("✨");
+        showToast("✨ Chúc bạn gặp nhiều may mắn và nổ hũ siêu to!", "gold");
+      } else {
+        claimRedPacketAction(packet.id, closest);
+      }
     }
   };
   dom.redPacketRainLayer.addEventListener("pointerdown", onLayerPointer);
@@ -4985,7 +5040,14 @@ function triggerRedPacketRain(packet) {
     const handleClaim = (e) => {
       e.preventDefault();
       e.stopPropagation();
-      claimRedPacketAction(packet.id, bodyEl);
+      if (isOwner) {
+        soundEngine.playChip();
+        telegramEngine.haptic("selection");
+        spawnFloatingEmoji("✨");
+        showToast("✨ Chúc bạn gặp nhiều may mắn, quay tay nào trúng tay đó!", "gold");
+      } else {
+        claimRedPacketAction(packet.id, bodyEl);
+      }
     };
 
     bodyEl.addEventListener("pointerdown", handleClaim, { passive: false });
@@ -5086,7 +5148,16 @@ async function sendRedPacketAction(amount = 200) {
       soundEngine.playWinTone();
       telegramEngine.haptic("success");
       showToast(`🧧 Bạn đã phát lộc <strong>${amount.toLocaleString()} Xu</strong> cho cả phòng thành công!`, "gold");
-      // Người phát lộc không nhìn thấy mưa lì xì hoặc nút nhận của chính mình
+      
+      const pkt = (json.data && json.data.packet) ? json.data.packet : {
+        id: "rp-" + Date.now(),
+        sender_id: getLiveUserId(),
+        sender_name: getLiveUserName(),
+        total_amount: amount
+      };
+      state.activeRedPacketIdsSpawned.add(pkt.id);
+      triggerRedPacketRain(pkt, true);
+
       syncLiveRoomState();
     } else {
       showToast(`⚠️ ${json.detail || "Không thể phát lộc"}`, true);

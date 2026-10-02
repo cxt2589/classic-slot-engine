@@ -6276,6 +6276,16 @@ body.chat-drawer-open .nav-tabs.is-docked-bottom {
   }
 }
 
+/* Khóa tuyệt đối cuộn trang nền khi mở khung chat trực tiếp */
+html.chat-drawer-open,
+body.chat-drawer-open {
+  overflow: hidden !important;
+  height: 100% !important;
+  max-height: 100vh !important;
+  overscroll-behavior: none !important;
+  touch-action: none;
+}
+
 /* Modern Slide-In Chat Drawer & Backdrop */
 .chat-drawer-backdrop {
   position: fixed;
@@ -6289,6 +6299,8 @@ body.chat-drawer-open .nav-tabs.is-docked-bottom {
   display: none;
   cursor: pointer;
   pointer-events: none;
+  touch-action: none;
+  overscroll-behavior: none;
   transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.3s;
 }
 
@@ -6308,6 +6320,31 @@ body.chat-drawer-open .nav-tabs.is-docked-bottom {
   overflow: hidden;
   cursor: default;
   z-index: 1000001 !important;
+  overscroll-behavior: contain;
+}
+
+/* Các vùng cố định trong panel không cho phép touch kéo trang nền */
+.chat-drawer-header,
+.chat-reactions-toolbar,
+.chat-utility-bar,
+.chat-form {
+  touch-action: none;
+  flex-shrink: 0;
+}
+
+.chat-canned-bar {
+  touch-action: pan-x;
+  overscroll-behavior-x: contain;
+}
+
+.chat-form input,
+.chat-form button,
+.chat-utility-bar button,
+.chat-reactions-toolbar button,
+.canned-btn,
+.drawer-room-switch-btn,
+.drawer-close-btn {
+  touch-action: manipulation;
 }
 
 /* Desktop & Tablet: Slide in from right */
@@ -6414,7 +6451,11 @@ body.chat-drawer-open .nav-tabs.is-docked-bottom {
 /* Chat Messages Container */
 .chat-messages-container {
   flex: 1;
-  overflow-y: auto;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain !important;
+  overscroll-behavior: contain !important;
+  touch-action: pan-y !important;
   padding: 12px 14px;
   display: flex;
   flex-direction: column;
@@ -6838,7 +6879,7 @@ body.chat-drawer-open .nav-tabs.is-docked-bottom {
   position: fixed;
   inset: 0;
   pointer-events: none;
-  z-index: 999998;
+  z-index: 2000000 !important;
   overflow: hidden;
   opacity: 0;
   transition: opacity 0.25s ease;
@@ -6988,6 +7029,13 @@ body.chat-drawer-open .nav-tabs.is-docked-bottom {
 
 .rp-quick-claim-btn:active {
   transform: scale(0.95);
+}
+
+.rp-quick-claim-btn.is-sender {
+  background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%) !important;
+  color: #ffffff !important;
+  border-color: #ffd700 !important;
+  box-shadow: 0 8px 25px rgba(168, 85, 247, 0.65), 0 0 20px rgba(236, 72, 153, 0.5) !important;
 }
 
 @keyframes pulseQuickClaim {
