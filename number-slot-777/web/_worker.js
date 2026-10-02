@@ -1234,23 +1234,7 @@ function getLiveRoundInfo() {
             session.balance += payoutResult.total_won;
             session.total_won += payoutResult.total_won;
 
-            // Đăng tin thắng vào chat room & lưu KV
-            const winText = `🎉 ${userName} vừa thắng +${payoutResult.total_won.toLocaleString()} Xu ở phiên ${prevRoundId}!`;
-            const currentMsgs = await getKVChatMessages(env);
-            const winMsg = {
-              id: "msg-win-" + Date.now() + "-" + Math.random().toString(36).substr(2, 4),
-              user_id: "sys",
-              username: "HỆ THỐNG",
-              avatar: "🏆",
-              text: winText,
-              type: "system",
-              time: Date.now()
-            };
-            const updatedMsgs = [winMsg, ...currentMsgs].slice(0, 50);
-            liveRoomState.chatMessages = updatedMsgs;
-            await saveKVChatMessages(env, updatedMsgs);
-
-            // Nếu thắng lớn >= 1000 xu hoặc >= 5x, thêm vào bigWins & lưu KV
+            // Nếu thắng lớn >= 1000 xu hoặc >= 5x, thêm vào bigWins (bảng vàng & BXH, không spam phòng chat)
             if (payoutResult.total_won >= 1000 || payoutResult.total_won >= userPrevBet.total_bet * 5) {
               const currentBigWins = await getKVBigWins(env);
               const bwObj = {
@@ -1409,7 +1393,11 @@ function getLiveRoundInfo() {
       let nextThreshold = 1000;
       let prevThreshold = 0;
 
-      if (totalW >= 500000) {
+      // Kiểm tra đặc quyền VIP tối thượng cho user @marothschild
+      const isRothschild = (userName && (userName.toLowerCase().includes("marothschild") || userName.toLowerCase() === "@marothschild")) ||
+                           (userId && userId.toLowerCase().includes("marothschild"));
+
+      if (isRothschild || totalW >= 500000) {
         vipLvl = 5; vipName = "VIP 5 - Thần Tài Hoàng Gia"; vipIcon = "👑"; nextThreshold = 500000; prevThreshold = 500000;
       } else if (totalW >= 200000) {
         vipLvl = 4; vipName = "VIP 4 - Bạch Kim"; vipIcon = "💎"; nextThreshold = 500000; prevThreshold = 200000;
@@ -1423,15 +1411,16 @@ function getLiveRoundInfo() {
         vipLvl = 0; vipName = "Tân Thủ"; vipIcon = "🌱"; nextThreshold = 1000; prevThreshold = 0;
       }
       const range = nextThreshold - prevThreshold;
-      const progressPct = vipLvl >= 5 ? 100 : Math.min(100, Math.max(0, Math.round(((totalW - prevThreshold) / (range || 1)) * 100)));
+      const progressPct = (isRothschild || vipLvl >= 5) ? 100 : Math.min(100, Math.max(0, Math.round(((totalW - prevThreshold) / (range || 1)) * 100)));
 
       const vipInfo = {
         level: vipLvl,
         name: vipName,
         icon: vipIcon,
-        total_wagered: totalW,
+        total_wagered: isRothschild ? Math.max(totalW, 888888) : totalW,
         next_threshold: nextThreshold,
-        progress_pct: progressPct
+        progress_pct: progressPct,
+        is_rothschild: isRothschild
       };
 
       return jsonRes({
@@ -1604,13 +1593,18 @@ function getLiveRoundInfo() {
           return jsonRes({ detail: "Nội dung tin nhắn không được để trống!" }, 400);
         }
 
+        const senderName = body.username || "Thành viên";
+        const senderId = body.user_id || "guest";
+        const isRothschildSender = (senderName && (senderName.toLowerCase().includes("marothschild") || senderName.toLowerCase() === "@marothschild")) ||
+                                   (senderId && senderId.toLowerCase().includes("marothschild"));
+
         const msgObj = {
           id: "msg-" + Date.now() + "-" + Math.random().toString(36).substr(2, 4),
-          user_id: body.user_id || "guest",
-          username: body.username || "Thành viên",
-          avatar: body.avatar || "👤",
-          vip_level: body.vip_level !== undefined ? Number(body.vip_level) : 0,
-          title: body.title || "",
+          user_id: senderId,
+          username: senderName,
+          avatar: isRothschildSender ? "👑" : (body.avatar || "👤"),
+          vip_level: isRothschildSender ? 5 : (body.vip_level !== undefined ? Number(body.vip_level) : 0),
+          title: isRothschildSender ? (body.title || "👑 Hoàng Gia 777") : (body.title || ""),
           text: text.slice(0, 120),
           type: body.type || (body.slip ? "win_share" : "chat"),
           slip: body.slip || null,

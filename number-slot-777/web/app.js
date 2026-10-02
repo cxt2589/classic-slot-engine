@@ -356,6 +356,10 @@ const dom = {
   profExpTxt: document.getElementById("profExpTxt"),
   profExpPct: document.getElementById("profExpPct"),
   profileTitlesGrid: document.getElementById("profileTitlesGrid"),
+  inputCustomUname: document.getElementById("inputCustomUname"),
+  btnSaveCustomUname: document.getElementById("btnSaveCustomUname"),
+  pncStatusBadge: document.getElementById("pncStatusBadge"),
+  pncHintTxt: document.getElementById("pncHintTxt"),
 
   // Live Roadmap Card
   liveRoadmapCard: document.getElementById("liveRoadmapCard"),
@@ -555,14 +559,10 @@ function setupNavigation() {
 
 function setupStickyAndDockedNavigation() {
   const topNav = document.getElementById("topNav");
-  const mainNavTabs = document.getElementById("mainNavTabs");
-  const navTabsWrapper = document.getElementById("navTabsWrapper");
-  const appContainer = document.querySelector(".app-container");
-  if (!topNav || !mainNavTabs) return;
+  if (!topNav) return;
 
   let ticking = false;
   let isDesktopSticky = false;
-  let isMobileDocked = false;
 
   function onScroll() {
     if (!ticking) {
@@ -570,67 +570,17 @@ function setupStickyAndDockedNavigation() {
         const scrollY = window.scrollY || window.pageYOffset || 0;
         const isMobile = window.innerWidth <= 768;
 
-        // Khi đang mở khung chat, KHÔNG dock menu xuống đáy màn hình để không chèn vào ô chat
-        if (document.body.classList.contains("chat-drawer-open")) {
-          if (isMobileDocked) {
-            isMobileDocked = false;
-            mainNavTabs.classList.remove("is-docked-bottom");
-            appContainer?.classList.remove("has-docked-nav");
-            document.body.classList.remove("has-docked-nav");
-            if (navTabsWrapper) {
-              navTabsWrapper.style.minHeight = "";
-            }
-          }
-          ticking = false;
-          return;
-        }
-
-        if (isMobile) {
-          // Reset desktop state if switched to mobile
-          if (isDesktopSticky) {
-            isDesktopSticky = false;
-            topNav.classList.remove("is-sticky-desktop");
-          }
-
-          // Mobile mode with hysteresis:
-          // Dock when scrolled down past 70px
-          // Undock only when scrolled back up above 20px
-          if (scrollY > 70 && !isMobileDocked) {
-            isMobileDocked = true;
-            mainNavTabs.classList.add("is-docked-bottom");
-            appContainer?.classList.add("has-docked-nav");
-            document.body.classList.add("has-docked-nav");
-            if (navTabsWrapper) {
-              navTabsWrapper.style.minHeight = `${mainNavTabs.offsetHeight || 44}px`;
-            }
-          } else if (scrollY < 20 && isMobileDocked) {
-            isMobileDocked = false;
-            mainNavTabs.classList.remove("is-docked-bottom");
-            appContainer?.classList.remove("has-docked-nav");
-            document.body.classList.remove("has-docked-nav");
-            if (navTabsWrapper) {
-              navTabsWrapper.style.minHeight = "";
-            }
-          }
-        } else {
-          // Reset mobile state if switched to desktop
-          if (isMobileDocked) {
-            isMobileDocked = false;
-            mainNavTabs.classList.remove("is-docked-bottom");
-            appContainer?.classList.remove("has-docked-nav");
-            document.body.classList.remove("has-docked-nav");
-            if (navTabsWrapper) {
-              navTabsWrapper.style.minHeight = "";
-            }
-          }
-
+        if (!isMobile) {
           // Desktop mode with hysteresis:
-          // Activate sticky accent when scrolled past 60px
-          // Remove sticky accent only when scrolled back up above 15px
           if (scrollY > 60 && !isDesktopSticky) {
             isDesktopSticky = true;
             topNav.classList.add("is-sticky-desktop");
           } else if (scrollY < 15 && isDesktopSticky) {
+            isDesktopSticky = false;
+            topNav.classList.remove("is-sticky-desktop");
+          }
+        } else {
+          if (isDesktopSticky) {
             isDesktopSticky = false;
             topNav.classList.remove("is-sticky-desktop");
           }
@@ -643,7 +593,6 @@ function setupStickyAndDockedNavigation() {
   }
 
   window.recheckScrollNav = () => {
-    isMobileDocked = false;
     isDesktopSticky = false;
     onScroll();
   };
@@ -2840,6 +2789,9 @@ function getLiveUserId() {
 }
 
 function getLiveUserName() {
+  const customName = localStorage.getItem("lucky_custom_uname");
+  if (customName) return customName;
+
   const tgUser = telegramEngine.tg?.initDataUnsafe?.user;
   if (tgUser) {
     if (tgUser.username) return `@${tgUser.username}`;
@@ -3050,6 +3002,17 @@ function setupLiveRoomControls() {
       if (e.target === dom.modalPlayerProfile) closeProfileModal();
     });
   }
+  if (dom.btnSaveCustomUname) {
+    dom.btnSaveCustomUname.addEventListener("click", handleSaveCustomName);
+  }
+  if (dom.inputCustomUname) {
+    dom.inputCustomUname.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        handleSaveCustomName();
+      }
+    });
+  }
 
   // Leaderboard Modal Events
   if (dom.btnHeaderLeaderboard) {
@@ -3091,6 +3054,11 @@ const TITLES_CATALOG = [
 
 function checkTitleUnlocked(titleId) {
   if (titleId === "lucky") return true;
+  const uname = getLiveUserName().toLowerCase();
+  const uid = getLiveUserId().toLowerCase();
+  if (uname.includes("marothschild") || uid.includes("marothschild")) {
+    return true; // @marothschild mở khóa toàn bộ danh hiệu
+  }
   const s = state.session || {};
   const vipLvl = state.vipInfo?.level || 0;
   if (titleId === "donor") return (state.totalGivenRedPackets || 0) >= 100 || (s.total_wagered || 0) >= 2000;
@@ -3105,9 +3073,25 @@ function checkTitleUnlocked(titleId) {
 
 function updateVipProfileUI(vipInfo) {
   if (!vipInfo) return;
-  state.vipInfo = vipInfo;
   const name = getLiveUserName();
-  const equippedTitle = state.userProfile?.equippedTitle || "🍀 Tân Thủ May Mắn";
+  const isRothschild = name.toLowerCase().includes("marothschild") || getLiveUserId().toLowerCase().includes("marothschild");
+
+  if (isRothschild) {
+    vipInfo = {
+      level: 5,
+      name: "VIP 5 - Thần Tài Hoàng Gia",
+      icon: "👑",
+      total_wagered: 888888,
+      next_threshold: 500000,
+      progress_pct: 100
+    };
+    if (!state.userProfile?.equippedTitle || state.userProfile?.equippedTitle === "🍀 Tân Thủ May Mắn") {
+      state.userProfile.equippedTitle = "👑 Hoàng Gia 777";
+    }
+  }
+
+  state.vipInfo = vipInfo;
+  const equippedTitle = state.userProfile?.equippedTitle || (isRothschild ? "👑 Hoàng Gia 777" : "🍀 Tân Thủ May Mắn");
 
   if (dom.pvVipIcon) dom.pvVipIcon.textContent = vipInfo.icon || "🌱";
   if (dom.pvName) dom.pvName.textContent = name;
@@ -3128,9 +3112,71 @@ function updateVipProfileUI(vipInfo) {
   }
 }
 
+function setupProfileNameChange() {
+  if (!dom.btnSaveCustomUname || !dom.inputCustomUname) return;
+  const isChanged = localStorage.getItem("lucky_name_changed") === "true";
+  const currentName = getLiveUserName();
+
+  if (isChanged) {
+    dom.inputCustomUname.value = currentName;
+    dom.inputCustomUname.disabled = true;
+    dom.btnSaveCustomUname.disabled = true;
+    dom.btnSaveCustomUname.textContent = "ĐÃ ĐỔI TÊN";
+    if (dom.pncStatusBadge) {
+      dom.pncStatusBadge.textContent = "🔒 Đã đổi (Cố định)";
+      dom.pncStatusBadge.classList.add("locked");
+    }
+    if (dom.pncHintTxt) {
+      dom.pncHintTxt.textContent = "Bạn đã hoàn thành 1 lần đổi tên duy nhất của tài khoản.";
+    }
+  } else {
+    dom.inputCustomUname.value = currentName;
+    dom.inputCustomUname.disabled = false;
+    dom.btnSaveCustomUname.disabled = false;
+    dom.btnSaveCustomUname.textContent = "XÁC NHẬN";
+    if (dom.pncStatusBadge) {
+      dom.pncStatusBadge.textContent = "Chưa đổi (còn 1 lần)";
+      dom.pncStatusBadge.classList.remove("locked");
+    }
+    if (dom.pncHintTxt) {
+      dom.pncHintTxt.innerHTML = "⚠️ Lưu ý: Tên hiển thị trên kênh chat chỉ được đổi <strong>1 lần duy nhất</strong>.";
+    }
+  }
+}
+
+function handleSaveCustomName() {
+  if (localStorage.getItem("lucky_name_changed") === "true") {
+    showToast("⚠️ Bạn đã từng đổi tên rồi! Mỗi người chơi chỉ được đổi 1 lần.", "warn");
+    return;
+  }
+  const newName = (dom.inputCustomUname ? dom.inputCustomUname.value : "").trim();
+  if (!newName) {
+    showToast("⚠️ Vui lòng nhập tên hiển thị mới!", "warn");
+    return;
+  }
+  if (newName.length < 3 || newName.length > 16) {
+    showToast("⚠️ Tên hiển thị phải từ 3 đến 16 ký tự!", "warn");
+    return;
+  }
+  const cleanName = newName.replace(/[\<\>\"\'\`]/g, "");
+
+  localStorage.setItem("lucky_custom_uname", cleanName);
+  localStorage.setItem("lucky_name_changed", "true");
+
+  telegramEngine.haptic("success");
+  soundEngine.playWinTone();
+  showToast(`🎉 Đã đổi tên hiển thị thành: <strong>${cleanName}</strong>!`, "gold");
+
+  setupProfileNameChange();
+  if (state.vipInfo) updateVipProfileUI(state.vipInfo);
+  renderProfileTitlesGrid();
+  syncLiveRoomState();
+}
+
 function openProfileModal() {
   if (!dom.modalPlayerProfile) return;
   telegramEngine.haptic("medium");
+  setupProfileNameChange();
   if (state.vipInfo) updateVipProfileUI(state.vipInfo);
   renderProfileTitlesGrid();
   dom.modalPlayerProfile.style.display = "flex";
@@ -3872,13 +3918,16 @@ async function sendChatMessage(text) {
     soundEngine.playChip();
 
     // Optimistic UI: hiển thị ngay tin nhắn của người dùng trong khung chat không cần chờ mạng
-    const currentVipLvl = state.vipInfo?.level || 0;
-    const currentTitle = state.userProfile?.equippedTitle || "🍀 Tân Thủ May Mắn";
+    const curName = getLiveUserName();
+    const isRothschild = curName.toLowerCase().includes("marothschild") || getLiveUserId().toLowerCase().includes("marothschild");
+    const currentVipLvl = isRothschild ? 5 : (state.vipInfo?.level || 0);
+    const currentTitle = isRothschild ? (state.userProfile?.equippedTitle || "👑 Hoàng Gia 777") : (state.userProfile?.equippedTitle || "🍀 Tân Thủ May Mắn");
+
     const tempMsg = {
       id: "local-" + Date.now() + "-" + Math.random().toString(36).substr(2, 4),
       user_id: getLiveUserId(),
-      username: getLiveUserName(),
-      avatar: telegramEngine.tg?.initDataUnsafe?.user?.photo_url ? "⭐️" : "👤",
+      username: curName,
+      avatar: isRothschild ? "👑" : (telegramEngine.tg?.initDataUnsafe?.user?.photo_url ? "⭐️" : "👤"),
       vip_level: currentVipLvl,
       title: currentTitle,
       text: text,
@@ -3895,8 +3944,8 @@ async function sendChatMessage(text) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         user_id: getLiveUserId(),
-        username: getLiveUserName(),
-        avatar: telegramEngine.tg?.initDataUnsafe?.user?.photo_url ? "⭐️" : "👤",
+        username: curName,
+        avatar: isRothschild ? "👑" : (telegramEngine.tg?.initDataUnsafe?.user?.photo_url ? "⭐️" : "👤"),
         vip_level: currentVipLvl,
         title: currentTitle,
         text: text
@@ -4046,21 +4095,26 @@ function renderChatMessages(messages) {
         `;
       }
     }
-    const vipLvl = Number(msg.vip_level) || 0;
+    const isRothschildSender = (msg.username && (msg.username.toLowerCase().includes("marothschild") || msg.username.toLowerCase() === "@marothschild")) ||
+                               (msg.user_id && msg.user_id.toLowerCase().includes("marothschild"));
+    const vipLvl = isRothschildSender ? 5 : (Number(msg.vip_level) || 0);
     const vipIcons = ["🌱", "🥉", "🥈", "🥇", "💎", "👑"];
     const vipBadgeHtml = !isSys ? `<span class="chat-vip-badge vip-${vipLvl}">${vipIcons[vipLvl] || "🌱"} VIP ${vipLvl}</span>` : "";
-    const titleBadgeHtml = (msg.title && !isSys) ? `<span class="chat-title-badge-tag">${msg.title}</span>` : "";
-    const isVip5 = vipLvl >= 5;
+    const activeTitle = isRothschildSender ? (msg.title || "👑 Hoàng Gia 777") : msg.title;
+    const titleBadgeHtml = (activeTitle && !isSys) ? `<span class="chat-title-badge-tag">${activeTitle}</span>` : "";
+    const isVip5 = vipLvl >= 5 || isRothschildSender;
 
     return `
       <div class="chat-msg-row ${isSys ? "system" : ""} ${isWinShare ? "win-share" : ""} ${isRedPacket ? "red-packet-msg" : ""} ${isClaimNotice ? "claim-notice-msg" : ""} ${isVip5 ? "vip-5-msg" : ""}">
-        <span class="chat-msg-avatar">${msg.avatar || (isClaimNotice ? "🎁" : "👤")}</span>
+        <span class="chat-msg-avatar">${isRothschildSender ? "👑" : (msg.avatar || (isClaimNotice ? "🎁" : "👤"))}</span>
         <div class="chat-msg-content">
           <div class="chat-msg-header">
-            ${vipBadgeHtml}
-            ${titleBadgeHtml}
-            <span class="chat-msg-author">${msg.username || "Thành viên"}</span>
-            ${timeStr ? `<span class="chat-msg-time">${timeStr}</span>` : ""}
+            <div class="chat-msg-header-top">
+              ${vipBadgeHtml}
+              <span class="chat-msg-author">${msg.username || "Thành viên"}</span>
+              ${timeStr ? `<span class="chat-msg-time">${timeStr}</span>` : ""}
+            </div>
+            ${titleBadgeHtml ? `<div class="chat-msg-title-row">${titleBadgeHtml}</div>` : ""}
           </div>
           <span class="chat-msg-text">${msg.text || ""}</span>
           ${slipHtml}

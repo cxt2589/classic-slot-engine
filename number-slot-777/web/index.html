@@ -6,7 +6,7 @@
   <meta name="format-detection" content="telephone=no">
   <title>Lucky Numbers 777 - Classic 5x3 Number Slot</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <link rel="stylesheet" href="/static/style.css?v=20261002_live13">
+  <link rel="stylesheet" href="/static/style.css?v=20261002_live14">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600;1,700&family=Orbitron:wght@600;700;800;900&display=swap&subset=vietnamese" rel="stylesheet">
@@ -1935,6 +1935,19 @@ Content-Type: application/json
           </div>
         </div>
 
+        <!-- Đổi Tên Hiển Thị (Chỉ được đổi 1 lần) -->
+        <div class="profile-name-change-card" id="profileNameChangeCard">
+          <div class="pnc-head-row">
+            <span class="pnc-title">✏️ ĐỔI TÊN HIỂN THỊ TRÊN CHAT</span>
+            <span class="pnc-badge-status" id="pncStatusBadge">Chưa đổi (còn 1 lần)</span>
+          </div>
+          <div class="pnc-form-row" id="pncFormRow">
+            <input type="text" id="inputCustomUname" class="pnc-input" placeholder="Nhập tên mới (3-16 ký tự)..." maxlength="16" autocomplete="off" />
+            <button type="button" id="btnSaveCustomUname" class="pnc-btn-save">XÁC NHẬN</button>
+          </div>
+          <div class="pnc-hint" id="pncHintTxt">⚠️ Lưu ý: Tên hiển thị trên kênh chat chỉ được đổi <strong>1 lần duy nhất</strong>.</div>
+        </div>
+
         <!-- Bộ Sưu Tập Danh Hiệu (Titles) -->
         <div class="profile-titles-section">
           <div class="pts-head-row">
@@ -1960,6 +1973,6 @@ Content-Type: application/json
     <div class="gja-amt glow-gold" id="gjaAmt">+50,000 Xu</div>
   </div>
 
-  <script src="/static/app.js?v=20261002_live13"></script>
+  <script src="/static/app.js?v=20261002_live14"></script>
 </body>
 </html>
