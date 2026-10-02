@@ -6,7 +6,7 @@
   <meta name="format-detection" content="telephone=no">
   <title>Lucky Numbers 777 - Classic 5x3 Number Slot</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <link rel="stylesheet" href="/static/style.css?v=20261002_live19">
+  <link rel="stylesheet" href="/static/style.css?v=20261002_live20">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600;1,700&family=Orbitron:wght@600;700;800;900&display=swap&subset=vietnamese" rel="stylesheet">
@@ -108,6 +108,13 @@
           </button>
         </div>
 
+        <!-- Nút Chuyển Đổi Phòng & Huy Hiệu Phòng Riêng -->
+        <button type="button" class="room-selector-btn" id="btnOpenRoomModal" title="Đổi phòng hoặc tạo phòng riêng với bạn bè">
+          <span class="rs-icon" id="roomSelectorIcon">🌐</span>
+          <span class="rs-name" id="roomSelectorName">Toàn Server</span>
+          <span class="rs-badge-action">Đổi Phòng ▾</span>
+        </button>
+
         <div class="live-room-online-pill" id="liveRoomOnlinePill" style="display:none">
           <span class="online-indicator"></span>
           <span class="online-txt"><strong id="liveOnlineCount">148</strong> đang cược</span>
@@ -120,6 +127,7 @@
           <div class="lr-round-info">
             <span class="lr-tag">PHIÊN:</span>
             <strong class="lr-round-id glow-gold" id="liveRoundId">LR-10820</strong>
+            <span class="lr-room-tag" id="liveRoundRoomTag" title="Phòng chơi hiện tại">🌐 Toàn Server</span>
           </div>
           <div class="lr-phase-badge betting" id="livePhaseBadge">
             <span class="lr-phase-dot"></span>
@@ -1756,13 +1764,16 @@ Content-Type: application/json
     <div class="chat-drawer-panel" id="chatDrawerPanel">
       <div class="chat-drawer-header">
         <div class="drawer-header-info">
-          <span class="drawer-header-icon">💬</span>
+          <span class="drawer-header-icon" id="chatDrawerIcon">💬</span>
           <div>
-            <div class="drawer-header-title">PHÒNG CHAT TRỰC TIẾP</div>
-            <div class="drawer-header-sub"><span class="online-dot"></span> <span id="drawerOnlineCount">148</span> người đang tham gia</div>
+            <div class="drawer-header-title" id="chatDrawerTitle">PHÒNG CHAT TRỰC TIẾP</div>
+            <div class="drawer-header-sub"><span class="online-dot"></span> <span id="drawerOnlineCount">148</span> người trong phòng • <span id="drawerRoomName" class="drawer-room-highlight">Toàn Server</span></div>
           </div>
         </div>
-        <button class="drawer-close-btn" id="btnCloseChatDrawer" title="Đóng phòng chat">✕</button>
+        <div class="drawer-header-actions">
+          <button type="button" class="drawer-room-switch-btn" id="btnDrawerSwitchRoom" title="Đổi hoặc tạo phòng riêng">🔒 Đổi Phòng</button>
+          <button class="drawer-close-btn" id="btnCloseChatDrawer" title="Đóng phòng chat">✕</button>
+        </div>
       </div>
 
       <!-- Messages Container -->
@@ -1949,6 +1960,93 @@ Content-Type: application/json
     </div>
   </div>
 
+  <!-- MODAL PHÒNG CHƠI RIÊNG CHO HỘI BẠN BÈ / TELEGRAM -->
+  <div class="modal-backdrop-custom" id="modalCustomRoom" style="display:none">
+    <div class="modal-card-custom room-dialog">
+      <div class="modal-header-custom">
+        <div class="mhc-title">
+          <span class="mhc-icon">🔒</span>
+          <div>
+            <h3>PHÒNG RIÊNG & NHÓM BẠN BÈ</h3>
+            <span class="mhc-sub">Chơi chung phòng, kết quả đồng bộ & chat riêng tư</span>
+          </div>
+        </div>
+        <button type="button" class="modal-close-custom" id="btnCloseRoomModal">✕</button>
+      </div>
+
+      <div class="modal-body-custom room-modal-body">
+        <!-- Card Phòng Hiện Tại -->
+        <div class="current-room-card" id="currentRoomCard">
+          <div class="crc-top">
+            <div class="crc-badge" id="crcBadge">🌐 PHÒNG TOÀN SERVER</div>
+            <div class="crc-online"><span class="online-dot"></span> <span id="crcOnlineCount">148</span> người online</div>
+          </div>
+          <div class="crc-code-row">
+            <div class="crc-code-label">MÃ PHÒNG:</div>
+            <div class="crc-code-val glow-gold" id="crcCodeVal">PUBLIC</div>
+          </div>
+          <div class="crc-desc" id="crcDesc">Bạn đang ở phòng chung toàn server. Cùng hàng trăm người chơi cược chung, chat chung và săn hũ chung.</div>
+          
+          <div class="crc-actions" id="crcActions">
+            <button type="button" class="crc-btn tg-invite" id="btnRoomShareTg">
+              <span>✈️</span> Mời Bạn Telegram
+            </button>
+            <button type="button" class="crc-btn copy-link" id="btnRoomCopyLink">
+              <span>📋</span> Sao Chép Link
+            </button>
+            <button type="button" class="crc-btn leave-room" id="btnLeavePrivateRoom" style="display:none">
+              <span>🌐</span> Về Toàn Server
+            </button>
+          </div>
+        </div>
+
+        <!-- Box Tạo Hoặc Nhập Mã Phòng -->
+        <div class="room-action-section">
+          <div class="ras-head">
+            <span class="ras-title">🔑 TẠO HOẶC NHẬP MÃ PHÒNG</span>
+          </div>
+          <p class="ras-hint">
+            Nhập mã phòng bạn bè chia sẻ hoặc tự đặt mã phòng riêng (ví dụ: <code>BANBE88</code>, <code>VIP777</code>, <code>ROOM-99</code>).
+          </p>
+          
+          <div class="ras-input-row">
+            <div class="ras-input-wrap">
+              <span class="ras-input-prefix">#</span>
+              <input type="text" id="inputRoomCode" class="ras-input" placeholder="Nhập mã phòng..." maxlength="16" autocomplete="off" />
+            </div>
+            <button type="button" class="ras-btn-random" id="btnRandomRoomCode" title="Tạo mã phòng ngẫu nhiên">🎲 Mã Tự Động</button>
+          </div>
+
+          <button type="button" class="ras-btn-join" id="btnJoinRoomSubmit">
+            🚀 VÀO PHÒNG RIÊNG NÀY
+          </button>
+        </div>
+
+        <!-- Danh Sách Phòng Gần Đây (Recent Rooms) -->
+        <div class="recent-rooms-section" id="recentRoomsSection" style="display:none">
+          <div class="rrs-head">
+            <span class="rrs-title">⏱️ PHÒNG ĐÃ THAM GIA GẦN ĐÂY</span>
+            <button type="button" class="rrs-clear-btn" id="btnClearRecentRooms">Xóa Lịch Sử</button>
+          </div>
+          <div class="rrs-chips-list" id="recentRoomsList">
+            <!-- Render động -->
+          </div>
+        </div>
+
+        <!-- Box Hướng Dẫn Tính Năng Phòng Riêng -->
+        <div class="room-features-box">
+          <div class="rfb-title">⭐ ĐẶC QUYỀN PHÒNG RIÊNG HỘI BẠN:</div>
+          <ul class="rfb-list">
+            <li>🎯 <strong>Vòng quay đồng bộ:</strong> Tất cả bạn bè trong cùng phòng sẽ nhận kết quả quay đồng nhất 100%, độc lập với phòng khác.</li>
+            <li>💬 <strong>Chat riêng tư:</strong> Kênh chat kín đáo chỉ các thành viên trong phòng mới nhìn thấy.</li>
+            <li>🧧 <strong>Mưa Lì Xì nội bộ:</strong> Người phát lộc chỉ chia sẻ Xu may mắn cho các thành viên trong phòng.</li>
+            <li>🔗 <strong>Deep Link Telegram:</strong> Gửi link cho bạn bè qua Telegram, chỉ cần 1 chạm là tự động vào đúng phòng!</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- RED PACKET RAIN LAYER (MƯA LÌ XÌ RƠI TRÊN MÀN HÌNH) -->
   <div class="red-packet-rain-layer" id="redPacketRainLayer"></div>
 
@@ -1960,6 +2058,6 @@ Content-Type: application/json
     <div class="gja-amt glow-gold" id="gjaAmt">+50,000 Xu</div>
   </div>
 
-  <script src="/static/app.js?v=20261002_live19"></script>
+  <script src="/static/app.js?v=20261002_live20"></script>
 </body>
 </html>

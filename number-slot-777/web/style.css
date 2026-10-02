@@ -8022,3 +8022,531 @@ body.chat-drawer-open .nav-tabs.is-docked-bottom {
   font-style: italic;
 }
 
+/* ========================================================
+   GIAI ĐOẠN 2: PHÒNG CHƠI RIÊNG CHO HỘI BẠN & TELEGRAM GROUP
+   ======================================================== */
+
+.room-selector-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: rgba(18, 24, 43, 0.9);
+  border: 1.5px solid rgba(255, 215, 0, 0.35);
+  border-radius: 12px;
+  padding: 6px 12px;
+  cursor: pointer;
+  color: #f8fafc;
+  font-size: 0.78rem;
+  font-weight: 700;
+  transition: all 0.25s ease;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.room-selector-btn:hover {
+  border-color: #ffd700;
+  box-shadow: 0 0 12px rgba(255, 215, 0, 0.35);
+  transform: translateY(-1px);
+}
+
+.room-selector-btn:active {
+  transform: translateY(0);
+}
+
+.room-selector-btn.is-private {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.25) 0%, rgba(236, 72, 153, 0.2) 100%);
+  border-color: #d946ef;
+  color: #fdf4ff;
+  box-shadow: 0 0 14px rgba(217, 70, 239, 0.45);
+  animation: pulsePrivateRoom 2.5s infinite alternate ease-in-out;
+}
+
+@keyframes pulsePrivateRoom {
+  0% { box-shadow: 0 0 10px rgba(217, 70, 239, 0.3); border-color: #d946ef; }
+  100% { box-shadow: 0 0 18px rgba(217, 70, 239, 0.65); border-color: #f43f5e; }
+}
+
+.room-selector-btn .rs-icon {
+  font-size: 1.05rem;
+  flex-shrink: 0;
+}
+
+.room-selector-btn .rs-name {
+  font-family: var(--font-display, "Orbitron", sans-serif);
+  font-size: 0.76rem;
+  font-weight: 800;
+  max-width: 110px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: 0.5px;
+}
+
+.room-selector-btn .rs-badge-action {
+  font-size: 0.66rem;
+  color: #ffd700;
+  background: rgba(255, 215, 0, 0.15);
+  padding: 2px 6px;
+  border-radius: 6px;
+  white-space: nowrap;
+  font-weight: 800;
+}
+
+.room-selector-btn.is-private .rs-badge-action {
+  color: #f0abfc;
+  background: rgba(217, 70, 239, 0.2);
+}
+
+/* Room Tag in Live Round Banner */
+.lr-room-tag {
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: rgba(255, 215, 0, 0.15);
+  border: 1px solid rgba(255, 215, 0, 0.4);
+  color: #ffd700;
+  white-space: nowrap;
+  letter-spacing: 0.3px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.lr-room-tag.is-private {
+  background: rgba(217, 70, 239, 0.22);
+  border-color: #d946ef;
+  color: #f0abfc;
+  box-shadow: 0 0 10px rgba(217, 70, 239, 0.35);
+}
+
+/* Chat Drawer Header Room Controls */
+.drawer-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.drawer-room-switch-btn {
+  padding: 4px 10px;
+  background: rgba(255, 215, 0, 0.15);
+  border: 1px solid rgba(255, 215, 0, 0.4);
+  border-radius: 8px;
+  color: #ffd700;
+  font-size: 0.72rem;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.drawer-room-switch-btn:hover {
+  background: rgba(255, 215, 0, 0.25);
+  border-color: #ffd700;
+  transform: translateY(-1px);
+}
+
+.drawer-room-highlight {
+  color: #ffd700;
+  font-weight: 800;
+  text-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
+}
+
+/* Custom Room Modal Styles */
+.modal-card-custom.room-dialog {
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.room-modal-body {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.current-room-card {
+  background: linear-gradient(145deg, rgba(26, 32, 53, 0.85) 0%, rgba(13, 17, 28, 0.95) 100%);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  border-radius: 14px;
+  padding: 14px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+.current-room-card.is-private {
+  background: linear-gradient(145deg, rgba(46, 16, 68, 0.85) 0%, rgba(18, 12, 34, 0.95) 100%);
+  border-color: #d946ef;
+  box-shadow: 0 8px 25px rgba(217, 70, 239, 0.25);
+}
+
+.crc-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.crc-badge {
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: rgba(255, 215, 0, 0.18);
+  color: #ffd700;
+  border: 1px solid rgba(255, 215, 0, 0.4);
+  letter-spacing: 0.5px;
+}
+
+.crc-badge.is-private {
+  background: rgba(217, 70, 239, 0.25);
+  color: #f0abfc;
+  border-color: #d946ef;
+  box-shadow: 0 0 10px rgba(217, 70, 239, 0.4);
+}
+
+.crc-online {
+  font-size: 0.74rem;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.crc-code-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.crc-code-label {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.crc-code-val {
+  font-family: var(--font-display, "Orbitron", sans-serif);
+  font-size: 1.4rem;
+  font-weight: 900;
+  letter-spacing: 1.5px;
+}
+
+.crc-desc {
+  font-size: 0.74rem;
+  color: #cbd5e1;
+  line-height: 1.45;
+  margin-bottom: 12px;
+}
+
+.crc-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.crc-btn {
+  flex: 1;
+  min-width: 105px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.74rem;
+  font-weight: 800;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.crc-btn:hover {
+  transform: translateY(-1px);
+}
+
+.crc-btn:active {
+  transform: translateY(0);
+}
+
+.crc-btn.tg-invite {
+  background: linear-gradient(135deg, #229ED9 0%, #0088cc 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(0, 136, 204, 0.35);
+}
+
+.crc-btn.tg-invite:hover {
+  box-shadow: 0 6px 16px rgba(0, 136, 204, 0.5);
+}
+
+.crc-btn.copy-link {
+  background: rgba(255, 255, 255, 0.1);
+  color: #f1f5f9;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.crc-btn.copy-link:hover {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.crc-btn.leave-room {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.crc-btn.leave-room:hover {
+  background: rgba(239, 68, 68, 0.3);
+  border-color: #ef4444;
+}
+
+/* Room Action Box (Create or Join) */
+.room-action-section {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.ras-head {
+  margin-bottom: 6px;
+}
+
+.ras-title {
+  font-size: 0.78rem;
+  font-weight: 900;
+  color: #ffd700;
+  letter-spacing: 0.5px;
+}
+
+.ras-hint {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  margin-bottom: 12px;
+  line-height: 1.45;
+}
+
+.ras-hint code {
+  color: #ffd700;
+  background: rgba(255, 215, 0, 0.12);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: var(--font-display, monospace);
+  font-size: 0.72rem;
+}
+
+.ras-input-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.ras-input-wrap {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.ras-input-prefix {
+  position: absolute;
+  left: 12px;
+  color: #ffd700;
+  font-weight: 900;
+  font-size: 0.95rem;
+  pointer-events: none;
+}
+
+.ras-input {
+  width: 100%;
+  padding: 9px 12px 9px 30px;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1.5px solid rgba(255, 215, 0, 0.35);
+  border-radius: 8px;
+  color: #ffffff;
+  font-family: var(--font-display, "Orbitron", sans-serif);
+  font-weight: 800;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.ras-input:focus {
+  border-color: #ffd700;
+  box-shadow: 0 0 12px rgba(255, 215, 0, 0.35);
+}
+
+.ras-btn-random {
+  padding: 8px 12px;
+  background: rgba(255, 215, 0, 0.15);
+  border: 1px solid rgba(255, 215, 0, 0.4);
+  border-radius: 8px;
+  color: #ffd700;
+  font-weight: 800;
+  font-size: 0.72rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.ras-btn-random:hover {
+  background: rgba(255, 215, 0, 0.25);
+  border-color: #ffd700;
+  transform: translateY(-1px);
+}
+
+.ras-btn-join {
+  width: 100%;
+  padding: 10px;
+  background: var(--gold-gradient, linear-gradient(135deg, #ffd700, #ff8f00));
+  color: #3a1500;
+  font-weight: 900;
+  font-size: 0.85rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  box-shadow: 0 4px 14px rgba(255, 215, 0, 0.35);
+  transition: all 0.2s ease;
+}
+
+.ras-btn-join:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(255, 215, 0, 0.5);
+}
+
+.ras-btn-join:active {
+  transform: translateY(0);
+}
+
+/* Recent Rooms Chips */
+.recent-rooms-section {
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.rrs-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.rrs-title {
+  font-size: 0.74rem;
+  font-weight: 800;
+  color: #cbd5e1;
+}
+
+.rrs-clear-btn {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 0.68rem;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 2px 4px;
+}
+
+.rrs-clear-btn:hover {
+  color: #f87171;
+}
+
+.rrs-chips-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.room-chip {
+  padding: 5px 11px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #e2e8f0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.15s ease;
+  font-family: var(--font-display, "Orbitron", sans-serif);
+}
+
+.room-chip:hover {
+  background: rgba(255, 215, 0, 0.15);
+  border-color: #ffd700;
+  color: #ffd700;
+  transform: translateY(-1px);
+}
+
+.room-chip.active {
+  background: rgba(217, 70, 239, 0.25);
+  border-color: #d946ef;
+  color: #f0abfc;
+}
+
+/* Features Guide Box */
+.room-features-box {
+  background: rgba(10, 15, 28, 0.6);
+  border: 1px solid rgba(255, 215, 0, 0.15);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.rfb-title {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #ffd700;
+  margin-bottom: 6px;
+}
+
+.rfb-list {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 0.7rem;
+  color: #94a3b8;
+  line-height: 1.5;
+}
+
+.rfb-list li {
+  margin-bottom: 4px;
+}
+
+.rfb-list strong {
+  color: #e2e8f0;
+}
+
+/* Mobile Media Queries for Room Elements */
+@media (max-width: 480px) {
+  .room-selector-btn {
+    padding: 5px 9px;
+    gap: 5px;
+  }
+  .room-selector-btn .rs-name {
+    max-width: 80px;
+    font-size: 0.7rem;
+  }
+  .room-selector-btn .rs-badge-action {
+    display: none;
+  }
+  .crc-code-val {
+    font-size: 1.15rem;
+  }
+  .crc-actions {
+    flex-direction: column;
+  }
+  .crc-btn {
+    width: 100%;
+  }
+}
+

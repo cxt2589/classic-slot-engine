@@ -53,7 +53,12 @@ const state = {
     unlockedTitles: new Set(["🍀 Tân Thủ May Mắn"])
   },
   leaderboardData: null,
-  currentLbTab: "winners"
+  currentLbTab: "winners",
+
+  // Custom & Telegram Private Room System
+  currentRoomId: (typeof localStorage !== "undefined" && localStorage.getItem("lucky_current_room")) || "public",
+  recentRooms: (typeof localStorage !== "undefined" && localStorage.getItem("lucky_recent_rooms") ? JSON.parse(localStorage.getItem("lucky_recent_rooms")) : []),
+  currentRoomInfo: null
 };
 
 // Web Audio API Synthesizer
@@ -316,6 +321,32 @@ const dom = {
   btnDrawerLeaderboard: document.getElementById("btnDrawerLeaderboard"),
   btnHeaderLeaderboard: document.getElementById("btnHeaderLeaderboard"),
 
+  // Custom & Telegram Private Room Elements
+  btnOpenRoomModal: document.getElementById("btnOpenRoomModal"),
+  roomSelectorIcon: document.getElementById("roomSelectorIcon"),
+  roomSelectorName: document.getElementById("roomSelectorName"),
+  liveRoundRoomTag: document.getElementById("liveRoundRoomTag"),
+  chatDrawerTitle: document.getElementById("chatDrawerTitle"),
+  chatDrawerIcon: document.getElementById("chatDrawerIcon"),
+  drawerRoomName: document.getElementById("drawerRoomName"),
+  btnDrawerSwitchRoom: document.getElementById("btnDrawerSwitchRoom"),
+  modalCustomRoom: document.getElementById("modalCustomRoom"),
+  btnCloseRoomModal: document.getElementById("btnCloseRoomModal"),
+  currentRoomCard: document.getElementById("currentRoomCard"),
+  crcBadge: document.getElementById("crcBadge"),
+  crcOnlineCount: document.getElementById("crcOnlineCount"),
+  crcCodeVal: document.getElementById("crcCodeVal"),
+  crcDesc: document.getElementById("crcDesc"),
+  btnRoomShareTg: document.getElementById("btnRoomShareTg"),
+  btnRoomCopyLink: document.getElementById("btnRoomCopyLink"),
+  btnLeavePrivateRoom: document.getElementById("btnLeavePrivateRoom"),
+  inputRoomCode: document.getElementById("inputRoomCode"),
+  btnRandomRoomCode: document.getElementById("btnRandomRoomCode"),
+  btnJoinRoomSubmit: document.getElementById("btnJoinRoomSubmit"),
+  recentRoomsSection: document.getElementById("recentRoomsSection"),
+  recentRoomsList: document.getElementById("recentRoomsList"),
+  btnClearRecentRooms: document.getElementById("btnClearRecentRooms"),
+
   // Player VIP & Profile Elements
   playerVipPill: document.getElementById("playerVipPill"),
   pvAvatar: document.getElementById("pvAvatar"),
@@ -487,6 +518,7 @@ async function init() {
   setupAdminControls();
   setupFortuneModeControls();
   setupLiveRoomControls();
+  initRoomSystem(); // Giai đoạn 2: Khởi tạo phòng riêng & Telegram Deep Links
   await loadSession();
   await loadAdminStatus(true); // silent fetch to load max bets
   renderInitialReels();
@@ -2810,6 +2842,305 @@ function getLiveUserName() {
   return localName;
 }
 
+// ==========================================
+// GIAI ĐOẠN 2: PHÒNG CHƠI RIÊNG CHO HỘI BẠN & TELEGRAM GROUP
+// ==========================================
+
+function normalizeRoomIdClient(raw) {
+  if (!raw || typeof raw !== "string") return "public";
+  const cleaned = raw.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, "");
+  return cleaned ? cleaned.slice(0, 20) : "public";
+}
+
+function updateRoomUI() {
+  const roomId = normalizeRoomIdClient(state.currentRoomId);
+  const isPrivate = roomId !== "public";
+
+  // Update Game Mode Bar Button
+  if (dom.btnOpenRoomModal) {
+    dom.btnOpenRoomModal.classList.toggle("is-private", isPrivate);
+  }
+  if (dom.roomSelectorIcon) {
+    dom.roomSelectorIcon.textContent = isPrivate ? "🔒" : "🌐";
+  }
+  if (dom.roomSelectorName) {
+    dom.roomSelectorName.textContent = isPrivate ? `#${roomId}` : "Toàn Server";
+  }
+
+  // Update Live Round Banner Tag
+  if (dom.liveRoundRoomTag) {
+    dom.liveRoundRoomTag.textContent = isPrivate ? `🔒 #${roomId}` : "🌐 Toàn Server";
+    dom.liveRoundRoomTag.classList.toggle("is-private", isPrivate);
+  }
+
+  // Update Chat Drawer Header Info
+  if (dom.chatDrawerTitle) {
+    dom.chatDrawerTitle.textContent = isPrivate ? `PHÒNG CHAT #${roomId}` : "PHÒNG CHAT TRỰC TIẾP";
+  }
+  if (dom.chatDrawerIcon) {
+    dom.chatDrawerIcon.textContent = isPrivate ? "🔒" : "💬";
+  }
+  if (dom.drawerRoomName) {
+    dom.drawerRoomName.textContent = isPrivate ? `Phòng #${roomId}` : "Toàn Server";
+  }
+
+  // Update Modal Room Card
+  if (dom.crcBadge) {
+    dom.crcBadge.textContent = isPrivate ? `🔒 PHÒNG RIÊNG` : "🌐 PHÒNG TOÀN SERVER";
+    dom.crcBadge.classList.toggle("is-private", isPrivate);
+  }
+  if (dom.crcCodeVal) {
+    dom.crcCodeVal.textContent = isPrivate ? `#${roomId}` : "PUBLIC";
+  }
+  if (dom.crcDesc) {
+    dom.crcDesc.textContent = isPrivate
+      ? `Bạn đang ở phòng riêng #${roomId}. Tất cả bạn bè trong phòng nhận kết quả quay đồng nhất 100%, trò chuyện nội bộ và chia sẻ lì xì kín.`
+      : "Bạn đang ở phòng chung toàn server. Cùng hàng trăm người chơi cược chung, chat chung và săn hũ chung.";
+  }
+  if (dom.btnLeavePrivateRoom) {
+    dom.btnLeavePrivateRoom.style.display = isPrivate ? "inline-flex" : "none";
+  }
+  if (dom.currentRoomCard) {
+    dom.currentRoomCard.classList.toggle("is-private", isPrivate);
+  }
+}
+
+function joinRoom(rawRoomId, silent = false) {
+  const targetRoom = normalizeRoomIdClient(rawRoomId);
+  const prevRoom = state.currentRoomId;
+
+  if (targetRoom !== prevRoom) {
+    // Clear chat cache to load fresh room messages
+    state.chatMessagesCache = [];
+  }
+
+  state.currentRoomId = targetRoom;
+  try {
+    localStorage.setItem("lucky_current_room", targetRoom);
+  } catch (e) {}
+
+  // Save to recent rooms
+  if (targetRoom !== "public") {
+    let recent = Array.isArray(state.recentRooms) ? [...state.recentRooms] : [];
+    recent = recent.filter(r => r !== targetRoom);
+    recent.unshift(targetRoom);
+    state.recentRooms = recent.slice(0, 8);
+    try {
+      localStorage.setItem("lucky_recent_rooms", JSON.stringify(state.recentRooms));
+    } catch (e) {}
+  }
+
+  updateRoomUI();
+  renderRecentRooms();
+
+  if (state.gamePlayMode !== "live") {
+    switchGameplayMode("live");
+  } else {
+    syncLiveRoomState();
+  }
+
+  closeRoomModal();
+
+  if (!silent) {
+    soundEngine.playWinTone();
+    telegramEngine.haptic("success");
+    if (targetRoom === "public") {
+      showToast("🌐 Bạn đã trở về <strong>Phòng Toàn Server</strong>!", "cyan");
+    } else {
+      showToast(`🔒 Đã vào <strong>Phòng Riêng #${targetRoom}</strong>! Kết quả & kênh chat đã đồng bộ cho nhóm của bạn.`, "gold");
+    }
+  }
+}
+
+function openRoomModal() {
+  updateRoomUI();
+  renderRecentRooms();
+  if (dom.inputRoomCode) {
+    dom.inputRoomCode.value = "";
+  }
+  if (dom.modalCustomRoom) {
+    dom.modalCustomRoom.style.display = "flex";
+  }
+  telegramEngine.haptic("light");
+}
+
+function closeRoomModal() {
+  if (dom.modalCustomRoom) {
+    dom.modalCustomRoom.style.display = "none";
+  }
+}
+
+function renderRecentRooms() {
+  if (!dom.recentRoomsSection || !dom.recentRoomsList) return;
+  const recent = state.recentRooms || [];
+  if (recent.length === 0) {
+    dom.recentRoomsSection.style.display = "none";
+    return;
+  }
+  dom.recentRoomsSection.style.display = "block";
+  dom.recentRoomsList.innerHTML = "";
+
+  recent.forEach(r => {
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = "room-chip" + (r === state.currentRoomId ? " active" : "");
+    chip.innerHTML = `<span>🔒</span> #${r}`;
+    chip.addEventListener("click", () => {
+      telegramEngine.haptic("selection");
+      joinRoom(r);
+    });
+    dom.recentRoomsList.appendChild(chip);
+  });
+}
+
+function shareRoomToTelegram() {
+  telegramEngine.haptic("medium");
+  const roomId = state.currentRoomId || "public";
+  const botLink = `https://t.me/relicspin_bot?startapp=room_${roomId}`;
+  const webLink = `${window.location.origin}/?room=${roomId}`;
+  const shareTarget = (telegramEngine.tg ? botLink : webLink);
+
+  const text = roomId === "public"
+    ? "🔥 Đang có rất nhiều cao thủ cược trực tiếp tại Lucky Numbers 777! Vào phòng cược chung và săn Hũ Thần Tài cùng tôi nhé:"
+    : `🔥 Mình vừa tạo phòng chơi riêng #${roomId} tại Lucky Numbers 777! Vào cùng phòng để cược chung, chat riêng và nhận mưa lì xì may mắn cùng mình nhé:`;
+
+  shareToTelegram(text, shareTarget);
+  showToast("✈️ Đang mở chia sẻ Telegram để mời bạn bè...", "info");
+}
+
+function copyRoomLink() {
+  const roomId = state.currentRoomId || "public";
+  const link = `${window.location.origin}/?room=${roomId}`;
+  if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+    navigator.clipboard.writeText(link).then(() => {
+      soundEngine.playWinTone();
+      telegramEngine.haptic("success");
+      showToast("📋 Đã sao chép liên kết vào phòng! Hãy gửi cho bạn bè để cùng chơi.", "gold");
+    }).catch(() => fallbackCopy(link));
+  } else {
+    fallbackCopy(link);
+  }
+}
+
+function fallbackCopy(text) {
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  document.body.appendChild(ta);
+  ta.select();
+  document.execCommand("copy");
+  document.body.removeChild(ta);
+  soundEngine.playWinTone();
+  telegramEngine.haptic("success");
+  showToast("📋 Đã sao chép liên kết vào phòng!", "gold");
+}
+
+function initRoomSystem() {
+  // Đọc deep link params từ Telegram WebApp hoặc URL query
+  let detectedRoom = null;
+
+  // 1. Telegram start_param (ví dụ: room_ROOM777 hoặc room_VIP888)
+  const startParam = telegramEngine.tg?.initDataUnsafe?.start_param;
+  if (startParam && typeof startParam === "string") {
+    if (startParam.startsWith("room_")) {
+      detectedRoom = startParam.replace(/^room_/, "").trim();
+    }
+  }
+
+  // 2. URL search query: ?room=ROOM-777
+  if (!detectedRoom && typeof window !== "undefined" && window.location?.search) {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has("room")) {
+      detectedRoom = urlParams.get("room").trim();
+    }
+  }
+
+  if (detectedRoom) {
+    const cleaned = normalizeRoomIdClient(detectedRoom);
+    if (cleaned && cleaned !== "public") {
+      state.currentRoomId = cleaned;
+      try {
+        localStorage.setItem("lucky_current_room", cleaned);
+      } catch (e) {}
+      let recent = Array.isArray(state.recentRooms) ? [...state.recentRooms] : [];
+      recent = recent.filter(r => r !== cleaned);
+      recent.unshift(cleaned);
+      state.recentRooms = recent.slice(0, 8);
+      try {
+        localStorage.setItem("lucky_recent_rooms", JSON.stringify(state.recentRooms));
+      } catch (e) {}
+
+      // Tự động chuyển sang chế độ Trực Tiếp của phòng riêng sau khi UI khởi tạo
+      setTimeout(() => {
+        joinRoom(cleaned, false);
+      }, 400);
+    }
+  } else {
+    // Khôi phục phòng gần nhất hoặc mặc định public
+    const savedRoom = (typeof localStorage !== "undefined" && localStorage.getItem("lucky_current_room")) || "public";
+    state.currentRoomId = normalizeRoomIdClient(savedRoom);
+    updateRoomUI();
+  }
+
+  // Setup event listeners cho các nút điều khiển phòng
+  if (dom.btnOpenRoomModal) dom.btnOpenRoomModal.addEventListener("click", openRoomModal);
+  if (dom.btnDrawerSwitchRoom) dom.btnDrawerSwitchRoom.addEventListener("click", openRoomModal);
+  if (dom.btnCloseRoomModal) dom.btnCloseRoomModal.addEventListener("click", closeRoomModal);
+  if (dom.btnRoomShareTg) dom.btnRoomShareTg.addEventListener("click", shareRoomToTelegram);
+  if (dom.btnRoomCopyLink) dom.btnRoomCopyLink.addEventListener("click", copyRoomLink);
+  if (dom.btnLeavePrivateRoom) dom.btnLeavePrivateRoom.addEventListener("click", () => joinRoom("public"));
+
+  if (dom.btnRandomRoomCode) {
+    dom.btnRandomRoomCode.addEventListener("click", () => {
+      telegramEngine.haptic("light");
+      const prefixes = ["ROOM", "VIP", "LUCKY", "HOI", "CLB"];
+      const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
+      const randNum = Math.floor(100 + Math.random() * 900);
+      if (dom.inputRoomCode) dom.inputRoomCode.value = `${prefix}-${randNum}`;
+    });
+  }
+
+  if (dom.btnJoinRoomSubmit) {
+    dom.btnJoinRoomSubmit.addEventListener("click", () => {
+      const code = dom.inputRoomCode ? dom.inputRoomCode.value.trim() : "";
+      if (!code) {
+        telegramEngine.haptic("error");
+        showToast("Vui lòng nhập mã phòng hoặc bấm 'Mã Tự Động'!", "warn");
+        if (dom.inputRoomCode) dom.inputRoomCode.focus();
+        return;
+      }
+      joinRoom(code);
+    });
+  }
+
+  if (dom.inputRoomCode) {
+    dom.inputRoomCode.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        if (dom.btnJoinRoomSubmit) dom.btnJoinRoomSubmit.click();
+      }
+    });
+  }
+
+  if (dom.btnClearRecentRooms) {
+    dom.btnClearRecentRooms.addEventListener("click", () => {
+      state.recentRooms = [];
+      try {
+        localStorage.removeItem("lucky_recent_rooms");
+      } catch (e) {}
+      renderRecentRooms();
+      telegramEngine.haptic("light");
+      showToast("Đã xóa lịch sử phòng gần đây!", "info");
+    });
+  }
+
+  // Click backdrop để đóng modal phòng
+  if (dom.modalCustomRoom) {
+    dom.modalCustomRoom.addEventListener("click", (e) => {
+      if (e.target === dom.modalCustomRoom) closeRoomModal();
+    });
+  }
+}
+
 function setupLiveRoomControls() {
   // Mode switcher: Solo vs Live
   if (dom.btnModeSolo) {
@@ -3490,13 +3821,15 @@ function startGlobalMarqueePolling() {
 
 async function fetchMarqueeData() {
   try {
-    const res = await fetch(`/api/live/state?user_id=${getLiveUserId()}&username=${encodeURIComponent(getLiveUserName())}`);
+    const roomId = state.currentRoomId || "public";
+    const res = await fetch(`/api/live/state?user_id=${getLiveUserId()}&username=${encodeURIComponent(getLiveUserName())}&room_id=${encodeURIComponent(roomId)}`);
     const json = await res.json();
     if (json.status === "success" && json.data) {
       if (json.data.online_count) {
         if (dom.liveOnlineCount) dom.liveOnlineCount.textContent = json.data.online_count;
         if (dom.drawerOnlineCount) dom.drawerOnlineCount.textContent = json.data.online_count;
         if (dom.chatFloatingBadge) dom.chatFloatingBadge.textContent = `${json.data.online_count}`;
+        if (dom.crcOnlineCount) dom.crcOnlineCount.textContent = `${json.data.online_count}`;
       }
       if (json.data.big_wins && json.data.big_wins.length > 0) {
         updateGlobalMarquee(json.data.big_wins);
@@ -3563,7 +3896,8 @@ async function syncLiveRoomState() {
   try {
     const uid = getLiveUserId();
     const uname = getLiveUserName();
-    const res = await fetch(`/api/live/state?user_id=${uid}&username=${encodeURIComponent(uname)}`);
+    const roomId = state.currentRoomId || "public";
+    const res = await fetch(`/api/live/state?user_id=${uid}&username=${encodeURIComponent(uname)}&room_id=${encodeURIComponent(roomId)}`);
     const json = await res.json();
     if (json.status !== "success" || !json.data) return;
 
@@ -3571,10 +3905,17 @@ async function syncLiveRoomState() {
     state.liveRoundData = data.round;
     state.liveLocalTimeLeft = data.round.time_left_sec;
 
+    // Cập nhật room info từ server
+    if (data.room_info) {
+      state.currentRoomInfo = data.room_info;
+      updateRoomUI();
+    }
+
     // Update online count
     if (dom.liveOnlineCount) dom.liveOnlineCount.textContent = data.online_count;
     if (dom.drawerOnlineCount) dom.drawerOnlineCount.textContent = data.online_count;
     if (dom.chatFloatingBadge) dom.chatFloatingBadge.textContent = `${data.online_count}`;
+    if (dom.crcOnlineCount) dom.crcOnlineCount.textContent = `${data.online_count}`;
 
     // Cập nhật giao diện bàn cược trực tiếp CHỈ KHI đang ở chế độ live
     if (state.gamePlayMode === "live") {
@@ -3899,6 +4240,7 @@ async function placeLiveBetAction() {
       body: JSON.stringify({
         user_id: getLiveUserId(),
         username: getLiveUserName(),
+        room_id: state.currentRoomId || "public",
         bets: state.placedBets,
         bet_mode: state.fortuneBetMode === "fortune" ? "fortune_lock" : "free",
         locked_numbers: state.fortuneLockedNumbers
@@ -3939,11 +4281,13 @@ async function sendChatMessage(text) {
     const isRothschild = curName.toLowerCase().includes("marothschild") || getLiveUserId().toLowerCase().includes("marothschild");
     const currentVipLvl = isRothschild ? 5 : (state.vipInfo?.level || 0);
     const currentTitle = isRothschild ? (state.userProfile?.equippedTitle || "👑 Hoàng Gia 777") : (state.userProfile?.equippedTitle || "🍀 Tân Thủ May Mắn");
+    const roomId = state.currentRoomId || "public";
 
     const tempMsg = {
       id: "local-" + Date.now() + "-" + Math.random().toString(36).substr(2, 4),
       user_id: getLiveUserId(),
       username: curName,
+      room_id: roomId,
       avatar: isRothschild ? "👑" : (telegramEngine.tg?.initDataUnsafe?.user?.photo_url ? "⭐️" : "👤"),
       vip_level: currentVipLvl,
       title: currentTitle,
@@ -3962,6 +4306,7 @@ async function sendChatMessage(text) {
       body: JSON.stringify({
         user_id: getLiveUserId(),
         username: curName,
+        room_id: roomId,
         avatar: isRothschild ? "👑" : (telegramEngine.tg?.initDataUnsafe?.user?.photo_url ? "⭐️" : "👤"),
         vip_level: currentVipLvl,
         title: currentTitle,
@@ -3986,7 +4331,10 @@ async function sendReaction(emoji, originX) {
     const res = await fetch("/api/live/reaction", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ emoji })
+      body: JSON.stringify({
+        emoji,
+        room_id: state.currentRoomId || "public"
+      })
     });
     const json = await res.json();
     if (json.status === "success" && json.data) {
@@ -4036,6 +4384,7 @@ function shareWinSlipAction() {
     body: JSON.stringify({
       user_id: getLiveUserId(),
       username: getLiveUserName(),
+      room_id: state.currentRoomId || "public",
       avatar: "🏆",
       text: shareText,
       type: "win_share",
@@ -4423,6 +4772,7 @@ async function sendRedPacketAction(amount = 200) {
       body: JSON.stringify({
         user_id: getLiveUserId(),
         username: getLiveUserName(),
+        room_id: state.currentRoomId || "public",
         amount: amount
       })
     });

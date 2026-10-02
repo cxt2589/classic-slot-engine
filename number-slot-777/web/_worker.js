@@ -159,31 +159,74 @@ const liveRoomState = {
   settledRounds: {} // "roundId_userId" -> true
 };
 
-async function getKVChatMessages(env) {
+function normalizeRoomId(raw) {
+  if (!raw || typeof raw !== "string") return "public";
+  const cleaned = raw.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, "");
+  return cleaned ? cleaned.slice(0, 20) : "public";
+}
+
+function hashString(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) - hash) + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash);
+}
+
+async function getKVChatMessages(env, roomId = "public") {
+  const normRoom = normalizeRoomId(roomId);
+  const kvKey = normRoom === "public" ? "live_chat_messages" : `live_chat_messages_${normRoom}`;
+  if (!liveRoomState.chatMessagesByRoom) liveRoomState.chatMessagesByRoom = {};
+
   if (env && env.LUCKY_ROOM) {
     try {
-      const stored = await env.LUCKY_ROOM.get("live_chat_messages", { type: "json" });
+      const stored = await env.LUCKY_ROOM.get(kvKey, { type: "json" });
       if (Array.isArray(stored) && stored.length > 0) {
-        liveRoomState.chatMessages = stored;
+        liveRoomState.chatMessagesByRoom[normRoom] = stored;
+        if (normRoom === "public") liveRoomState.chatMessages = stored;
         return stored;
       }
     } catch (e) {}
   }
-  if (!liveRoomState.chatMessages || liveRoomState.chatMessages.length === 0 || (liveRoomState.chatMessages[0].time && liveRoomState.chatMessages[0].time < 1000000000)) {
+
+  if (!liveRoomState.chatMessagesByRoom[normRoom] || liveRoomState.chatMessagesByRoom[normRoom].length === 0) {
     const now = Date.now();
-    liveRoomState.chatMessages = [
-      { id: "msg-1", user_id: "sys", username: "HỆ THỐNG", avatar: "🤖", text: "Chào mừng các cao thủ đến với Phòng Trực Tiếp Lucky Numbers 777! Phiên đồng bộ 30s 🎉", type: "system", time: now - 45000 },
-      { id: "msg-2", user_id: "bot-1", username: "Dragon99", avatar: "🐲", text: "Cầu đang bệt Tài anh em ơi, theo nhanh kẻo lỡ! 🎯", type: "chat", time: now - 30000 },
-      { id: "msg-3", user_id: "bot-2", username: "PhátTài88", avatar: "💰", text: "Vừa húp Tứ Quý 8, phòng hôm nay đỏ thật sự!", type: "chat", time: now - 15000 }
-    ];
+    if (normRoom === "public") {
+      liveRoomState.chatMessagesByRoom[normRoom] = [
+        { id: "msg-1", user_id: "sys", username: "HỆ THỐNG", avatar: "🤖", text: "Chào mừng các cao thủ đến với Phòng Trực Tiếp Lucky Numbers 777! Phiên đồng bộ 30s 🎉", type: "system", room_id: "public", time: now - 45000 },
+        { id: "msg-2", user_id: "bot-1", username: "Dragon99", avatar: "🐲", text: "Cầu đang bệt Tài anh em ơi, theo nhanh kẻo lỡ! 🎯", type: "chat", room_id: "public", time: now - 30000 },
+        { id: "msg-3", user_id: "bot-2", username: "PhátTài88", avatar: "💰", text: "Vừa húp Tứ Quý 8, phòng hôm nay đỏ thật sự!", type: "chat", room_id: "public", time: now - 15000 }
+      ];
+      liveRoomState.chatMessages = liveRoomState.chatMessagesByRoom[normRoom];
+    } else {
+      liveRoomState.chatMessagesByRoom[normRoom] = [
+        { id: `msg-welcome-${normRoom}`, user_id: "sys", username: "HỆ THỐNG", avatar: "🔒", text: `Chào mừng bạn đến với Phòng Riêng [#${normRoom}]! Hãy chia sẻ link mời để bạn bè cùng cược chung, chat kín và nhận lì xì nhé! 🎉`, type: "system", room_id: normRoom, time: now }
+      ];
+    }
   }
-  return liveRoomState.chatMessages;
+  return liveRoomState.chatMessagesByRoom[normRoom];
 }
 
-async function saveKVChatMessages(env, messages) {
+async function saveKVChatMessages(env, roomIdOrMessages, optionalMessages) {
+  let normRoom = "public";
+  let messages = [];
+  if (Array.isArray(roomIdOrMessages)) {
+    normRoom = "public";
+    messages = roomIdOrMessages;
+  } else {
+    normRoom = normalizeRoomId(roomIdOrMessages);
+    messages = optionalMessages || [];
+  }
+  const kvKey = normRoom === "public" ? "live_chat_messages" : `live_chat_messages_${normRoom}`;
+  if (!liveRoomState.chatMessagesByRoom) liveRoomState.chatMessagesByRoom = {};
+  liveRoomState.chatMessagesByRoom[normRoom] = messages;
+  if (normRoom === "public") {
+    liveRoomState.chatMessages = messages;
+  }
   if (env && env.LUCKY_ROOM) {
     try {
-      await env.LUCKY_ROOM.put("live_chat_messages", JSON.stringify(messages));
+      await env.LUCKY_ROOM.put(kvKey, JSON.stringify(messages));
     } catch (e) {}
   }
 }
@@ -887,17 +930,20 @@ function mulberry32(a) {
   };
 }
 
-function generateLiveOutcome(roundId) {
+function generateLiveOutcome(roundId, roomId = "public") {
   let randFn = () => {
     const arr = new Uint32Array(1);
     crypto.getRandomValues(arr);
     return arr[0] / 4294967296;
   };
 
+  const normRoom = normalizeRoomId(roomId);
   // Nếu là phiên live (LRxxx), sinh kết quả đồng nhất tuyệt đối trên mọi máy chủ Cloudflare Edge toàn cầu
+  // Các thành viên cùng phòng (cùng roomId) nhận kết quả 100% giống hệt nhau
   if (roundId && typeof roundId === "string" && roundId.startsWith("LR")) {
-    const seed = parseInt(roundId.replace(/\D/g, "")) || 12345;
-    randFn = mulberry32(seed);
+    const baseSeed = parseInt(roundId.replace(/\D/g, "")) || 12345;
+    const roomSeed = normRoom === "public" ? 0 : hashString(normRoom);
+    randFn = mulberry32((baseSeed + roomSeed) >>> 0);
   }
 
   let stops = NUMBER_REEL_STRIPS.map(strip => Math.floor(randFn() * strip.length));
@@ -925,6 +971,7 @@ function generateLiveOutcome(roundId) {
 
   return {
     round_id: roundId,
+    room_id: normRoom,
     stops,
     grid,
     center_row,
@@ -1024,7 +1071,8 @@ function calculateSpinPayout(bets, bet_mode, locked_numbers, center_row, analysi
   };
 }
 
-function getLiveRoundInfo() {
+function getLiveRoundInfo(roomId = "public") {
+  const normRoom = normalizeRoomId(roomId);
   const bettingSec = Math.max(10, Math.min(180, adminConfig.live_room?.betting_time_sec || 30));
   const spinSec = adminConfig.live_room?.spin_time_sec || 4;
   const payoutSec = adminConfig.live_room?.payout_time_sec || 6;
@@ -1051,14 +1099,15 @@ function getLiveRoundInfo() {
     timeLeftSec = Math.max(0, Math.ceil((totalCycleMs - elapsedMs) / 1000));
   }
 
-  // Đảm bảo round này có kết quả cố định trong cache
-  if (!liveRoomState.roundOutcomes[roundId]) {
-    liveRoomState.roundOutcomes[roundId] = generateLiveOutcome(roundId);
+  const roundOutcomeKey = `${roundId}_${normRoom}`;
+  // Đảm bảo round này có kết quả cố định trong cache theo từng phòng
+  if (!liveRoomState.roundOutcomes[roundOutcomeKey]) {
+    liveRoomState.roundOutcomes[roundOutcomeKey] = generateLiveOutcome(roundId, normRoom);
   }
 
-  // Giữ tối đa 10 rounds gần nhất để tiết kiệm bộ nhớ
+  // Giữ tối đa 60 outcomes gần nhất để tiết kiệm bộ nhớ
   const keys = Object.keys(liveRoomState.roundOutcomes);
-  if (keys.length > 10) {
+  if (keys.length > 60) {
     const oldKey = keys[0];
     delete liveRoomState.roundOutcomes[oldKey];
     delete liveRoomState.roundBets[oldKey];
@@ -1066,6 +1115,7 @@ function getLiveRoundInfo() {
 
   return {
     round_id: roundId,
+    room_id: normRoom,
     cycle_index: cycleIndex,
     phase,
     time_left_sec: timeLeftSec,
@@ -1075,7 +1125,7 @@ function getLiveRoundInfo() {
     total_cycle_sec: totalCycleSec,
     start_time_ms: cycleStartMs,
     // Chỉ tiết lộ kết quả khi đang spinning hoặc payout
-    outcome: (phase === "spinning" || phase === "payout") ? liveRoomState.roundOutcomes[roundId] : null
+    outcome: (phase === "spinning" || phase === "payout") ? liveRoomState.roundOutcomes[roundOutcomeKey] : null
   };
 }
 
@@ -1203,29 +1253,35 @@ function getLiveRoundInfo() {
     // LIVE MULTIPLAYER ROOM API ENDPOINTS
     // ==========================================
     if (url.pathname === "/api/live/state" && request.method === "GET") {
-      const liveRound = getLiveRoundInfo();
+      const targetRoomId = normalizeRoomId(url.searchParams.get("room_id") || "public");
+      const liveRound = getLiveRoundInfo(targetRoomId);
       const userId = url.searchParams.get("user_id") || "guest";
       const userName = url.searchParams.get("username") || "Khách";
 
-      // Kiểm tra xem user có cược ở phiên trước (LR_{cycleIndex - 1}) cần trả thưởng tự động không
+      // Kiểm tra xem user có cược ở phiên trước (LR_{cycleIndex - 1}) trong phòng này cần trả thưởng tự động không
       const prevRoundId = "LR" + (liveRound.cycle_index - 1);
-      const settleKey = `${prevRoundId}_${userId}`;
+      const prevBetKey = `${prevRoundId}_${targetRoomId}`;
+      const settleKey = `${prevRoundId}_${targetRoomId}_${userId}`;
       let userLastSettlement = null;
 
       // Đồng bộ cược phiên trước từ KV nếu isolate mới khởi động
-      if (!liveRoomState.roundBets[prevRoundId]?.[userId] && env && env.LUCKY_ROOM) {
+      if (!liveRoomState.roundBets[prevBetKey]?.[userId] && env && env.LUCKY_ROOM) {
         try {
-          const prevKvBet = await env.LUCKY_ROOM.get(`bet_${prevRoundId}_${userId}`, { type: "json" });
+          let prevKvBet = await env.LUCKY_ROOM.get(`bet_${prevRoundId}_${targetRoomId}_${userId}`, { type: "json" });
+          if (!prevKvBet && targetRoomId === "public") {
+            prevKvBet = await env.LUCKY_ROOM.get(`bet_${prevRoundId}_${userId}`, { type: "json" });
+          }
           if (prevKvBet) {
-            if (!liveRoomState.roundBets[prevRoundId]) liveRoomState.roundBets[prevRoundId] = {};
-            liveRoomState.roundBets[prevRoundId][userId] = prevKvBet;
+            if (!liveRoomState.roundBets[prevBetKey]) liveRoomState.roundBets[prevBetKey] = {};
+            liveRoomState.roundBets[prevBetKey][userId] = prevKvBet;
           }
         } catch (e) {}
       }
 
-      if (!liveRoomState.settledRounds[settleKey] && liveRoomState.roundBets[prevRoundId]?.[userId]) {
-        const userPrevBet = liveRoomState.roundBets[prevRoundId][userId];
-        const prevOutcome = liveRoomState.roundOutcomes[prevRoundId] || generateLiveOutcome(prevRoundId);
+      if (!liveRoomState.settledRounds[settleKey] && liveRoomState.roundBets[prevBetKey]?.[userId]) {
+        const userPrevBet = liveRoomState.roundBets[prevBetKey][userId];
+        const prevOutcomeKey = `${prevRoundId}_${targetRoomId}`;
+        const prevOutcome = liveRoomState.roundOutcomes[prevOutcomeKey] || generateLiveOutcome(prevRoundId, targetRoomId);
         if (prevOutcome) {
           const payoutResult = calculateSpinPayout(
             userPrevBet.bets,
@@ -1247,6 +1303,7 @@ function getLiveRoundInfo() {
                 username: userName,
                 amount: payoutResult.total_won,
                 hand: prevOutcome.analysis.hand_title_vi,
+                room_id: targetRoomId,
                 time: Date.now()
               };
               const updatedBigWins = [bwObj, ...currentBigWins].slice(0, 20);
@@ -1257,11 +1314,13 @@ function getLiveRoundInfo() {
 
           liveRoomState.settledRounds[settleKey] = {
             round_id: prevRoundId,
+            room_id: targetRoomId,
             payout: payoutResult,
             time: Date.now()
           };
           userLastSettlement = {
             round_id: prevRoundId,
+            room_id: targetRoomId,
             payout: payoutResult,
             center_row: prevOutcome.center_row,
             analysis: prevOutcome.analysis
@@ -1270,18 +1329,22 @@ function getLiveRoundInfo() {
       }
 
       // Kiểm tra cược hiện tại của user trong KV nếu chưa có trong memory
-      if (!liveRoomState.roundBets[liveRound.round_id]?.[userId] && env && env.LUCKY_ROOM) {
+      const curBetKey = `${liveRound.round_id}_${targetRoomId}`;
+      if (!liveRoomState.roundBets[curBetKey]?.[userId] && env && env.LUCKY_ROOM) {
         try {
-          const currentKvBet = await env.LUCKY_ROOM.get(`bet_${liveRound.round_id}_${userId}`, { type: "json" });
+          let currentKvBet = await env.LUCKY_ROOM.get(`bet_${liveRound.round_id}_${targetRoomId}_${userId}`, { type: "json" });
+          if (!currentKvBet && targetRoomId === "public") {
+            currentKvBet = await env.LUCKY_ROOM.get(`bet_${liveRound.round_id}_${userId}`, { type: "json" });
+          }
           if (currentKvBet) {
-            if (!liveRoomState.roundBets[liveRound.round_id]) liveRoomState.roundBets[liveRound.round_id] = {};
-            liveRoomState.roundBets[liveRound.round_id][userId] = currentKvBet;
+            if (!liveRoomState.roundBets[curBetKey]) liveRoomState.roundBets[curBetKey] = {};
+            liveRoomState.roundBets[curBetKey][userId] = currentKvBet;
           }
         } catch (e) {}
       }
 
-      // Tổng hợp cược cộng đồng của round hiện tại
-      const currentBetsMap = liveRoomState.roundBets[liveRound.round_id] || {};
+      // Tổng hợp cược cộng đồng của round hiện tại trong phòng này
+      const currentBetsMap = liveRoomState.roundBets[curBetKey] || {};
       const communityStats = {
         total_wagered: 0,
         total_players: Object.keys(currentBetsMap).length,
@@ -1294,16 +1357,16 @@ function getLiveRoundInfo() {
         }
       }
 
-      // Đồng bộ tin nhắn, reactions, big wins và bao lì xì qua KV
-      const messages = await getKVChatMessages(env);
+      // Đồng bộ tin nhắn, reactions, big wins và bao lì xì theo phòng
+      const messages = await getKVChatMessages(env, targetRoomId);
       const reactions = await getKVReactions(env);
       const bigWins = await getKVBigWins(env);
       const redPackets = await getKVRedPackets(env);
 
-      // Giữ reactions 15s gần nhất, lì xì 35s gần nhất
+      // Giữ reactions 15s gần nhất, lì xì 35s gần nhất (lọc theo room_id)
       const now = Date.now();
-      const freshReactions = reactions.filter(r => (now - r.time) < 15000);
-      const activePackets = redPackets.filter(p => (now - p.created_at) < 35000);
+      const freshReactions = reactions.filter(r => (r.room_id || "public") === targetRoomId && (now - r.time) < 15000);
+      const activePackets = redPackets.filter(p => (p.room_id || "public") === targetRoomId && (now - p.created_at) < 35000);
 
       // Quét tự động hoàn tiền lộc chưa có người nhận cho người phát (sau 35s)
       let userLastRefund = null;
@@ -1312,7 +1375,6 @@ function getLiveRoundInfo() {
         const isExpired = (now - p.created_at) >= 35000;
         const alreadyRefunded = p.is_refunded_to_sender || (p.is_refunded && p.remaining_amount <= 0);
         if (isExpired && !alreadyRefunded) {
-          // Nếu đã phát hết toàn bộ (remaining_amount <= 0), đánh dấu đã giải quyết xong
           if ((p.remaining_amount || 0) <= 0) {
             p.is_refunded_to_sender = true;
             p.is_refunded = true;
@@ -1320,8 +1382,6 @@ function getLiveRoundInfo() {
             continue;
           }
 
-          // Nếu còn tiền thừa chưa ai nhận:
-          // CHỈ hoàn tiền và đánh dấu khi chính người phát (p.sender_id === userId) đồng bộ!
           if (p.sender_id === userId) {
             const refundAmt = Math.round(p.remaining_amount * 100) / 100;
             p.is_refunded_to_sender = true;
@@ -1336,7 +1396,7 @@ function getLiveRoundInfo() {
               total_amount: p.total_amount
             };
 
-            // Thông báo hoàn tiền công khai vào phòng chat
+            const pRoom = p.room_id || "public";
             const refundNotice = {
               id: "msg-rf-" + Date.now() + "-" + Math.random().toString(36).substr(2, 4),
               user_id: "sys",
@@ -1344,16 +1404,15 @@ function getLiveRoundInfo() {
               avatar: "↩️",
               text: `💰 Gói phát lộc của ${p.sender_name} đã kết thúc. Hệ thống đã hoàn lại +${refundAmt.toLocaleString()} Xu (chưa ai nhận) về tài khoản của ${p.sender_name}!`,
               type: "system",
+              room_id: pRoom,
               time: Date.now()
             };
             try {
-              const curMsgs = await getKVChatMessages(env);
+              const curMsgs = await getKVChatMessages(env, pRoom);
               const updatedMsgs = [refundNotice, ...curMsgs.filter(m => m.id !== refundNotice.id)].slice(0, 50);
-              liveRoomState.chatMessages = updatedMsgs;
-              await saveKVChatMessages(env, updatedMsgs);
+              await saveKVChatMessages(env, pRoom, updatedMsgs);
             } catch (e) {}
           } else if ((now - p.created_at) > 600000) {
-            // Sau 10 phút nếu người phát vẫn không quay lại nhận thì dọn dẹp
             p.is_refunded_to_sender = true;
             p.is_refunded = true;
             packetsChanged = true;
@@ -1364,22 +1423,30 @@ function getLiveRoundInfo() {
         await saveKVRedPackets(env, redPackets);
       }
 
-      // Số người online (ước lượng ngẫu nhiên sinh động quanh 130-170)
-      const baseOnline = 145 + (Math.sin(liveRound.cycle_index) * 23 | 0);
-      const onlineCount = Math.max(80, baseOnline + communityStats.total_players);
+      // Số người online
+      let onlineCount = 1;
+      if (targetRoomId === "public") {
+        const baseOnline = 145 + (Math.sin(liveRound.cycle_index) * 23 | 0);
+        onlineCount = Math.max(80, baseOnline + communityStats.total_players);
+      } else {
+        onlineCount = Math.max(1, Object.keys(currentBetsMap).length || 1);
+        if (messages.length > 1) onlineCount = Math.max(onlineCount, 2);
+      }
 
-      // Tạo dữ liệu Bảng Soi Cầu (Roadmap) của 20 phiên trước đó
+      // Tạo dữ liệu Bảng Soi Cầu (Roadmap) của 20 phiên trước đó của phòng này
       const roadmap = [];
       const curCycle = liveRound.cycle_index;
       for (let i = 1; i <= 20; i++) {
         const pastCycle = curCycle - i;
         if (pastCycle < 0) break;
         const pId = "LR" + pastCycle;
-        const out = liveRoomState.roundOutcomes[pId] || generateLiveOutcome(pId);
+        const pastOutcomeKey = `${pId}_${targetRoomId}`;
+        const out = liveRoomState.roundOutcomes[pastOutcomeKey] || generateLiveOutcome(pId, targetRoomId);
         if (out && out.analysis) {
           const s = out.analysis.sum;
           roadmap.push({
             round_id: pId,
+            room_id: targetRoomId,
             sum: s,
             side: s > 25 ? "TAI" : (s < 25 ? "XIU" : "HOA"),
             parity: s % 2 === 0 ? "CHAN" : "LE",
@@ -1432,6 +1499,13 @@ function getLiveRoundInfo() {
         status: "success",
         data: {
           round: liveRound,
+          room_info: {
+            id: targetRoomId,
+            is_private: targetRoomId !== "public",
+            name: targetRoomId === "public" ? "Toàn Server" : `Phòng #${targetRoomId}`,
+            share_link: `https://lucky-numbers-777.pages.dev/?room=${targetRoomId}`,
+            telegram_link: `https://t.me/relicspin_bot?startapp=room_${targetRoomId}`
+          },
           community_stats: communityStats,
           online_count: onlineCount,
           recent_messages: messages.slice(0, 40),
@@ -1453,13 +1527,9 @@ function getLiveRoundInfo() {
     }
 
     if (url.pathname === "/api/live/bet" && request.method === "POST") {
-      const liveRound = getLiveRoundInfo();
-      if (liveRound.phase !== "betting") {
-        return jsonRes({ detail: "Phiên cược đã khóa! Vui lòng chờ phiên tiếp theo." }, 400);
-      }
-
       let userId = "guest";
       let userName = "Khách";
+      let roomId = "public";
       let bets = {};
       let bet_mode = "free";
       let locked_numbers = [];
@@ -1468,12 +1538,18 @@ function getLiveRoundInfo() {
         const body = await request.json();
         userId = body.user_id || "guest";
         userName = body.username || "Khách";
+        roomId = normalizeRoomId(body.room_id || "public");
         bets = body.bets || {};
         bet_mode = body.bet_mode || "free";
         if (Array.isArray(body.locked_numbers)) {
           locked_numbers = body.locked_numbers.map(Number).filter(n => n >= 1 && n <= 9);
         }
       } catch (e) {}
+
+      const liveRound = getLiveRoundInfo(roomId);
+      if (liveRound.phase !== "betting") {
+        return jsonRes({ detail: "Phiên cược đã khóa! Vui lòng chờ phiên tiếp theo." }, 400);
+      }
 
       const totalBet = Object.values(bets).reduce((a, b) => a + Number(b), 0);
       if (totalBet <= 0) return jsonRes({ detail: "Vui lòng đặt cược ít nhất 1 cửa!" }, 400);
@@ -1506,25 +1582,27 @@ function getLiveRoundInfo() {
       }
       adminConfig.jackpot_pool = Math.round((adminConfig.jackpot_pool + jackpotContribution) * 100) / 100;
 
-      // Lưu cược của user vào round hiện tại
-      if (!liveRoomState.roundBets[liveRound.round_id]) {
-        liveRoomState.roundBets[liveRound.round_id] = {};
+      // Lưu cược của user vào round hiện tại theo phòng
+      const curBetKey = `${liveRound.round_id}_${roomId}`;
+      if (!liveRoomState.roundBets[curBetKey]) {
+        liveRoomState.roundBets[curBetKey] = {};
       }
       const placedBetObj = {
         user_id: userId,
         username: userName,
+        room_id: roomId,
         bets,
         bet_mode,
         locked_numbers,
         total_bet: totalBet,
         timestamp: Date.now()
       };
-      liveRoomState.roundBets[liveRound.round_id][userId] = placedBetObj;
+      liveRoomState.roundBets[curBetKey][userId] = placedBetObj;
 
       // Lưu vào Cloudflare KV để đồng bộ tức thì trên toàn cầu
       if (env && env.LUCKY_ROOM) {
         try {
-          await env.LUCKY_ROOM.put(`bet_${liveRound.round_id}_${userId}`, JSON.stringify(placedBetObj), { expirationTtl: 300 });
+          await env.LUCKY_ROOM.put(`bet_${liveRound.round_id}_${roomId}_${userId}`, JSON.stringify(placedBetObj), { expirationTtl: 300 });
         } catch (e) {}
       }
 
@@ -1533,6 +1611,7 @@ function getLiveRoundInfo() {
         message: "Đặt cược phiên Live thành công!",
         data: {
           round_id: liveRound.round_id,
+          room_id: roomId,
           placed_bet: placedBetObj,
           balance: Math.round(session.balance * 100) / 100
         }
@@ -1600,6 +1679,7 @@ function getLiveRoundInfo() {
 
         const senderName = body.username || "Thành viên";
         const senderId = body.user_id || "guest";
+        const roomId = normalizeRoomId(body.room_id || "public");
         const isRothschildSender = (senderName && (senderName.toLowerCase().includes("marothschild") || senderName.toLowerCase() === "@marothschild")) ||
                                    (senderId && senderId.toLowerCase().includes("marothschild"));
 
@@ -1607,6 +1687,7 @@ function getLiveRoundInfo() {
           id: "msg-" + Date.now() + "-" + Math.random().toString(36).substr(2, 4),
           user_id: senderId,
           username: senderName,
+          room_id: roomId,
           avatar: isRothschildSender ? "👑" : (body.avatar || "👤"),
           vip_level: isRothschildSender ? 5 : (body.vip_level !== undefined ? Number(body.vip_level) : 0),
           title: isRothschildSender ? (body.title || "👑 Hoàng Gia 777") : (body.title || ""),
@@ -1616,10 +1697,9 @@ function getLiveRoundInfo() {
           time: Date.now()
         };
 
-        const currentMessages = await getKVChatMessages(env);
+        const currentMessages = await getKVChatMessages(env, roomId);
         const updatedMessages = [msgObj, ...currentMessages.filter(m => m.id !== msgObj.id)].slice(0, 50);
-        liveRoomState.chatMessages = updatedMessages;
-        await saveKVChatMessages(env, updatedMessages);
+        await saveKVChatMessages(env, roomId, updatedMessages);
 
         return jsonRes({ status: "success", data: msgObj });
       } catch (err) {
@@ -1631,9 +1711,11 @@ function getLiveRoundInfo() {
       try {
         const body = await request.json();
         const emoji = body.emoji || "❤️";
+        const roomId = normalizeRoomId(body.room_id || "public");
         const rxObj = {
           id: "rx-" + Date.now() + "-" + Math.random().toString(36).substr(2, 4),
           emoji,
+          room_id: roomId,
           time: Date.now()
         };
         const currentReactions = await getKVReactions(env);
@@ -1652,6 +1734,7 @@ function getLiveRoundInfo() {
         const body = await request.json();
         const userId = body.user_id || "guest";
         const userName = body.username || "Khách";
+        const roomId = normalizeRoomId(body.room_id || "public");
         const sendAmt = Math.max(100, Math.min(100000, Number(body.amount) || 200));
 
         if (session.balance < sendAmt) {
@@ -1664,6 +1747,7 @@ function getLiveRoundInfo() {
           id: "rp-" + Date.now() + "-" + Math.random().toString(36).substr(2, 4),
           sender_id: userId,
           sender_name: userName,
+          room_id: roomId,
           total_amount: sendAmt,
           remaining_amount: sendAmt,
           max_claims: Math.min(10, Math.max(3, Math.floor(sendAmt / 50))),
@@ -1679,7 +1763,7 @@ function getLiveRoundInfo() {
         const fresh = [packetObj, ...curPackets.filter(p => !p.is_refunded_to_sender && (now - p.created_at) < 60000)].slice(0, 15);
         await saveKVRedPackets(env, fresh);
 
-        // Thông báo phát lộc vào phòng chat
+        // Thông báo phát lộc vào phòng chat tương ứng
         const chatNotice = {
           id: "msg-rp-" + Date.now() + "-" + Math.random().toString(36).substr(2, 4),
           user_id: "sys",
@@ -1690,12 +1774,12 @@ function getLiveRoundInfo() {
           type: "red_packet",
           packet_id: packetObj.id,
           amount: sendAmt,
+          room_id: roomId,
           time: Date.now()
         };
-        const curMsgs = await getKVChatMessages(env);
+        const curMsgs = await getKVChatMessages(env, roomId);
         const updatedMsgs = [chatNotice, ...curMsgs].slice(0, 50);
-        liveRoomState.chatMessages = updatedMsgs;
-        await saveKVChatMessages(env, updatedMsgs);
+        await saveKVChatMessages(env, roomId, updatedMsgs);
 
         return jsonRes({
           status: "success",
@@ -1767,7 +1851,7 @@ function getLiveRoundInfo() {
         packet.claimed_by[userId] = luckyAmount;
         await saveKVRedPackets(env, curPackets);
 
-        // Phát thông báo nhận lộc vào phòng chat cho cả phòng cùng thấy
+        // Phát thông báo nhận lộc vào phòng chat tương ứng
         const claimNotice = {
           id: "msg-claim-" + Date.now() + "-" + Math.random().toString(36).substr(2, 4),
           user_id: userId,
@@ -1775,6 +1859,7 @@ function getLiveRoundInfo() {
           avatar: "🎁",
           text: `🧧 ${userName} vừa nhận được +${luckyAmount.toLocaleString()} Xu từ đợt phát lộc của ${packet.sender_name}! ✨`,
           type: "red_packet_claim",
+          room_id: packet.room_id || "public",
           claim_info: {
             user_id: userId,
             username: userName,
@@ -1785,10 +1870,10 @@ function getLiveRoundInfo() {
           },
           time: Date.now()
         };
-        const curMsgs = await getKVChatMessages(env);
+        const pRoom = packet.room_id || "public";
+        const curMsgs = await getKVChatMessages(env, pRoom);
         const updatedMsgs = [claimNotice, ...curMsgs.filter(m => m.id !== claimNotice.id)].slice(0, 50);
-        liveRoomState.chatMessages = updatedMsgs;
-        await saveKVChatMessages(env, updatedMsgs);
+        await saveKVChatMessages(env, pRoom, updatedMsgs);
 
         return jsonRes({
           status: "success",
