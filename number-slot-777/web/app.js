@@ -3087,11 +3087,9 @@ function renderRecentRooms() {
 }
 
 function shareRoomToTelegram() {
-  telegramEngine.haptic("medium");
   const roomId = state.currentRoomId || "public";
-  const botLink = `https://t.me/relicspin_bot?startapp=room_${roomId}`;
   const webLink = `${window.location.origin}/?room=${roomId}`;
-  const shareTarget = (telegramEngine.tg ? botLink : webLink);
+  const shareTarget = webLink;
 
   const text = roomId === "public"
     ? "🔥 Đang có rất nhiều cao thủ cược trực tiếp tại Lucky Numbers 777! Vào phòng cược chung và săn Hũ Thần Tài cùng tôi nhé:"
@@ -5005,8 +5003,9 @@ function shareToTelegram(text, url) {
 }
 
 function handleInviteFriends() {
+  const room = state.currentRoomId || "public";
   const text = "🎰 Đang có rất nhiều cao thủ cược trực tiếp tại Lucky Numbers 777! Vào phòng cược chung và săn Hũ Thần Tài cùng tôi nhé:";
-  const url = "https://t.me/relicspin_bot?startapp=live";
+  const url = `https://lucky-numbers-777.pages.dev/?room=${room}`;
   shareToTelegram(text, url);
   showToast("👥 Đang mở chia sẻ Telegram để mời bạn bè...", "info");
 }
@@ -5017,8 +5016,9 @@ function handleShareWinToTelegram() {
     showToast("Bạn chưa có chiến tích mới để chia sẻ!", "warn");
     return;
   }
+  const room = state.currentRoomId || "public";
   const text = `🔥 Tôi vừa thắng lớn +${(slip.amount || 0).toLocaleString()} Xu (${slip.hand || "Chiến tích"}) tại Lucky Numbers 777! Vào cùng chiến ngay:`;
-  const url = "https://t.me/relicspin_bot?startapp=win";
+  const url = `https://lucky-numbers-777.pages.dev/?room=${room}`;
   shareToTelegram(text, url);
   showToast("✈️ Đang mở chia sẻ chiến tích lên Telegram...", "gold");
 }
