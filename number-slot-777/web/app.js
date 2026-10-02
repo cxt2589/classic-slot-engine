@@ -5052,12 +5052,17 @@ function renderCommunityDoorBets(doorTotals) {
 }
 
 let redPacketRainTimeout = null;
+let activeRainLayerPointerHandler = null;
 
 function dismissRedPacketRain() {
   if (!dom.redPacketRainLayer) return;
   if (redPacketRainTimeout) {
     clearTimeout(redPacketRainTimeout);
     redPacketRainTimeout = null;
+  }
+  if (activeRainLayerPointerHandler) {
+    dom.redPacketRainLayer.removeEventListener("pointerdown", activeRainLayerPointerHandler);
+    activeRainLayerPointerHandler = null;
   }
   dom.redPacketRainLayer.classList.remove("active");
   setTimeout(() => {
@@ -5127,7 +5132,10 @@ function triggerRedPacketRain(packet) {
   }
 
   // Bắt sự kiện chạm trên toàn màn hình: Tự động hít/bắt dính bao lì xì gần nhất (Bán kính thông minh 140px)
-  const onLayerPointer = (e) => {
+  if (activeRainLayerPointerHandler) {
+    dom.redPacketRainLayer.removeEventListener("pointerdown", activeRainLayerPointerHandler);
+  }
+  activeRainLayerPointerHandler = (e) => {
     if (e.target.closest(".red-packet-body") || e.target.closest(".rp-quick-claim-wrap") || e.target.closest(".rp-rain-header")) {
       return;
     }
@@ -5148,7 +5156,7 @@ function triggerRedPacketRain(packet) {
       claimRedPacketAction(packet.id, closest);
     }
   };
-  dom.redPacketRainLayer.addEventListener("pointerdown", onLayerPointer);
+  dom.redPacketRainLayer.addEventListener("pointerdown", activeRainLayerPointerHandler);
 
   const packetCount = 14;
   for (let i = 0; i < packetCount; i++) {
@@ -5173,20 +5181,15 @@ function triggerRedPacketRain(packet) {
     track.style.animationDuration = `${duration}s`;
 
     const handleClaim = (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      if (isOwner) {
-        soundEngine.playChip();
-        telegramEngine.haptic("selection");
-        spawnFloatingEmoji("✨");
-        showToast("✨ Chúc bạn gặp nhiều may mắn, quay tay nào trúng tay đó!", "gold");
-      } else {
-        claimRedPacketAction(packet.id, bodyEl);
+      if (e) {
+        try { e.preventDefault(); } catch (_) {}
+        try { e.stopPropagation(); } catch (_) {}
       }
+      claimRedPacketAction(packet.id, bodyEl);
     };
 
     bodyEl.addEventListener("pointerdown", handleClaim, { passive: false });
-    bodyEl.addEventListener("touchstart", handleClaim, { passive: false });
+    bodyEl.addEventListener("click", handleClaim);
 
     track.appendChild(bodyEl);
     dom.redPacketRainLayer.appendChild(track);
@@ -5199,14 +5202,15 @@ function triggerRedPacketRain(packet) {
   }, 7000);
 }
 
+let isClaimingRedPacket = false;
+
 async function claimRedPacketAction(packetId, el) {
   if (!packetId) return;
-  if (el && el.dataset && el.dataset.claimed) return;
-  if (el && el.dataset) el.dataset.claimed = "true";
+  if (isClaimingRedPacket) return;
 
-  // Hiệu ứng mượt mà tại chỗ trên .red-packet-body (không làm mất tọa độ rơi của .falling-track)
+  // Hiệu ứng nổ tung / biến mất ngay lập tức cho bao lì xì được bấm
+  let targetBody = null;
   if (el) {
-    let targetBody = null;
     if (el.classList && el.classList.contains("red-packet-body")) {
       targetBody = el;
     } else if (el.querySelector && el.querySelector(".red-packet-body")) {
@@ -5214,15 +5218,39 @@ async function claimRedPacketAction(packetId, el) {
     } else if (el.closest && el.closest(".falling-track")) {
       targetBody = el.closest(".falling-track").querySelector(".red-packet-body");
     }
-
-    if (targetBody) {
-      targetBody.dataset.claimed = "true";
-      targetBody.classList.add("claimed");
-    } else if (el.classList) {
-      el.classList.add("claimed");
-    }
   }
 
+  // Nếu bấm từ nút button "BẤM NHẬN LỘC NGAY", tự động kích hoạt nổ bao lì xì đầu tiên đang rơi để có hiệu ứng sinh động
+  if (!targetBody && dom.redPacketRainLayer) {
+    targetBody = dom.redPacketRainLayer.querySelector(".red-packet-body:not([data-claimed])");
+  }
+
+  if (targetBody) {
+    targetBody.dataset.claimed = "true";
+    targetBody.classList.add("claimed");
+    setTimeout(() => {
+      try {
+        const track = targetBody.closest(".falling-track");
+        if (track) track.style.display = "none";
+        else targetBody.style.display = "none";
+      } catch (_) {}
+    }, 320);
+  }
+
+  // Cập nhật trạng thái nút nhận nhanh nếu có
+  const quickBtn = document.getElementById("btnQuickClaimRain");
+  if (quickBtn) {
+    quickBtn.disabled = true;
+    quickBtn.style.opacity = "0.7";
+    quickBtn.innerHTML = `<span>✨</span> <span>ĐANG NHẬN LỘC...</span>`;
+  }
+
+  if (el && el.classList && el.classList.contains("chat-claim-packet-btn")) {
+    el.disabled = true;
+    el.textContent = "Đang nhận...";
+  }
+
+  isClaimingRedPacket = true;
   try {
     telegramEngine.haptic("success");
     soundEngine.playWin();
@@ -5251,6 +5279,8 @@ async function claimRedPacketAction(packetId, el) {
     }
   } catch (err) {
     console.error("Claim red packet error:", err);
+  } finally {
+    isClaimingRedPacket = false;
   }
 }
 
