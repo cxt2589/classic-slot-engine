@@ -332,7 +332,6 @@ function makePlayKeyboard(text, roomId = "public", isGroup = false) {
         { text: `${text}`, url: tgAppUrl }
       ],
       [
-        { text: "🌐 Chơi Trên Web (Nếu chưa mở được App)", url: webUrl },
         { text: "💬 Chat 1-1 Với Bot", url: botChatUrl }
       ]
     ];
@@ -1177,7 +1176,7 @@ export default {
               `• 🧧 Báo Mưa Lì Xì lập tức để anh em vào giật lộc\n` +
               `• 📊 Soi cầu 20 phiên trực tiếp ngay trong nhóm\n\n` +
               `🛠 *Lệnh hữu ích:* \n` +
-              `• \`/phong\` : Xem thông tin phòng & link mời\n` +
+              `• \`/phong\` : Xem thông tin phòng chơi hiện tại\n` +
               `• \`/link_room <MÃ>\` : Đổi phòng chơi riêng cho nhóm\n` +
               `• \`/soicau\` : Xem bảng soi cầu trực tiếp\n` +
               `• \`/bxh\` : Xem Bảng Xếp Hạng cao thủ\n\n` +
@@ -1306,12 +1305,10 @@ export default {
               const grp = groups.find(g => String(g.chat_id) === String(chatId));
               const curRoom = grp ? grp.room_id : "public";
               const round = getLiveRoundInfo(curRoom);
-              const curRoomUrl = curRoom !== "public" ? `${appUrl}?room=${curRoom}` : appUrl;
-
               const roomInfoText = `🎲 *THÔNG TIN PHÒNG HIỆN TẠI:* \`${curRoom}\`\n\n` +
                 `• Loại phòng: ${curRoom === "public" ? "🌐 Toàn Server (Công cộng)" : "🔒 Phòng Riêng Nhóm"}\n` +
                 `• Phiên Live: #${round.round_id} (${round.phase === "betting" ? "⏳ Đang cược (" + round.time_left_sec + "s)" : "Đang quay thưởng"})\n` +
-                `• Link phòng: \`${curRoomUrl}\`\n\n` +
+                `• Mã kết nối: \`${curRoom}\`\n\n` +
                 `_Gõ \`/link_room <MÃ>\` nếu muốn đổi sang mã phòng khác._`;
 
               await sendTelegramMessage(botToken, chatId, roomInfoText, makePlayKeyboard(`🎰 VÀO PHÒNG [${curRoom}] CHIẾN NGAY 🚀`, curRoom, isGroup));
@@ -1364,7 +1361,7 @@ export default {
               const helpText = `📖 *DANH SÁCH LỆNH CỦA BOT LUCKY NUMBERS 777:*\n\n` +
                 `• \`/play\` : Mở Game Mini App trực tiếp trên Telegram\n` +
                 `• \`/rules\` : Xem chi tiết Luật Chơi & Tỷ Lệ TrẢ Thưởng\n` +
-                `• \`/phong\` : Xem mã phòng hiện tại của nhóm & link mời\n` +
+                `• \`/phong\` : Xem mã phòng hiện tại của nhóm\n` +
                 `• \`/link_room <MÃ>\` : Liên kết nhóm với phòng riêng (Ví dụ: \`/link_room VIP777\`)\n` +
                 `• \`/soicau\` : Xem bảng soi cầu 10 phiên gần nhất\n` +
                 `• \`/bxh\` : Xem bảng xếp hạng cao thủ thắng lớn\n` +
@@ -2448,8 +2445,8 @@ function getLiveRoundInfo(roomId = "public") {
             id: targetRoomId,
             is_private: targetRoomId !== "public",
             name: targetRoomId === "public" ? "Toàn Server" : `Phòng #${targetRoomId}`,
-            share_link: `https://lucky-numbers-777.pages.dev/?room=${targetRoomId}`,
-            telegram_link: `https://lucky-numbers-777.pages.dev/?room=${targetRoomId}`
+            share_link: getTgAppUrl(targetRoomId),
+            telegram_link: getTgAppUrl(targetRoomId)
           },
           community_stats: communityStats,
           online_count: onlineCount,

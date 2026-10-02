@@ -3180,13 +3180,15 @@ function shareRoomToTelegram() {
 }
 
 function copyRoomLink() {
-  const roomId = state.currentRoomId || "public";
-  const link = `${window.location.origin}/?room=${roomId}`;
+  const roomId = normalizeRoomIdClient(state.currentRoomId);
+  const link = roomId !== "public"
+    ? `https://t.me/relicspin_bot/app?startapp=room_${roomId}`
+    : `https://t.me/relicspin_bot/app`;
   if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
     navigator.clipboard.writeText(link).then(() => {
       soundEngine.playWinTone();
       telegramEngine.haptic("success");
-      showToast("📋 Đã sao chép liên kết vào phòng! Hãy gửi cho bạn bè để cùng chơi.", "gold");
+      showToast("📋 Đã sao chép liên kết phòng Telegram! Hãy gửi cho bạn bè để cùng chơi.", "gold");
     }).catch(() => fallbackCopy(link));
   } else {
     fallbackCopy(link);
@@ -5091,9 +5093,9 @@ function shareToTelegram(text, url) {
 }
 
 function handleInviteFriends() {
-  const room = state.currentRoomId || "public";
+  const room = normalizeRoomIdClient(state.currentRoomId);
   const text = "🎰 Đang có rất nhiều cao thủ cược trực tiếp tại Lucky Numbers 777! Vào phòng cược chung và săn Hũ Thần Tài cùng tôi nhé:";
-  const url = `https://lucky-numbers-777.pages.dev/?room=${room}`;
+  const url = room !== "public" ? `https://t.me/relicspin_bot/app?startapp=room_${room}` : `https://t.me/relicspin_bot/app`;
   shareToTelegram(text, url);
   showToast("👥 Đang mở chia sẻ Telegram để mời bạn bè...", "info");
 }
@@ -5104,9 +5106,9 @@ function handleShareWinToTelegram() {
     showToast("Bạn chưa có chiến tích mới để chia sẻ!", "warn");
     return;
   }
-  const room = state.currentRoomId || "public";
+  const room = normalizeRoomIdClient(state.currentRoomId);
   const text = `🔥 Tôi vừa thắng lớn +${(slip.amount || 0).toLocaleString()} Xu (${slip.hand || "Chiến tích"}) tại Lucky Numbers 777! Vào cùng chiến ngay:`;
-  const url = `https://lucky-numbers-777.pages.dev/?room=${room}`;
+  const url = room !== "public" ? `https://t.me/relicspin_bot/app?startapp=room_${room}` : `https://t.me/relicspin_bot/app`;
   shareToTelegram(text, url);
   showToast("✈️ Đang mở chia sẻ chiến tích lên Telegram...", "gold");
 }
