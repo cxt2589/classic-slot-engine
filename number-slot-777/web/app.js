@@ -84,7 +84,8 @@ const lottoState = {
   lastSettledRoundId: null,
   lastDrawnRoundId: null,
   isSpinningReels: false,
-  currentActiveTicket: null
+  currentActiveTicket: null,
+  lastSettledTicket: null
 };
 
 // Web Audio API Synthesizer
@@ -5049,6 +5050,14 @@ function showGlobalJackpotAlert(bw) {
 function initLottoSystem() {
   if (!dom.lottoBettingBoard) return;
 
+  // Restore saved tickets from localStorage
+  try {
+    const savedActive = localStorage.getItem("lotto_active_ticket");
+    if (savedActive) lottoState.currentActiveTicket = JSON.parse(savedActive);
+    const savedLast = localStorage.getItem("lotto_last_ticket");
+    if (savedLast) lottoState.lastSettledTicket = JSON.parse(savedLast);
+  } catch (e) {}
+
   // 1. Channel buttons
   const chBtns = document.querySelectorAll(".lotto-ch-btn");
   chBtns.forEach(btn => {
@@ -5618,8 +5627,37 @@ async function syncLottoState() {
     }
 
     // Render Active Placed Ticket (Vé đã cược kỳ này hoặc kỳ trước)
-    lottoState.currentActiveTicket = data.user_current_bet;
-    renderLottoActiveTicket(data.user_current_bet, data.round?.outcome, data.round?.phase, data.user_last_settlement);
+    if (data.user_current_bet) {
+      lottoState.currentActiveTicket = data.user_current_bet;
+      try { localStorage.setItem("lotto_active_ticket", JSON.stringify(data.user_current_bet)); } catch (e) {}
+    } else if (lottoState.currentActiveTicket) {
+      if (data.round && lottoState.currentActiveTicket.round_id !== data.round.round_id) {
+        // Chuyển sang kỳ mới: lưu vé cũ sang lastSettledTicket
+        lottoState.lastSettledTicket = { ...lottoState.currentActiveTicket };
+        if (data.roadmap && data.roadmap[0] && data.roadmap[0].round_id === lottoState.lastSettledTicket.round_id) {
+          lottoState.lastSettledTicket.outcome = data.roadmap[0];
+        }
+        try { localStorage.setItem("lotto_last_ticket", JSON.stringify(lottoState.lastSettledTicket)); } catch (e) {}
+        lottoState.currentActiveTicket = null;
+        try { localStorage.removeItem("lotto_active_ticket"); } catch (e) {}
+      }
+    }
+
+    if (data.user_last_settlement) {
+      lottoState.lastSettledTicket = {
+        ...data.user_last_settlement,
+        bets: data.user_last_settlement.bets || lottoState.lastSettledTicket?.bets,
+        total_bet: data.user_last_settlement.total_bet || lottoState.lastSettledTicket?.total_bet
+      };
+      try { localStorage.setItem("lotto_last_ticket", JSON.stringify(lottoState.lastSettledTicket)); } catch (e) {}
+    }
+
+    renderLottoActiveTicket(
+      lottoState.currentActiveTicket,
+      data.round?.outcome,
+      data.round?.phase,
+      lottoState.lastSettledTicket
+    );
     updateMeters();
 
   } catch (err) {
@@ -5769,12 +5807,31 @@ function renderTicketBetsBody(bets, outcome) {
     return;
   }
 
+  // Derive outcome numbers if available
+  let winDeDuoi = null;
+  let winDeDau = null;
+  let winBaCang = null;
+  let isTai = null;
+  let isChan = null;
+  let isKepBang = null;
+
+  if (outcome) {
+    winDeDuoi = outcome.de_duoi || (outcome.digits ? `${outcome.digits[3]}${outcome.digits[4]}` : null);
+    winDeDau = outcome.de_dau || (outcome.digits ? `${outcome.digits[0]}${outcome.digits[1]}` : null);
+    winBaCang = outcome.ba_cang || (outcome.digits ? `${outcome.digits[2]}${outcome.digits[3]}${outcome.digits[4]}` : null);
+    if (winDeDuoi != null) {
+      const numVal = parseInt(winDeDuoi, 10);
+      isTai = outcome.is_tai !== undefined ? outcome.is_tai : (outcome.analysis?.side === "TAI" || numVal >= 50);
+      isChan = outcome.is_chan !== undefined ? outcome.is_chan : (outcome.analysis?.parity === "CHAN" || numVal % 2 === 0);
+      isKepBang = outcome.analysis?.is_kep_bang !== undefined ? outcome.analysis.is_kep_bang : (winDeDuoi[0] === winDeDuoi[1]);
+    }
+  }
+
   let html = "";
 
   // 1. Đề Đuôi (x95)
   if (bets.DE_DUOI && Array.isArray(bets.DE_DUOI.numbers) && bets.DE_DUOI.numbers.length > 0) {
     const amt = bets.DE_DUOI.amount_per_num || 10;
-    const winningNum = outcome ? outcome.de_duoi : null;
     html += `
       <div class="lat-row">
         <div class="lat-row-head">
@@ -5783,7 +5840,7 @@ function renderTicketBetsBody(bets, outcome) {
         </div>
         <div class="lat-chips-wrap">
           ${bets.DE_DUOI.numbers.map(n => {
-            const isWon = outcome && winningNum && String(n).padStart(2, "0") === String(winningNum).padStart(2, "0");
+            const isWon = winDeDuoi && String(n).padStart(2, "0") === String(winDeDuoi).padStart(2, "0");
             return `<span class="lat-chip num ${isWon ? 'won' : ''}">${n}${isWon ? '<span class="lat-chip-win-badge">✨ TRÚNG</span>' : ''}</span>`;
           }).join("")}
         </div>
@@ -5794,7 +5851,6 @@ function renderTicketBetsBody(bets, outcome) {
   // 2. Đề Đầu (x95)
   if (bets.DE_DAU && Array.isArray(bets.DE_DAU.numbers) && bets.DE_DAU.numbers.length > 0) {
     const amt = bets.DE_DAU.amount_per_num || 10;
-    const winningNum = outcome ? outcome.de_dau : null;
     html += `
       <div class="lat-row">
         <div class="lat-row-head">
@@ -5803,7 +5859,7 @@ function renderTicketBetsBody(bets, outcome) {
         </div>
         <div class="lat-chips-wrap">
           ${bets.DE_DAU.numbers.map(n => {
-            const isWon = outcome && winningNum && String(n).padStart(2, "0") === String(winningNum).padStart(2, "0");
+            const isWon = winDeDau && String(n).padStart(2, "0") === String(winDeDau).padStart(2, "0");
             return `<span class="lat-chip num ${isWon ? 'won' : ''}">${n}${isWon ? '<span class="lat-chip-win-badge">✨ TRÚNG</span>' : ''}</span>`;
           }).join("")}
         </div>
@@ -5814,7 +5870,6 @@ function renderTicketBetsBody(bets, outcome) {
   // 3. 3 Càng (x900)
   if (bets.BA_CANG && Array.isArray(bets.BA_CANG.numbers) && bets.BA_CANG.numbers.length > 0) {
     const amt = bets.BA_CANG.amount_per_num || 10;
-    const winningNum = outcome ? outcome.ba_cang : null;
     html += `
       <div class="lat-row">
         <div class="lat-row-head">
@@ -5823,7 +5878,7 @@ function renderTicketBetsBody(bets, outcome) {
         </div>
         <div class="lat-chips-wrap">
           ${bets.BA_CANG.numbers.map(n => {
-            const isWon = outcome && winningNum && String(n).padStart(3, "0") === String(winningNum).padStart(3, "0");
+            const isWon = winBaCang && String(n).padStart(3, "0") === String(winBaCang).padStart(3, "0");
             return `<span class="lat-chip num ${isWon ? 'won' : ''}">${n}${isWon ? '<span class="lat-chip-win-badge">✨ TRÚNG</span>' : ''}</span>`;
           }).join("")}
         </div>
@@ -5833,11 +5888,11 @@ function renderTicketBetsBody(bets, outcome) {
 
   // 4. Cược Nhanh (TAI, XIU, CHAN, LE, KEP_BANG)
   const fastDoors = [
-    { key: "TAI", label: "Tài Đuôi (50-99)", mult: "x1.98", check: (o) => o?.analysis?.side === "TAI" },
-    { key: "XIU", label: "Xỉu Đuôi (00-49)", mult: "x1.98", check: (o) => o?.analysis?.side === "XIU" },
-    { key: "CHAN", label: "Chẵn Đuôi", mult: "x1.98", check: (o) => o?.analysis?.parity === "CHAN" },
-    { key: "LE", label: "Lẻ Đuôi", mult: "x1.98", check: (o) => o?.analysis?.parity === "LE" },
-    { key: "KEP_BANG", label: "Kép Bằng", mult: "x9.5", check: (o) => o?.analysis?.is_kep_bang === true }
+    { key: "TAI", label: "Tài Đuôi (50-99)", mult: "x1.98", isHit: isTai === true },
+    { key: "XIU", label: "Xỉu Đuôi (00-49)", mult: "x1.98", isHit: isTai === false },
+    { key: "CHAN", label: "Chẵn Đuôi", mult: "x1.98", isHit: isChan === true },
+    { key: "LE", label: "Lẻ Đuôi", mult: "x1.98", isHit: isChan === false },
+    { key: "KEP_BANG", label: "Kép Bằng", mult: "x9.5", isHit: isKepBang === true }
   ];
 
   const activeFast = fastDoors.filter(d => Number(bets[d.key]) > 0);
@@ -5850,7 +5905,7 @@ function renderTicketBetsBody(bets, outcome) {
         <div class="lat-chips-wrap">
           ${activeFast.map(d => {
             const amt = Number(bets[d.key]);
-            const isWon = outcome && d.check(outcome);
+            const isWon = outcome && d.isHit;
             return `<span class="lat-chip door ${isWon ? 'won' : ''}">${d.label}: ${amt.toLocaleString()} Xu (${d.mult})${isWon ? '<span class="lat-chip-win-badge">✨ TRÚNG</span>' : ''}</span>`;
           }).join("")}
         </div>
@@ -6054,6 +6109,7 @@ async function submitLottoTicket() {
       // Hiển thị ngay lập tức vé đã đặt lên bảng cược (0ms latency)
       if (json.data && json.data.bet_entry) {
         lottoState.currentActiveTicket = json.data.bet_entry;
+        try { localStorage.setItem("lotto_active_ticket", JSON.stringify(json.data.bet_entry)); } catch (e) {}
         renderLottoActiveTicket(json.data.bet_entry, null, lottoState.currentRound?.phase || "betting", null);
         if (dom.lottoActiveTicketCard) {
           dom.lottoActiveTicketCard.scrollIntoView({ behavior: "smooth", block: "nearest" });
