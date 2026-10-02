@@ -6276,9 +6276,11 @@ body.chat-drawer-open .nav-tabs.is-docked-bottom {
 
 .chat-msg-header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 2px;
+  width: 100%;
   margin-bottom: 2px;
 }
 
@@ -7836,14 +7838,18 @@ body.chat-drawer-open .nav-tabs.is-docked-bottom {
 .chat-msg-header {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
   gap: 2px;
   width: 100%;
   margin-bottom: 3px;
+  text-align: left;
 }
 
 .chat-msg-header-top {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
   gap: 6px;
   width: 100%;
 }
@@ -7869,8 +7875,11 @@ body.chat-drawer-open .nav-tabs.is-docked-bottom {
 .chat-msg-title-row {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
+  width: 100%;
   margin-top: 1px;
   margin-bottom: 2px;
+  text-align: left;
 }
 
 .chat-vip-badge {
@@ -7903,6 +7912,8 @@ body.chat-drawer-open .nav-tabs.is-docked-bottom {
   display: inline-flex;
   align-items: center;
   line-height: 1.2;
+  margin: 0;
+  align-self: flex-start;
 }
 
 .chat-msg-row.vip-5-msg {
