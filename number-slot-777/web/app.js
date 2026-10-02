@@ -4009,7 +4009,25 @@ function switchGameplayMode(mode) {
 
     showToast("🎯 Đã chuyển sang chế độ <strong>XỔ SỐ SIÊU TỐC 5D</strong> (Dự đoán dãy số hàng giữa)", "gold");
     stopLivePolling();
-    syncLottoState();
+    // Pre-calculate immediately for smooth transition
+    const curCh = lottoState.currentChannel || "60s";
+    const chInfo = getLottoChannelPhaseInfo(curCh);
+    const cfg = LOTTO_CHANNELS_TIMING[curCh] || LOTTO_CHANNELS_TIMING["60s"];
+    lottoState.currentRound = {
+      round_id: `X5D-${curCh}-${chInfo.cycleIndex}`,
+      phase: chInfo.phase,
+      time_left_sec: chInfo.timeLeftSec,
+      betting_duration_sec: cfg.betSec,
+      draw_duration_sec: cfg.drawSec,
+      payout_duration_sec: cfg.paySec,
+      total_cycle_sec: cfg.totalCycleSec
+    };
+    if (dom.lottoRoundId) dom.lottoRoundId.textContent = lottoState.currentRound.round_id;
+    if (dom.lottoPhasePill && dom.lottoPhaseText) {
+      dom.lottoPhasePill.className = `lrb-phase-pill ${chInfo.phase}`;
+      dom.lottoPhaseText.textContent = chInfo.phase === "betting" ? "ĐANG NHẬN VÉ" : (chInfo.phase === "drawing" ? "ĐANG QUAY THƯỞNG 🎰" : "TRẢ THƯỞNG 🎉");
+    }
+    updateLottoTimerAndProgressBarUI(lottoState.currentRound);
     startLottoPolling();
   } else if (isLive) {
     if (dom.slotBettingBoard) dom.slotBettingBoard.style.display = "";
@@ -5167,6 +5185,26 @@ function initLottoSystem() {
         const noteMap = { "30s": "Siêu Tốc 30s", "60s": "Tiêu Chuẩn 60s", "3m": "Keno 3 Phút", "60m": "Mega 1 Giờ" };
         dom.lrcChannelNote.textContent = `Kênh: ${noteMap[ch] || ch}`;
       }
+
+      // Pre-calculate immediately for instant response
+      const chInfo = getLottoChannelPhaseInfo(ch);
+      const cfg = LOTTO_CHANNELS_TIMING[ch] || LOTTO_CHANNELS_TIMING["60s"];
+      lottoState.currentRound = {
+        round_id: `X5D-${ch}-${chInfo.cycleIndex}`,
+        phase: chInfo.phase,
+        time_left_sec: chInfo.timeLeftSec,
+        betting_duration_sec: cfg.betSec,
+        draw_duration_sec: cfg.drawSec,
+        payout_duration_sec: cfg.paySec,
+        total_cycle_sec: cfg.totalCycleSec
+      };
+      if (dom.lottoRoundId) dom.lottoRoundId.textContent = lottoState.currentRound.round_id;
+      if (dom.lottoPhasePill && dom.lottoPhaseText) {
+        dom.lottoPhasePill.className = `lrb-phase-pill ${chInfo.phase}`;
+        dom.lottoPhaseText.textContent = chInfo.phase === "betting" ? "ĐANG NHẬN VÉ" : (chInfo.phase === "drawing" ? "ĐANG QUAY THƯỞNG 🎰" : "TRẢ THƯỞNG 🎉");
+      }
+      updateLottoTimerAndProgressBarUI(lottoState.currentRound);
+
       syncLottoState();
     });
   });
@@ -5571,45 +5609,144 @@ function updateLottoTotalWager() {
   }
 }
 
+const LOTTO_CHANNELS_TIMING = {
+  "30s": { totalCycleSec: 30, betSec: 20, drawSec: 4, paySec: 6 },
+  "60s": { totalCycleSec: 60, betSec: 45, drawSec: 5, paySec: 10 },
+  "3m":  { totalCycleSec: 180, betSec: 150, drawSec: 10, paySec: 20 },
+  "60m": { totalCycleSec: 3600, betSec: 3300, drawSec: 60, paySec: 240 }
+};
+
+function getLottoChannelPhaseInfo(channelId, nowMs = Date.now()) {
+  const cfg = LOTTO_CHANNELS_TIMING[channelId] || LOTTO_CHANNELS_TIMING["60s"];
+  const totalCycleMs = cfg.totalCycleSec * 1000;
+  const cycleIndex = Math.floor(nowMs / totalCycleMs);
+  const cycleStartMs = cycleIndex * totalCycleMs;
+  const elapsedSec = Math.floor((nowMs - cycleStartMs) / 1000);
+
+  let phase = "betting";
+  let timeLeftSec = cfg.betSec - elapsedSec;
+  let phaseTotalSec = cfg.betSec;
+
+  if (elapsedSec < cfg.betSec) {
+    phase = "betting";
+    timeLeftSec = cfg.betSec - elapsedSec;
+    phaseTotalSec = cfg.betSec;
+  } else if (elapsedSec < cfg.betSec + cfg.drawSec) {
+    phase = "drawing";
+    timeLeftSec = (cfg.betSec + cfg.drawSec) - elapsedSec;
+    phaseTotalSec = cfg.drawSec;
+  } else {
+    phase = "payout";
+    timeLeftSec = cfg.totalCycleSec - elapsedSec;
+    phaseTotalSec = cfg.paySec;
+  }
+
+  return {
+    cycleIndex,
+    phase,
+    timeLeftSec: Math.max(0, timeLeftSec),
+    phaseTotalSec,
+    totalCycleSec: cfg.totalCycleSec,
+    elapsedSec
+  };
+}
+
+function getLottoPhaseDuration(round) {
+  if (!round) return 45;
+  if (round.phase === "betting") return round.betting_duration_sec || 45;
+  if (round.phase === "drawing") return round.draw_duration_sec || 5;
+  if (round.phase === "payout") return round.payout_duration_sec || 10;
+  return round.betting_duration_sec || 45;
+}
+
+function formatLottoCountdown(sec) {
+  if (typeof sec !== "number" || isNaN(sec) || sec < 0) return "0s";
+  if (sec >= 3600) {
+    const h = Math.floor(sec / 3600);
+    const m = Math.floor((sec % 3600) / 60);
+    const s = sec % 60;
+    return `${h}h${m < 10 ? "0" + m : m}m${s < 10 ? "0" + s : s}s`;
+  }
+  if (sec >= 60) {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${m}m${s < 10 ? "0" + s : s}s`;
+  }
+  return `${sec}s`;
+}
+
+function updateLottoTimerAndProgressBarUI(round) {
+  if (!round) return;
+  const dur = getLottoPhaseDuration(round);
+  const left = typeof round.time_left_sec === "number" ? Math.max(0, round.time_left_sec) : dur;
+
+  if (dom.lottoTimerVal) {
+    dom.lottoTimerVal.textContent = formatLottoCountdown(left);
+    if (round.phase === "betting") {
+      dom.lottoTimerVal.style.color = left <= 5 ? "#ef4444" : "#ffd700";
+    } else if (round.phase === "drawing") {
+      dom.lottoTimerVal.style.color = "#ec4899";
+    } else {
+      dom.lottoTimerVal.style.color = "#38bdf8";
+    }
+  }
+
+  if (dom.lottoProgressBar && dur > 0) {
+    const pct = Math.max(0, Math.min(100, (left / dur) * 100));
+    dom.lottoProgressBar.style.width = `${pct}%`;
+
+    // Dynamic color gradient & glow for different phases and alert states
+    if (round.phase === "betting") {
+      if (left <= 5) {
+        dom.lottoProgressBar.style.background = "linear-gradient(90deg, #ef4444, #f97316)";
+        dom.lottoProgressBar.style.boxShadow = "0 0 10px rgba(239, 68, 68, 0.8)";
+      } else {
+        dom.lottoProgressBar.style.background = "linear-gradient(90deg, #ffd700, #ff8f00)";
+        dom.lottoProgressBar.style.boxShadow = "0 0 8px rgba(255, 215, 0, 0.6)";
+      }
+    } else if (round.phase === "drawing") {
+      dom.lottoProgressBar.style.background = "linear-gradient(90deg, #ec4899, #a855f7)";
+      dom.lottoProgressBar.style.boxShadow = "0 0 10px rgba(168, 85, 247, 0.8)";
+    } else if (round.phase === "payout") {
+      dom.lottoProgressBar.style.background = "linear-gradient(90deg, #38bdf8, #00e676)";
+      dom.lottoProgressBar.style.boxShadow = "0 0 10px rgba(56, 189, 248, 0.8)";
+    }
+  }
+}
+
 function tickLottoChannelsTimers() {
   const now = Date.now();
-  const channels = [
-    { id: "30s", cycle: 30 },
-    { id: "60s", cycle: 60 },
-    { id: "3m",  cycle: 180 },
-    { id: "60m", cycle: 3600 }
-  ];
+  const channelIds = ["30s", "60s", "3m", "60m"];
 
-  channels.forEach(ch => {
-    const elapsed = Math.floor(now / 1000) % ch.cycle;
-    const left = ch.cycle - elapsed;
-    const el = document.getElementById("lchTimer" + ch.id);
+  channelIds.forEach(chId => {
+    const info = getLottoChannelPhaseInfo(chId, now);
+    const el = document.getElementById("lchTimer" + chId);
     if (el) {
-      if (ch.cycle >= 3600) {
-        const m = Math.floor(left / 60);
-        el.textContent = `${m}m`;
-      } else if (ch.cycle >= 180) {
-        const m = Math.floor(left / 60);
-        const s = left % 60;
-        el.textContent = `${m}m${s < 10 ? "0" + s : s}s`;
+      if (info.phase === "betting") {
+        el.textContent = formatLottoCountdown(info.timeLeftSec);
+        el.style.color = (info.timeLeftSec <= 5 && chId !== "60m") ? "#ef4444" : "";
+      } else if (info.phase === "drawing") {
+        el.textContent = "Quay 🎰";
+        el.style.color = "#ffd700";
       } else {
-        el.textContent = `${left}s`;
+        el.textContent = "Trả thưởng";
+        el.style.color = "#38bdf8";
       }
     }
   });
 
-  // Also smooth round banner countdown if we have current round
-  if (lottoState.currentRound && lottoState.currentRound.time_left_sec > 0) {
-    lottoState.currentRound.time_left_sec = Math.max(0, lottoState.currentRound.time_left_sec - 1);
-    if (dom.lottoTimerVal) {
-      dom.lottoTimerVal.textContent = `${lottoState.currentRound.time_left_sec}s`;
-    }
-    if (dom.lottoProgressBar) {
-      const totalDur = lottoState.currentRound.phase === "betting"
-        ? (lottoState.currentRound.betting_duration_sec || 45)
-        : (lottoState.currentRound.draw_duration_sec || 5);
-      const pct = Math.max(0, Math.min(100, (lottoState.currentRound.time_left_sec / totalDur) * 100));
-      dom.lottoProgressBar.style.width = `${pct}%`;
+  // Smooth round banner countdown if in lotto mode and round exists
+  if (state.gamePlayMode === "lotto" && lottoState.currentRound) {
+    if (typeof lottoState.currentRound.time_left_sec === "number") {
+      if (lottoState.currentRound.time_left_sec > 0) {
+        lottoState.currentRound.time_left_sec = Math.max(0, lottoState.currentRound.time_left_sec - 1);
+        updateLottoTimerAndProgressBarUI(lottoState.currentRound);
+        if (lottoState.currentRound.time_left_sec === 0) {
+          syncLottoState();
+        }
+      } else {
+        syncLottoState();
+      }
     }
   }
 }
@@ -5638,7 +5775,6 @@ async function syncLottoState() {
     // Render Banner & Countdown inside Lotto Betting Board
     if (data.round) {
       if (dom.lottoRoundId) dom.lottoRoundId.textContent = data.round.round_id;
-      if (dom.lottoTimerVal) dom.lottoTimerVal.textContent = `${data.round.time_left_sec}s`;
 
       const phase = data.round.phase;
       if (dom.lottoPhasePill && dom.lottoPhaseText) {
@@ -5667,11 +5803,8 @@ async function syncLottoState() {
         }
       }
 
-      // Progress bar percentage
-      if (dom.lottoProgressBar && data.round.total_cycle_sec > 0) {
-        const pct = Math.max(0, Math.min(100, (data.round.time_left_sec / data.round.total_cycle_sec) * 100));
-        dom.lottoProgressBar.style.width = `${pct}%`;
-      }
+      // Synchronize timer & progress bar with unified helper
+      updateLottoTimerAndProgressBarUI(data.round);
 
       // Display official outcome digits on reels if available
       if ((phase === "drawing" || phase === "payout") && data.round.outcome) {
