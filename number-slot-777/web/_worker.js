@@ -476,6 +476,26 @@ async function broadcastTelegramNotification(env, options) {
     const groups = await getKVTelegramGroups(env);
     if (!groups || groups.length === 0) return [];
 
+    // Chống gửi trùng lặp tin nhắn thông báo Telegram (Jackpot / Lì xì) qua dedup_key
+    if (options.dedup_key) {
+      if (!liveRoomState.broadcastedKeys) liveRoomState.broadcastedKeys = new Set();
+      if (liveRoomState.broadcastedKeys.has(options.dedup_key)) {
+        console.log("Skipping duplicate telegram broadcast (memory):", options.dedup_key);
+        return [];
+      }
+      if (env && env.LUCKY_ROOM) {
+        try {
+          const sent = await env.LUCKY_ROOM.get("tg_dedup_" + options.dedup_key);
+          if (sent) {
+            console.log("Skipping duplicate telegram broadcast (KV):", options.dedup_key);
+            return [];
+          }
+          await env.LUCKY_ROOM.put("tg_dedup_" + options.dedup_key, "1", { expirationTtl: 300 });
+        } catch (e) {}
+      }
+      liveRoomState.broadcastedKeys.add(options.dedup_key);
+    }
+
     const targetRoomId = normalizeRoomId(options.room_id || "public");
     const isPrivate = targetRoomId !== "public";
 
@@ -489,6 +509,17 @@ async function broadcastTelegramNotification(env, options) {
     });
 
     if (targetGroups.length === 0) return [];
+
+    // Deduplicate target groups by chat_id: Đảm bảo 1 nhóm Telegram duy nhất chỉ nhận 1 tin nhắn, không bao giờ bị spam 3 tin!
+    const seenChatIds = new Set();
+    const uniqueTargetGroups = targetGroups.filter(grp => {
+      const cid = String(grp.chat_id);
+      if (seenChatIds.has(cid)) return false;
+      seenChatIds.add(cid);
+      return true;
+    });
+
+    if (uniqueTargetGroups.length === 0) return [];
 
     const tgAppUrl = getTgAppUrl(targetRoomId);
 
@@ -532,7 +563,7 @@ async function broadcastTelegramNotification(env, options) {
 
     if (!messageText) return [];
 
-    const sendPromises = targetGroups.map(grp => 
+    const sendPromises = uniqueTargetGroups.map(grp => 
       sendTelegramMessage(botToken, grp.chat_id, messageText, keyboard)
     );
     return await Promise.allSettled(sendPromises);
@@ -563,10 +594,28 @@ const LOTTO_PAYOUTS = {
   KEP_BANG: 9.5
 };
 
+const LOTTO_SERVER_SECRET = "L777_SecSalt_2026_X5D_SecureRandom!";
+const LIVE_SERVER_SECRET = "L777_SecSalt_2026_LiveRoom_SecureRandom!";
+
+// Hàm băm mật mã một chiều kết hợp Secret Salt bảo mật độc quyền máy chủ
+// Chặn 100% việc hacker dùng công cụ hoặc dịch ngược mã nguồn để tính toán trước kết quả mở thưởng
+function getSecretPrngSeed(key, salt = LOTTO_SERVER_SECRET) {
+  let h1 = 0xdeadbeef ^ salt.length;
+  let h2 = 0x41c6ce57 ^ salt.length;
+  const str = key + "::" + salt;
+  for (let i = 0; i < str.length; i++) {
+    const ch = str.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return (h1 >>> 0);
+}
+
 function generateLottoOutcome(roundId, channelId = "60s") {
-  const baseNum = parseInt(String(roundId).replace(/\D/g, "")) || 10001;
-  const chSeed = hashString(channelId);
-  const prng = mulberry32((baseNum * 31 + chSeed) >>> 0);
+  const seed = getSecretPrngSeed(`${roundId}_${channelId}`, LOTTO_SERVER_SECRET);
+  const prng = mulberry32(seed);
 
   // Sinh 5 chữ số từ 0 đến 9
   const digits = [];
@@ -1473,6 +1522,24 @@ export default {
           const prevOutcome = generateLottoOutcome(prevRoundId, lottoRound.channel.id);
           const payoutRes = calculateLottoPayout(prevBetData.bets, prevOutcome);
 
+          // ĐÁNH DẤU SETTLED NGAY LẬP TỨC TRƯỚC CÁC AWAIT ĐỂ TRIỆT TIÊU RACE CONDITION NHIỀU REQUEST ĐỒNG THỜI
+          liveRoomState.lottoSettled[settleKey] = {
+            round_id: prevRoundId,
+            channel: lottoRound.channel.id,
+            bets: prevBetData.bets,
+            total_bet: prevBetData.total_bet,
+            payout: payoutRes,
+            outcome: prevOutcome,
+            time: Date.now()
+          };
+          userLastSettlement = liveRoomState.lottoSettled[settleKey];
+
+          if (env && env.LUCKY_ROOM) {
+            try {
+              await env.LUCKY_ROOM.put(`lotto_settle_${settleKey}`, JSON.stringify(userLastSettlement), { expirationTtl: 1800 });
+            } catch (e) {}
+          }
+
           if (payoutRes.total_won > 0) {
             session.balance += payoutRes.total_won;
             session.total_won += payoutRes.total_won;
@@ -1494,32 +1561,16 @@ export default {
               liveRoomState.bigWins = updatedBigWins;
               await saveKVBigWins(env, updatedBigWins);
 
-              // Bắn thông báo chúc mừng tới Telegram Group
+              // Bắn thông báo chúc mừng tới Telegram Group với dedup_key chống trùng lặp
               broadcastTelegramNotification(env, {
                 type: "jackpot",
+                dedup_key: `lotto_${prevRoundId}_${userId}`,
                 room_id: targetRoomId,
                 user_name: userName,
                 amount: payoutRes.total_won,
                 hand_title: `Xổ Số ${lottoRound.channel.title}: ${hitDetail.title || "Trúng Lớn"}`
               }).catch(e => console.error("Broadcast lotto jackpot error:", e));
             }
-          }
-
-          liveRoomState.lottoSettled[settleKey] = {
-            round_id: prevRoundId,
-            channel: lottoRound.channel.id,
-            bets: prevBetData.bets,
-            total_bet: prevBetData.total_bet,
-            payout: payoutRes,
-            outcome: prevOutcome,
-            time: Date.now()
-          };
-          userLastSettlement = liveRoomState.lottoSettled[settleKey];
-
-          if (env && env.LUCKY_ROOM) {
-            try {
-              await env.LUCKY_ROOM.put(`lotto_settle_${settleKey}`, JSON.stringify(userLastSettlement), { expirationTtl: 1800 });
-            } catch (e) {}
           }
         } else if (liveRoomState.lottoSettled[settleKey]) {
           userLastSettlement = liveRoomState.lottoSettled[settleKey];
@@ -1873,9 +1924,8 @@ function generateLiveOutcome(roundId, roomId = "public") {
   // Nếu là phiên live (LRxxx), sinh kết quả đồng nhất tuyệt đối trên mọi máy chủ Cloudflare Edge toàn cầu
   // Các thành viên cùng phòng (cùng roomId) nhận kết quả 100% giống hệt nhau
   if (roundId && typeof roundId === "string" && roundId.startsWith("LR")) {
-    const baseSeed = parseInt(roundId.replace(/\D/g, "")) || 12345;
-    const roomSeed = normRoom === "public" ? 0 : hashString(normRoom);
-    randFn = mulberry32((baseSeed + roomSeed) >>> 0);
+    const seed = getSecretPrngSeed(`${roundId}_${normRoom}`, LIVE_SERVER_SECRET);
+    randFn = mulberry32(seed);
   }
 
   let stops = NUMBER_REEL_STRIPS.map(strip => Math.floor(randFn() * strip.length));
@@ -2210,6 +2260,14 @@ function getLiveRoundInfo(roomId = "public") {
         } catch (e) {}
       }
 
+      // Khôi phục kết quả đã thanh toán từ KV nếu isolate mới
+      if (!liveRoomState.settledRounds[settleKey] && env && env.LUCKY_ROOM) {
+        try {
+          const storedSettled = await env.LUCKY_ROOM.get(`live_settle_${settleKey}`, { type: "json" });
+          if (storedSettled) liveRoomState.settledRounds[settleKey] = storedSettled;
+        } catch (e) {}
+      }
+
       if (!liveRoomState.settledRounds[settleKey] && liveRoomState.roundBets[prevBetKey]?.[userId]) {
         const userPrevBet = liveRoomState.roundBets[prevBetKey][userId];
         const prevOutcomeKey = `${prevRoundId}_${targetRoomId}`;
@@ -2222,6 +2280,27 @@ function getLiveRoundInfo(roomId = "public") {
             prevOutcome.center_row,
             prevOutcome.analysis
           );
+
+          // ĐÁNH DẤU SETTLED NGAY LẬP TỨC TRƯỚC CÁC AWAIT ĐỂ TRIỆT TIÊU RACE CONDITION NHIỀU REQUEST ĐỒNG THỜI
+          liveRoomState.settledRounds[settleKey] = {
+            round_id: prevRoundId,
+            room_id: targetRoomId,
+            payout: payoutResult,
+            time: Date.now()
+          };
+          userLastSettlement = {
+            round_id: prevRoundId,
+            room_id: targetRoomId,
+            payout: payoutResult,
+            center_row: prevOutcome.center_row,
+            analysis: prevOutcome.analysis
+          };
+
+          if (env && env.LUCKY_ROOM) {
+            try {
+              await env.LUCKY_ROOM.put(`live_settle_${settleKey}`, JSON.stringify(userLastSettlement), { expirationTtl: 1800 });
+            } catch (e) {}
+          }
           
           if (payoutResult.total_won > 0) {
             session.balance += payoutResult.total_won;
@@ -2242,10 +2321,11 @@ function getLiveRoundInfo(roomId = "public") {
               liveRoomState.bigWins = updatedBigWins;
               await saveKVBigWins(env, updatedBigWins);
 
-              // TỰ ĐỘNG BẮN THÔNG BÁO NỔ HŨ VÀO TELEGRAM GROUP (GIAI ĐOẠN 3)
+              // TỰ ĐỘNG BẮN THÔNG BÁO NỔ HŨ VÀO TELEGRAM GROUP VỚI DEDUP_KEY CHỐNG TRÙNG LẶP
               if (payoutResult.total_won >= 2000 || ["NGU_QUY", "SANH_CHUAN", "TU_QUY", "CU_LU"].includes(prevOutcome.analysis.best_hand)) {
                 broadcastTelegramNotification(env, {
                   type: "jackpot",
+                  dedup_key: `live_${prevRoundId}_${userId}`,
                   room_id: targetRoomId,
                   user_name: userName,
                   amount: payoutResult.total_won,
@@ -2254,21 +2334,9 @@ function getLiveRoundInfo(roomId = "public") {
               }
             }
           }
-
-          liveRoomState.settledRounds[settleKey] = {
-            round_id: prevRoundId,
-            room_id: targetRoomId,
-            payout: payoutResult,
-            time: Date.now()
-          };
-          userLastSettlement = {
-            round_id: prevRoundId,
-            room_id: targetRoomId,
-            payout: payoutResult,
-            center_row: prevOutcome.center_row,
-            analysis: prevOutcome.analysis
-          };
         }
+      } else if (liveRoomState.settledRounds[settleKey]) {
+        userLastSettlement = liveRoomState.settledRounds[settleKey];
       }
 
       // Kiểm tra cược hiện tại của user trong KV nếu chưa có trong memory

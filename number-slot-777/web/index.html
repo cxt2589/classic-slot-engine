@@ -718,7 +718,7 @@
 
             <!-- Ô Tự Nhập Số Nhanh Bằng Phím -->
             <div class="lotto-quick-input-box">
-              <input type="text" id="inputLottoCustomNumbers" class="lqi-input" placeholder="Hoặc tự gõ số: 48, 79, 99..." autocomplete="off" />
+              <input type="text" id="inputLottoCustomNumbers" class="lqi-input" placeholder="Hoặc tự gõ số: 48, 79, 99..." autocomplete="off" inputmode="numeric" pattern="[0-9\s,;|]*" title="Chỉ nhập các chữ số (0-9) và dấu cách/phẩy" />
               <button type="button" class="lqi-btn-add" id="btnAddCustomNumbers">Thêm Số</button>
             </div>
 
@@ -2374,6 +2374,6 @@ Content-Type: application/json
     <div class="gja-amt glow-gold" id="gjaAmt">+50,000 Xu</div>
   </div>
 
-  <script src="/static/app.js?v=20261003_chatfix02"></script>
+  <script src="/static/app.js?v=20261003_v3"></script>
 </body>
 </html>

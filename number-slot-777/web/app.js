@@ -3477,10 +3477,14 @@ function setupLiveRoomControls() {
     });
   }
 
-  // Quick canned messages
+  // Quick canned messages (có chống spam bấm nhanh)
+  let lastCannedClickTime = 0;
   if (dom.cannedBtns) {
     dom.cannedBtns.forEach(btn => {
       btn.addEventListener("click", () => {
+        const now = Date.now();
+        if (now - lastCannedClickTime < 600) return;
+        lastCannedClickTime = now;
         const msg = btn.dataset.msg;
         if (msg) {
           soundEngine.init();
@@ -3504,13 +3508,18 @@ function setupLiveRoomControls() {
     });
   }
 
-  // Reaction buttons inside chat drawer
+  // Reaction buttons inside chat drawer (Thả cảm xúc trong chat: vừa thả hiệu ứng vừa gửi tin nhắn vào khung chat 1 lần duy nhất)
+  let lastRxDrawerClickTime = 0;
   if (dom.rxBtns) {
     dom.rxBtns.forEach(btn => {
       btn.addEventListener("click", (e) => {
+        const now = Date.now();
+        if (now - lastRxDrawerClickTime < 600) return;
+        lastRxDrawerClickTime = now;
         const emoji = btn.dataset.emoji;
         if (emoji) {
           sendReaction(emoji, e.clientX);
+          sendChatMessage(emoji);
         }
       });
     });
@@ -4232,10 +4241,12 @@ function openChatDrawer() {
     dom.chatMessagesContainer.scrollTop = dom.chatMessagesContainer.scrollHeight;
   }
 
-  // Đồng bộ ngay lập tức tin nhắn mới nhất và duy trì polling 1.5s khi đang mở khung chat
+  // Đồng bộ ngay lập tức tin nhắn mới nhất và duy trì polling 1.5s khi đang mở khung chat (tránh timer trùng lặp)
   syncLiveRoomState();
   if (chatDrawerPollTimer) clearInterval(chatDrawerPollTimer);
-  chatDrawerPollTimer = setInterval(syncLiveRoomState, 1500);
+  if (!state.livePollInterval) {
+    chatDrawerPollTimer = setInterval(syncLiveRoomState, 1500);
+  }
 }
 
 function closeChatDrawer() {
@@ -4758,7 +4769,11 @@ async function placeLiveBetAction() {
   }
 }
 
+let isSendingChatMessage = false;
+
 async function sendChatMessage(text) {
+  if (!text || isSendingChatMessage) return;
+  isSendingChatMessage = true;
   try {
     telegramEngine.haptic("medium");
     soundEngine.init();
@@ -4770,9 +4785,10 @@ async function sendChatMessage(text) {
     const currentVipLvl = isRothschild ? 5 : (state.vipInfo?.level || 0);
     const currentTitle = isRothschild ? (state.userProfile?.equippedTitle || "👑 Hoàng Gia 777") : (state.userProfile?.equippedTitle || "🍀 Tân Thủ May Mắn");
     const roomId = state.currentRoomId || "public";
+    const tempLocalId = "local-" + Date.now() + "-" + Math.random().toString(36).substr(2, 4);
 
     const tempMsg = {
-      id: "local-" + Date.now() + "-" + Math.random().toString(36).substr(2, 4),
+      id: tempLocalId,
       user_id: getLiveUserId(),
       username: curName,
       room_id: roomId,
@@ -4802,11 +4818,23 @@ async function sendChatMessage(text) {
       })
     });
     const json = await res.json();
-    if (json.status === "success") {
+    if (json.status === "success" && json.data) {
+      // Reconcile: Đồng bộ ID tạm thời thành ID server để không bị render lặp lại 2 lần
+      const serverId = json.data.id;
+      if (serverId && state.chatMessagesCache) {
+        const found = state.chatMessagesCache.find(m => m.id === tempLocalId);
+        if (found) found.id = serverId;
+      }
+      const localDomRow = dom.chatMessagesContainer?.querySelector(`.chat-msg-row[data-msg-id="${tempLocalId}"]`);
+      if (localDomRow && serverId) {
+        localDomRow.dataset.msgId = serverId;
+      }
       syncLiveRoomState();
     }
   } catch (e) {
     console.error("Send chat error:", e);
+  } finally {
+    setTimeout(() => { isSendingChatMessage = false; }, 500);
   }
 }
 
@@ -4968,9 +4996,28 @@ let lastRenderedChatKey = "";
 
 function renderChatMessages(messages) {
   if (!dom.chatMessagesContainer || !messages) return;
-  state.chatMessagesCache = messages;
+
+  // Lọc sạch trùng lặp tin nhắn (cùng sender, cùng nội dung text trong khoảng 4 giây)
+  const seenIdSet = new Set();
+  const seenContentSet = new Set();
+  const dedupedMessages = [];
+
+  for (const m of messages) {
+    if (!m) continue;
+    if (m.id && seenIdSet.has(m.id)) continue;
+    if (m.type === "chat") {
+      const timeBucket = Math.floor((Number(m.time) || 0) / 4000);
+      const contentKey = `${m.user_id}_${m.text}_${timeBucket}`;
+      if (seenContentSet.has(contentKey)) continue;
+      seenContentSet.add(contentKey);
+    }
+    if (m.id) seenIdSet.add(m.id);
+    dedupedMessages.push(m);
+  }
+
+  state.chatMessagesCache = dedupedMessages;
   // Sắp xếp tin nhắn: tin cũ ở trên, tin mới nhất ở dưới đáy
-  const sorted = [...messages].sort((a, b) => (Number(a.time) || 0) - (Number(b.time) || 0));
+  const sorted = [...dedupedMessages].sort((a, b) => (Number(a.time) || 0) - (Number(b.time) || 0));
   const latestId = sorted.length > 0 ? sorted[sorted.length - 1].id : "";
   const firstId = sorted.length > 0 ? sorted[0].id : "";
   const latestTime = sorted.length > 0 ? (sorted[sorted.length - 1].time || "") : "";
@@ -4980,11 +5027,23 @@ function renderChatMessages(messages) {
   }
   lastRenderedChatKey = cacheKey;
 
-  // Render gia tăng (incremental): Tránh hủy và vẽ lại toàn bộ DOM làm kênh chat bị giật/nhấp nháy trắng trên máy chậm
+  // Đồng bộ hóa hàng optimistic tạm thời trong DOM: Nếu đã có hàng local- trùng nội dung với tin nhắn server,
+  // chuyển data-msg-id của hàng đó thành ID server để không bị vẽ lặp thêm hàng thứ 2
   const existingRows = dom.chatMessagesContainer.querySelectorAll(".chat-msg-row[data-msg-id]");
   const existingIdSet = new Set();
   existingRows.forEach(r => {
     if (r.dataset.msgId) existingIdSet.add(r.dataset.msgId);
+  });
+
+  const localRows = dom.chatMessagesContainer.querySelectorAll('.chat-msg-row[data-msg-id^="local-"]');
+  localRows.forEach(lr => {
+    const textEl = lr.querySelector(".chat-msg-text");
+    const rowText = textEl ? textEl.textContent.trim() : "";
+    const matchServerMsg = sorted.find(m => m.id && !m.id.startsWith("local-") && m.text === rowText && !existingIdSet.has(m.id));
+    if (matchServerMsg) {
+      lr.dataset.msgId = matchServerMsg.id;
+      existingIdSet.add(matchServerMsg.id);
+    }
   });
 
   const shouldFullRebuild = existingRows.length === 0 || 
@@ -5514,13 +5573,52 @@ function initLottoSystem() {
   // 4. Render 10 Digit Buttons (0-9) for Trăm, Chục, Đơn Vị
   renderLottoMatrixDigits();
 
-  // 5. Custom Number Input
+  // 5. Custom Number Input (Chỉ cho phép số và ký tự phân tách, chặn toàn bộ chữ cái)
   if (dom.btnAddCustomNumbers && dom.inputLottoCustomNumbers) {
     dom.btnAddCustomNumbers.addEventListener("click", addCustomLottoNumbers);
+
+    // Chặn gõ chữ cái trực tiếp từ bàn phím
     dom.inputLottoCustomNumbers.addEventListener("keydown", (e) => {
       if (e.key === "Enter") {
         e.preventDefault();
         addCustomLottoNumbers();
+        return;
+      }
+      // Cho phép các phím chức năng và phím tắt thông dụng
+      if (
+        e.key === "Backspace" || e.key === "Delete" || e.key === "Tab" ||
+        e.key === "ArrowLeft" || e.key === "ArrowRight" || e.key === "Home" || e.key === "End" ||
+        e.ctrlKey || e.metaKey
+      ) {
+        return;
+      }
+      // Chỉ cho phép chữ số 0-9 và các ký tự phân tách: dấu cách, phẩy, chấm phẩy, sổ dọc
+      if (!/^[0-9,\s;|]$/.test(e.key)) {
+        e.preventDefault();
+      }
+    });
+
+    // Lọc sạch tức thì mọi chữ cái (xử lý bàn phím di động, IME gõ tiếng Việt Telex/VNI)
+    dom.inputLottoCustomNumbers.addEventListener("input", (e) => {
+      const filtered = e.target.value.replace(/[^0-9,\s;|]/g, "");
+      if (e.target.value !== filtered) {
+        e.target.value = filtered;
+      }
+    });
+
+    // Chặn dán nội dung có chứa chữ cái
+    dom.inputLottoCustomNumbers.addEventListener("paste", (e) => {
+      e.preventDefault();
+      const pasteData = (e.clipboardData || window.clipboardData)?.getData("text") || "";
+      const cleaned = pasteData.replace(/[^0-9,\s;|]/g, "");
+      if (document.queryCommandSupported && document.queryCommandSupported("insertText")) {
+        document.execCommand("insertText", false, cleaned);
+      } else {
+        const start = dom.inputLottoCustomNumbers.selectionStart;
+        const end = dom.inputLottoCustomNumbers.selectionEnd;
+        const val = dom.inputLottoCustomNumbers.value;
+        dom.inputLottoCustomNumbers.value = val.slice(0, start) + cleaned + val.slice(end);
+        dom.inputLottoCustomNumbers.selectionStart = dom.inputLottoCustomNumbers.selectionEnd = start + cleaned.length;
       }
     });
   }
@@ -6141,7 +6239,7 @@ async function syncLottoState() {
 
     renderLottoActiveTicket(
       lottoState.currentActiveTicket,
-      data.round?.outcome,
+      (data.round?.phase === "payout" && !lottoState.isSpinningReels) ? data.round?.outcome : null,
       data.round?.phase,
       lottoState.lastSettledTicket
     );
@@ -6245,6 +6343,14 @@ async function runLottoReelSpin(digits, outcome) {
     outcome: outcome,
     grid: grid
   };
+
+  // Cuộn số đã dừng hẳn -> Bây giờ mới chính thức hiển thị kết quả trúng/thua lên vé
+  renderLottoActiveTicket(
+    lottoState.currentActiveTicket,
+    outcome,
+    "payout",
+    lottoState.lastSettledTicket
+  );
 
   // Cập nhật kết quả chi tiết lên Marquee của Cabinet
   if (outcome) {
@@ -6435,11 +6541,13 @@ function renderLottoActiveTicket(ticket, outcome, phase, lastSettlement) {
       dom.latTotalWager.textContent = `${(ticket.total_bet || 0).toLocaleString()} Xu`;
     }
 
+    const isDrawingOrSpinning = phase === "drawing" || lottoState.isSpinningReels === true;
+
     if (dom.latPhaseBadge) {
       if (phase === "betting") {
         dom.latPhaseBadge.className = "lat-phase-badge pending";
         dom.latPhaseBadge.textContent = "⏳ ĐANG CHỜ MỞ THƯỞNG";
-      } else if (phase === "drawing") {
+      } else if (isDrawingOrSpinning) {
         dom.latPhaseBadge.className = "lat-phase-badge drawing";
         dom.latPhaseBadge.textContent = "🎰 ĐANG QUAY THƯỞNG...";
       } else if (phase === "payout") {
@@ -6454,7 +6562,10 @@ function renderLottoActiveTicket(ticket, outcome, phase, lastSettlement) {
       }
     }
 
-    renderTicketBetsBody(ticket.bets, outcome);
+    // Khi đang quay thưởng (phase drawing hoặc các cuộn số đang quay), tuyệt đối KHÔNG so khớp kết quả sớm
+    // Toàn bộ các con số trên vé giữ nguyên trạng thái trung tính, không hiện 'won' hay 'TRÚNG' trước khi cuộn số dừng lại!
+    const effectiveOutcome = isDrawingOrSpinning ? null : outcome;
+    renderTicketBetsBody(ticket.bets, effectiveOutcome);
   } else {
     const prevRoundId = lastSettlement.round_id || "";
     const wonAmt = lastSettlement.payout?.total_won || 0;
