@@ -9561,18 +9561,27 @@ body.chat-drawer-open {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.lotto-board-head-row .lbh-left {
+  flex: 1 1 auto;
+  min-width: 0; /* Cho phép co giãn tự do, ngăn chặn tràn chữ */
 }
 
 .lotto-board-head-row .lbh-left h3 {
   margin-bottom: 2px;
   font-size: 1.02rem;
   color: var(--gold-primary);
+  line-height: 1.35;
 }
 
 .lotto-board-head-row .lbh-left p {
   margin-bottom: 0;
   font-size: 0.74rem;
   color: #94a3b8;
+  line-height: 1.4;
 }
 
 .lbh-countdown-box {
@@ -9584,25 +9593,46 @@ body.chat-drawer-open {
   padding: 6px 12px;
   border-radius: 10px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  flex-shrink: 0; /* Không co ép theo text đếm ngược */
+  box-sizing: border-box;
+}
+
+.lbh-countdown-box .lrb-phase-pill {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .lbh-cd-right {
-  display: flex;
+  display: inline-flex;
   align-items: baseline;
+  justify-content: flex-end;
   gap: 4px;
+  flex-shrink: 0;
+  min-width: 70px; /* Khung kích thước cố định, triệt tiêu 100% hiện tượng xô lệch phần tử bên trái */
+  text-align: right;
+  box-sizing: border-box;
 }
 
 .lbh-cd-lbl {
   font-size: 0.68rem;
   color: #64748b;
   font-weight: 700;
+  flex-shrink: 0;
+  letter-spacing: 0.5px;
 }
 
 .lbh-cd-val {
   font-size: 1.15rem;
   font-family: var(--font-numbers, monospace);
+  font-variant-numeric: tabular-nums; /* Monospace cho từng chữ số, ngăn nhảy bề rộng */
+  font-feature-settings: "tnum";
   font-weight: 900;
   color: #ffd700;
+  display: inline-block;
+  min-width: 36px; /* Cố định chiều rộng hiển thị 45s, 5s, 0s */
+  text-align: right;
+  flex-shrink: 0;
+  line-height: 1;
 }
 
 .lbh-sub-info {
@@ -9611,12 +9641,15 @@ body.chat-drawer-open {
   justify-content: space-between;
   margin-top: 6px;
   padding: 0 2px;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .lbh-sub-tag {
   font-size: 0.7rem;
   font-weight: 700;
   color: #94a3b8;
+  white-space: nowrap;
 }
 
 .lotto-betting-board .lrb-progress-track {
@@ -9627,6 +9660,30 @@ body.chat-drawer-open {
   overflow: hidden;
   margin-top: 6px;
   border: 1px solid rgba(255, 215, 0, 0.25);
+  box-sizing: border-box;
+}
+
+@media (max-width: 640px) {
+  .lotto-board-head-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .lotto-board-head-row .lbh-left {
+    width: 100%;
+  }
+
+  .lbh-countdown-box {
+    width: 100%;
+    justify-content: space-between;
+    padding: 7px 12px;
+    box-sizing: border-box;
+  }
+
+  .lbh-cd-right {
+    min-width: 72px;
+  }
 }
 
 /* 1. Channels Bar (Thanh chọn mốc thời gian) */
@@ -9813,7 +9870,8 @@ body.chat-drawer-open {
   height: 100%;
   background: linear-gradient(90deg, #ffd700, #ff8f00);
   box-shadow: 0 0 8px rgba(255, 215, 0, 0.6);
-  transition: width 0.6s linear, background 0.3s ease, box-shadow 0.3s ease;
+  transition: width 0.95s linear, background 0.3s ease, box-shadow 0.3s ease;
+  will-change: width;
 }
 
 /* 3. Lồng Quay 5 Bóng Vàng */

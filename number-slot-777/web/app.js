@@ -90,7 +90,10 @@ const lottoState = {
   lastDrawnRoundId: null,
   isSpinningReels: false,
   currentActiveTicket: null,
-  lastSettledTicket: null
+  lastSettledTicket: null,
+  lastBarRoundId: null,
+  lastBarPhase: null,
+  lastBarPct: null
 };
 
 // Web Audio API Synthesizer
@@ -6081,10 +6084,12 @@ function getLottoChannelPhaseInfo(channelId, nowMs = Date.now()) {
 
 function getLottoPhaseDuration(round) {
   if (!round) return 45;
-  if (round.phase === "betting") return round.betting_duration_sec || 45;
-  if (round.phase === "drawing") return round.draw_duration_sec || 5;
-  if (round.phase === "payout") return round.payout_duration_sec || 10;
-  return round.betting_duration_sec || 45;
+  const ch = (round.channel && round.channel.id) || lottoState.currentChannel || "60s";
+  const cfg = LOTTO_CHANNELS_TIMING[ch] || LOTTO_CHANNELS_TIMING["60s"];
+  if (round.phase === "betting") return round.betting_duration_sec || cfg.betSec;
+  if (round.phase === "drawing") return round.draw_duration_sec || cfg.drawSec;
+  if (round.phase === "payout") return round.payout_duration_sec || cfg.paySec;
+  return round.betting_duration_sec || cfg.betSec;
 }
 
 function formatLottoCountdown(sec) {
@@ -6120,8 +6125,31 @@ function updateLottoTimerAndProgressBarUI(round) {
   }
 
   if (dom.lottoProgressBar && dur > 0) {
-    const pct = Math.max(0, Math.min(100, (left / dur) * 100));
-    dom.lottoProgressBar.style.width = `${pct}%`;
+    let targetPct = Math.max(0, Math.min(100, (left / dur) * 100));
+
+    // Kiểm tra đổi kỳ quay (round_id) hoặc đổi pha (phase)
+    const isNewRoundOrPhase = lottoState.lastBarRoundId !== round.round_id || lottoState.lastBarPhase !== round.phase;
+
+    if (isNewRoundOrPhase) {
+      lottoState.lastBarRoundId = round.round_id;
+      lottoState.lastBarPhase = round.phase;
+      lottoState.lastBarPct = targetPct;
+
+      // Reset tức thì, triệt tiêu hoàn toàn hiệu ứng chạy ngược từ 0% sang 100%
+      dom.lottoProgressBar.style.transition = "none";
+      dom.lottoProgressBar.style.width = `${targetPct}%`;
+      void dom.lottoProgressBar.offsetWidth; // Buộc reflow
+      dom.lottoProgressBar.style.transition = "width 0.95s linear, background 0.3s ease, box-shadow 0.3s ease";
+    } else {
+      // Trong cùng 1 pha: Thanh chạy đếm ngược BẮT BUỘC chỉ được giảm (từ phải qua trái),
+      // tuyệt đối KHÔNG cho phép tăng ngược lại do độ trễ mạng hay polling giật ngược
+      if (typeof lottoState.lastBarPct === "number" && targetPct > lottoState.lastBarPct) {
+        targetPct = lottoState.lastBarPct;
+      } else {
+        lottoState.lastBarPct = targetPct;
+      }
+      dom.lottoProgressBar.style.width = `${targetPct}%`;
+    }
 
     // Dynamic color gradient & glow for different phases and alert states
     if (round.phase === "betting") {
@@ -6192,6 +6220,18 @@ async function syncLottoState() {
     if (json.status !== "success" || !json.data) return;
 
     const data = json.data;
+    if (!data || !data.round) return;
+
+    // Chặn độ trễ mạng làm giật ngược thời gian:
+    // Nếu cùng round_id và cùng phase, time_left_sec của server không được đè lên thời gian
+    // mà client đã đếm xuống thấp hơn.
+    const cur = lottoState.currentRound;
+    if (cur && cur.round_id === data.round.round_id && cur.phase === data.round.phase) {
+      if (typeof cur.time_left_sec === "number" && typeof data.round.time_left_sec === "number") {
+        data.round.time_left_sec = Math.min(cur.time_left_sec, data.round.time_left_sec);
+      }
+    }
+
     lottoState.currentRound = data.round;
 
     // Update balance & meters
