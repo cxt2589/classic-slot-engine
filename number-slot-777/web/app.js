@@ -616,6 +616,7 @@ async function init() {
   initRoomSystem(); // Giai đoạn 2: Khởi tạo phòng riêng & Telegram Deep Links
   initLottoSystem(); // Giai đoạn 3: Hệ thống Xổ Số Nhanh 5D
   initMobileStickyBetDock(); // Giải pháp 3: Dock cược nổi khi cuộn xuống Bàn cược
+  initApiDocCodeTabs(); // Khởi tạo tab xem ví dụ API & nút sao chép JSON
   await loadSession();
   await loadAdminStatus(true); // silent fetch to load max bets
   renderInitialReels();
@@ -661,6 +662,71 @@ function setupNavigation() {
   });
 
   setupStickyAndDockedNavigation();
+}
+
+function initApiDocCodeTabs() {
+  const tabs = document.querySelectorAll(".dct-tab");
+  const copyBtn = document.getElementById("btnCopyApiDoc");
+
+  tabs.forEach(tab => {
+    tab.addEventListener("click", () => {
+      const targetTab = tab.dataset.tab;
+      if (!targetTab) return;
+
+      tabs.forEach(t => t.classList.remove("active"));
+      tab.classList.add("active");
+
+      document.querySelectorAll(".code-tab-pane").forEach(pane => {
+        pane.classList.remove("active");
+      });
+      const activePane = document.getElementById(`codeTab-${targetTab}`);
+      if (activePane) activePane.classList.add("active");
+
+      soundEngine.init();
+      soundEngine.playChip();
+      telegramEngine.haptic("light");
+    });
+  });
+
+  if (copyBtn) {
+    copyBtn.addEventListener("click", async () => {
+      soundEngine.init();
+      const activeTab = document.querySelector(".dct-tab.active");
+      const tabKey = activeTab ? activeTab.dataset.tab : "spin-req";
+      const codeElem = document.getElementById(`codeText-${tabKey}`);
+      if (!codeElem) return;
+
+      const codeText = codeElem.innerText || codeElem.textContent || "";
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(codeText);
+        } else {
+          const ta = document.createElement("textarea");
+          ta.value = codeText;
+          ta.style.position = "fixed";
+          ta.style.opacity = "0";
+          document.body.appendChild(ta);
+          ta.focus();
+          ta.select();
+          document.execCommand("copy");
+          document.body.removeChild(ta);
+        }
+
+        telegramEngine.haptic("success");
+        copyBtn.classList.add("copied");
+        const btnText = copyBtn.querySelector(".btn-copy-text");
+        if (btnText) btnText.textContent = "Đã Chép!";
+        showToast("📋 Đã sao chép mã JSON vào Clipboard!", "gold");
+
+        setTimeout(() => {
+          copyBtn.classList.remove("copied");
+          if (btnText) btnText.textContent = "Sao Chép";
+        }, 2000);
+      } catch (err) {
+        showToast("Không thể sao chép tự động: " + err.message, "warn");
+      }
+    });
+  }
 }
 
 function setupStickyAndDockedNavigation() {

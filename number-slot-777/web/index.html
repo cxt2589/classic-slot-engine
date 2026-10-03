@@ -1447,8 +1447,8 @@
     <main id="tab-architecture" class="tab-content">
       <div class="arch-panel">
         <div class="arch-header-banner">
-          <div>
-            <h2>🏗️ KIẾN TRÚC HỆ THỐNG SLOT 5x3 ĐẶT CƯỢC THEO CON SỐ</h2>
+          <div class="ahb-text">
+            <h2>🏗️ KIẾN TRÚC HỆ THỐNG SLOT 5x3 & REST API SPEC</h2>
             <p>Mô hình chuẩn iGaming GLI-19: Tách biệt hoàn toàn Client - Server • Dải cuộn ảo CSPRNG • Dòng thưởng duy nhất hàng giữa (Row 1).</p>
           </div>
           <div class="arch-header-actions">
@@ -1458,19 +1458,25 @@
 
         <div class="arch-cards-grid">
           <div class="arch-card">
-            <span class="card-num">01</span>
+            <div class="arch-card-header">
+              <span class="card-num">01</span>
+              <span class="card-badge">CORE MATH & CSPRNG</span>
+            </div>
             <h3>1. Math Core & Dải Cuộn Ảo (Reel Strips)</h3>
             <p><strong>Không gian ngẫu nhiên công bằng:</strong> 5 cuộn quay được cấu hình từ 5 dải số ảo (Virtual Reel Strips) với 54 vị trí mỗi dải, phân bổ đều đặn các số 1..9.</p>
             <ul>
               <li><code>engine/reels.py</code>: Cấu hình dải số ảo 54 stops x 5 reels</li>
               <li><code>engine/rules.py</code>: Bộ quy tắc trả thưởng (Tài/Xỉu, Chẵn/Lẻ, Thùng, Sảnh, Poker, Số đơn)</li>
               <li><strong>Center Payline (Row 1):</strong> Chỉ dòng giữa mới là dòng trúng thưởng hợp lệ</li>
-              <li><strong>RNG Mật mã:</strong> <code>crypto.getRandomValues</code> / <code>secrets</code> đạt chuẩn GLI-19</li>
+              <li><strong>RNG Mật mã:</strong> <code>crypto.getRandomValues</code> đạt chuẩn GLI-19</li>
             </ul>
           </div>
 
           <div class="arch-card">
-            <span class="card-num">02</span>
+            <div class="arch-card-header">
+              <span class="card-num">02</span>
+              <span class="card-badge">REST API SERVER</span>
+            </div>
             <h3>2. Backend REST API Chống Gian Lận</h3>
             <p><strong>Toàn quyền tính thưởng trên Server:</strong> Client gửi lệnh cược lên Server, Server quay RNG, trừ cược, tính thưởng và trả về kết quả đã kiểm chứng. Client không thể can thiệp số dư.</p>
             <ul>
@@ -1483,7 +1489,10 @@
           </div>
 
           <div class="arch-card">
-            <span class="card-num">03</span>
+            <div class="arch-card-header">
+              <span class="card-num">03</span>
+              <span class="card-badge">MULTI-CLIENT</span>
+            </div>
             <h3>3. Tích Hợp Đa Nền Tảng (Cross-Platform)</h3>
             <p>Backend API thiết kế phi trạng thái (Stateless) và chuẩn REST/JSON, sẵn sàng tích hợp với bất kỳ giao diện người dùng nào:</p>
             <ul>
@@ -1495,26 +1504,47 @@
           </div>
 
           <div class="arch-card">
-            <span class="card-num">04</span>
+            <div class="arch-card-header">
+              <span class="card-num">04</span>
+              <span class="card-badge">BETTING UX</span>
+            </div>
             <h3>4. Quản Lý Đặt Cược & Giảm Cược (Bet Manager)</h3>
             <p><strong>Kiểm soát vốn linh hoạt với 4 cơ chế bảo vệ:</strong> Cung cấp khả năng tinh chỉnh cược tối ưu cho người chơi:</p>
             <ul>
-              <li><strong>3 Chế Độ Thao Tác:</strong> <code>[➕ Cược Thêm]</code>, <code>[➖ Giảm Cược]</code> (trừ 1 chip), <code>[🗑️ Xóa Cửa]</code> (hủy ngay cửa cược).</li>
+              <li><strong>3 Chế Độ Thao Tác:</strong> <code>[➕ Cược Thêm]</code>, <code>[➖ Giảm Cược]</code> (trừ 1 chip), <code>[🗑️ Xóa Cửa]</code>.</li>
               <li><strong>Chuột Phải (Right-Click):</strong> Giảm nhanh giá trị chip đang chọn mà không cần đổi chế độ.</li>
               <li><strong>Nút Xóa Nhanh <code>✕</code>:</strong> Tích hợp trực tiếp trên chip cược tại mỗi ô.</li>
-              <li><strong>Ngăn Xếp Hoàn Tác (Undo Stack):</strong> Lưu trữ 30 bước thay đổi cược, hoàn tác bằng phím <code>[↩️ Hoàn tác]</code>.</li>
-              <li><strong>Thao Tác Toàn Bàn:</strong> Nút <code>[⚡ Nhân Đôi x2]</code> và <code>[🗑️ Xóa Tất Cả]</code> tiện lợi.</li>
+              <li><strong>Ngăn Xếp Hoàn Tác (Undo Stack):</strong> Lưu trữ 30 bước thay đổi cược, hoàn tác tiện lợi.</li>
+              <li><strong>Thao Tác Toàn Bàn:</strong> Nút <code>[⚡ Nhân Đôi x2]</code> và <code>[🗑️ Xóa Tất Cả]</code>.</li>
             </ul>
           </div>
 
           <div class="arch-card">
-            <span class="card-num">05</span>
+            <div class="arch-card-header">
+              <span class="card-num">05</span>
+              <span class="card-badge">LIVE ROADMAPS</span>
+            </div>
             <h3>5. Động Cơ Soi Cầu Baccarat Real-time (Roadmaps)</h3>
             <p><strong>Hiển thị nhịp cầu chuẩn Casino:</strong> Trực quan hóa dữ liệu thống kê từ API <code>/api/session</code> để người chơi phân tích cầu:</p>
             <ul>
-              <li><strong>Bảng Hạt Giọt Nước (Bead Plate):</strong> Ma trận 6 hàng dọc x N cột, ghi nhận kết quả theo thứ tự từ trên xuống dưới, hết cột chuyển sang cột tiếp theo bên phải.</li>
-              <li><strong>Đường Cầu Bệt & Cầu Nhảy (Big Road):</strong> Công nghệ Multi-Tier Wrapping chuẩn quốc tế, tự động xuống tầng khi hết bề rộng màn hình, <strong>triệt tiêu hoàn toàn thanh cuộn ngang</strong>.</li>
-              <li><strong>Nhận Dạng Ván Mới Nhất:</strong> Đèn chỉ hướng thời gian <code>[ ◀ CŨ HƠN ] ─── CHIỀU THỜI GIAN ─── [ ⚡ VÁN MỚI NHẤT ▶ ]</code>, hào quang viền vàng xung nhịp và nhãn <code>⚡ MỚI</code> hiển thị trực quan tại hạt/chấm kết quả mới nhất.</li>
+              <li><strong>Bảng Hạt Giọt Nước (Bead Plate):</strong> Ma trận 6 hàng dọc x N cột, ghi nhận kết quả liên tục.</li>
+              <li><strong>Đường Cầu Bệt & Cầu Nhảy (Big Road):</strong> Multi-Tier Wrapping chuẩn quốc tế, tự động xuống tầng khi hết bề rộng màn hình.</li>
+              <li><strong>Nhận Dạng Ván Mới Nhất:</strong> Đèn chỉ hướng thời gian <code>[◀ CŨ] ── [⚡ MỚI ▶]</code>, hào quang viền vàng hiển thị trực quan.</li>
+            </ul>
+          </div>
+
+          <div class="arch-card">
+            <div class="arch-card-header">
+              <span class="card-num">06</span>
+              <span class="card-badge">XỔ SỐ 5D & BẢO MẬT</span>
+            </div>
+            <h3>6. Hệ Thống Xổ Số 5D & Bảo Mật Anti-Cheat</h3>
+            <p><strong>Quay thưởng minh bạch & Chống gian lận tuyệt đối:</strong> 4 kênh mở thưởng độc lập (30s, 60s, 3m, 60m) kết hợp mật mã server:</p>
+            <ul>
+              <li><strong>Server Secret Salt:</strong> Thuật toán băm một chiều bảo mật độc quyền chặn 100% dự đoán trước.</li>
+              <li><strong>Anti-Cheat Outcome Delivery:</strong> Outcome chỉ mở thưởng khi cuộn số dừng hẳn, tự động khóa cược trước 2 giây.</li>
+              <li><strong>Đa Dạng Thể Loại Cược:</strong> Đề Đầu (x95), Đề Đuôi (x95), 3 Càng (x900), Cược Nhanh Tài/Xỉu/Chẵn/Lẻ (x1.98).</li>
+              <li><strong>REST API:</strong> <code>GET /api/lotto/state</code> & <code>POST /api/lotto/bet</code>.</li>
             </ul>
           </div>
         </div>
@@ -1522,7 +1552,10 @@
         <!-- BẢNG TỔNG HỢP ENDPOINT REST API -->
         <div class="arch-endpoints-card">
           <div class="card-top-row">
-            <h3>📋 DANH SÁCH REST API ENDPOINTS CHÍNH THỨC</h3>
+            <div class="ctr-title">
+              <h3>📋 DANH SÁCH REST API ENDPOINTS CHÍNH THỨC</h3>
+              <p class="ctr-sub">Kiến trúc Stateless RESTful, mã hóa JSON, hỗ trợ đa nền tảng Web & Mobile</p>
+            </div>
             <span class="badge-tag">OpenAPI 3.0.2</span>
           </div>
           <div class="table-scroll-wrap">
@@ -1538,53 +1571,67 @@
               </thead>
               <tbody>
                 <tr>
-                  <td><span class="http-badge post">POST</span></td>
-                  <td><code>/api/spin</code></td>
-                  <td>Quay 5 cuộn, kiểm tra dòng giữa (Row 1), đối soát cược Base Spin & Side Bets, cộng thưởng và cập nhật lịch sử soi cầu</td>
-                  <td><code>{"bets": {"BASE_SPIN": 10, "TAI": 50, "SO_7": 10}}</code></td>
-                  <td>Grid 3x5, Stops, Analysis, Payouts, Net Profit, Session (ví & lịch sử)</td>
+                  <td data-label="Phương Thức"><span class="http-badge post">POST</span></td>
+                  <td data-label="Endpoint"><code class="ep-url">/api/spin</code></td>
+                  <td data-label="Mô Tả Chức Năng">Quay 5 cuộn, kiểm tra dòng giữa (Row 1), đối soát cược Base Spin & Side Bets, cộng thưởng và cập nhật lịch sử soi cầu</td>
+                  <td data-label="Payload Request"><code>{"bets": {"BASE_SPIN": 10, "TAI": 50, "SO_7": 10}}</code></td>
+                  <td data-label="Phản Hồi (Response)">Grid 3x5, Stops, Analysis, Payouts, Net Profit, Session (ví & lịch sử)</td>
                 </tr>
                 <tr>
-                  <td><span class="http-badge get">GET</span></td>
-                  <td><code>/api/session</code></td>
-                  <td>Lấy thông tin ví, số dư hiện tại, tổng cược/thắng, dữ liệu telemetry 100 phiên phục vụ vẽ Bead Road & Big Road</td>
-                  <td><em>None</em></td>
-                  <td>Session object, balance, recent_history[100] (center_line, sum, tai_xiu, chan_le, poker_hand...)</td>
+                  <td data-label="Phương Thức"><span class="http-badge get">GET</span></td>
+                  <td data-label="Endpoint"><code class="ep-url">/api/session</code></td>
+                  <td data-label="Mô Tả Chức Năng">Lấy thông tin ví, số dư hiện tại, tổng cược/thắng, dữ liệu telemetry 100 phiên phục vụ vẽ Bead Road & Big Road</td>
+                  <td data-label="Payload Request"><em class="text-muted">None (Không cần)</em></td>
+                  <td data-label="Phản Hồi (Response)">Session object, balance, recent_history[100] (center_line, sum, tai_xiu, chan_le, poker_hand...)</td>
                 </tr>
                 <tr>
-                  <td><span class="http-badge get">GET</span></td>
-                  <td><code>/api/rules</code></td>
-                  <td>Lấy toàn bộ tỷ lệ thưởng x1.7..x5000, danh mục cược</td>
-                  <td><em>None</em></td>
-                  <td>Bet payouts, single number payouts, hand payouts</td>
+                  <td data-label="Phương Thức"><span class="http-badge post">POST</span></td>
+                  <td data-label="Endpoint"><code class="ep-url">/api/lotto/bet</code></td>
+                  <td data-label="Mô Tả Chức Năng">Đặt cược Xổ Số 5D (30s, 60s, 3m, 60m): Đề Đầu, Đề Đuôi, 3 Càng, Tài/Xỉu, Chẵn/Lẻ. Khóa cược trước 2s mở thưởng</td>
+                  <td data-label="Payload Request"><code>{"mode": "30s", "bets": [{"type": "DE_DUOI", "numbers": ["77"], "amount": 10}]}</code></td>
+                  <td data-label="Phản Hồi (Response)">Mã đơn order_id, tổng cược, số dư mới, thời gian khóa, mã kỳ quay draw_id</td>
                 </tr>
                 <tr>
-                  <td><span class="http-badge post">POST</span></td>
-                  <td><code>/api/reset</code></td>
-                  <td>Nạp lại số dư ví người chơi về mức mặc định</td>
-                  <td><code>{"initial_balance": 10000.0}</code></td>
-                  <td>Session object với số dư 10,000</td>
+                  <td data-label="Phương Thức"><span class="http-badge get">GET</span></td>
+                  <td data-label="Endpoint"><code class="ep-url">/api/lotto/state</code></td>
+                  <td data-label="Mô Tả Chức Năng">Lấy trạng thái kỳ quay hiện tại, thời gian đếm ngược (server time), kết quả ván trước và lịch sử cầu 5D</td>
+                  <td data-label="Payload Request"><code class="text-muted">?mode=30s</code> <em>(Query Param)</em></td>
+                  <td data-label="Phản Hồi (Response)">Trạng thái round (open/spinning/settling), timeLeft, draw_id, last_result, lịch sử 50 kỳ</td>
                 </tr>
                 <tr>
-                  <td><span class="http-badge post">POST</span></td>
-                  <td><code>/api/simulate</code></td>
-                  <td>Mô phỏng Monte Carlo 100 - 50,000 vòng quay đo xác suất thực tế</td>
-                  <td><code>{"spins": 10000}</code></td>
-                  <td>Thống kê RTP, tốc độ vòng quay/s, tỷ lệ Tài/Xỉu/Thùng/Sảnh</td>
+                  <td data-label="Phương Thức"><span class="http-badge get">GET</span></td>
+                  <td data-label="Endpoint"><code class="ep-url">/api/rules</code></td>
+                  <td data-label="Mô Tả Chức Năng">Lấy toàn bộ tỷ lệ thưởng x1.7..x5000, danh mục cược & hệ số trả thưởng Slot và Xổ số</td>
+                  <td data-label="Payload Request"><em class="text-muted">None (Không cần)</em></td>
+                  <td data-label="Phản Hồi (Response)">Bet payouts, single number payouts, hand payouts, lotto payouts</td>
                 </tr>
                 <tr>
-                  <td><span class="http-badge get">GET</span></td>
-                  <td><code>/docs</code></td>
-                  <td>Giao diện Swagger UI tương tác trực quan để test API trực tiếp</td>
-                  <td><em>None</em></td>
-                  <td>Trang Swagger UI tương tác chuẩn OpenAPI</td>
+                  <td data-label="Phương Thức"><span class="http-badge post">POST</span></td>
+                  <td data-label="Endpoint"><code class="ep-url">/api/reset</code></td>
+                  <td data-label="Mô Tả Chức Năng">Nạp lại số dư ví người chơi về mức mặc định (10,000 chip test)</td>
+                  <td data-label="Payload Request"><code>{"initial_balance": 10000.0}</code></td>
+                  <td data-label="Phản Hồi (Response)">Session object với số dư 10,000</td>
                 </tr>
                 <tr>
-                  <td><span class="http-badge get">GET</span></td>
-                  <td><code>/openapi.json</code></td>
-                  <td>Đặc tả OpenAPI 3.0.2 dạng JSON phục vụ tích hợp & codegen</td>
-                  <td><em>None</em></td>
-                  <td>OpenAPI 3.0.2 Specification Schema</td>
+                  <td data-label="Phương Thức"><span class="http-badge post">POST</span></td>
+                  <td data-label="Endpoint"><code class="ep-url">/api/simulate</code></td>
+                  <td data-label="Mô Tả Chức Năng">Mô phỏng Monte Carlo 100 - 50,000 vòng quay đo xác suất thực tế & kiểm định RTP toán học</td>
+                  <td data-label="Payload Request"><code>{"spins": 10000}</code></td>
+                  <td data-label="Phản Hồi (Response)">Thống kê RTP, tốc độ vòng quay/s, tỷ lệ Tài/Xỉu/Thùng/Sảnh</td>
+                </tr>
+                <tr>
+                  <td data-label="Phương Thức"><span class="http-badge get">GET</span></td>
+                  <td data-label="Endpoint"><code class="ep-url">/docs</code></td>
+                  <td data-label="Mô Tả Chức Năng">Giao diện Swagger UI tương tác trực quan để test API trực tiếp ngay trên trình duyệt</td>
+                  <td data-label="Payload Request"><em class="text-muted">None (Trình duyệt)</em></td>
+                  <td data-label="Phản Hồi (Response)">Trang Swagger UI tương tác chuẩn OpenAPI</td>
+                </tr>
+                <tr>
+                  <td data-label="Phương Thức"><span class="http-badge get">GET</span></td>
+                  <td data-label="Endpoint"><code class="ep-url">/openapi.json</code></td>
+                  <td data-label="Mô Tả Chức Năng">Đặc tả OpenAPI 3.0.2 dạng JSON phục vụ tích hợp & codegen SDK đa ngôn ngữ</td>
+                  <td data-label="Payload Request"><em class="text-muted">None (GET)</em></td>
+                  <td data-label="Phản Hồi (Response)">OpenAPI 3.0.2 Specification Schema</td>
                 </tr>
               </tbody>
             </table>
@@ -1594,12 +1641,26 @@
         <!-- CODE PREVIEW REQUEST / RESPONSE -->
         <div class="api-doc-box">
           <div class="doc-box-header">
-            <h3>Ví Dụ Request & Response Chi Tiết: <code>POST /api/spin</code></h3>
-            <span class="badge-tag">JSON API</span>
+            <div class="doc-box-title">
+              <h3>📦 VÍ DỤ REQUEST & RESPONSE THỰC TẾ</h3>
+              <span class="badge-tag">JSON REST API</span>
+            </div>
+            <div class="doc-box-actions">
+              <div class="doc-code-tabs" role="tablist">
+                <button type="button" class="dct-tab active" data-tab="spin-req">Spin Request</button>
+                <button type="button" class="dct-tab" data-tab="spin-res">Spin Response</button>
+                <button type="button" class="dct-tab" data-tab="lotto-req">Lotto 5D Bet</button>
+              </div>
+              <button type="button" id="btnCopyApiDoc" class="btn-copy-code" title="Sao chép JSON">
+                <span class="btn-copy-icon">📋</span> <span class="btn-copy-text">Sao Chép</span>
+              </button>
+            </div>
           </div>
-          <div class="code-preview">
-<pre><code>// 1. Client gửi lệnh cược lên Server (Ví dụ: Quay thường 10 + Cược Tài 50 + Cược Thùng 20 + Cược Con Số 7 là 10)
+          <div class="code-preview-container">
+            <div id="codeTab-spin-req" class="code-tab-pane active">
+              <pre><code id="codeText-spin-req">// 1. Client gửi lệnh cược lên Server (Ví dụ: Quay thường 10 + Tài 50 + Thùng 20 + Số 7 là 10)
 POST /api/spin HTTP/1.1
+Host: lucky-numbers-777.pages.dev
 Content-Type: application/json
 
 {
@@ -1609,9 +1670,10 @@ Content-Type: application/json
     "THUNG": 20.0,
     "SO_7": 10.0
   }
-}
-
-// 2. Server phản hồi kết quả kiểm chứng (RNG Stops, Grid 3x5, Analysis hàng giữa, Payouts & Session Telemetry)
+}</code></pre>
+            </div>
+            <div id="codeTab-spin-res" class="code-tab-pane">
+              <pre><code id="codeText-spin-res">// 2. Server phản hồi kết quả kiểm chứng (RNG Stops, Grid 3x5, Analysis hàng giữa, Payouts)
 HTTP/1.1 200 OK
 Content-Type: application/json
 
@@ -1634,44 +1696,20 @@ Content-Type: application/json
       "is_chan": false,
       "is_le": true,
       "is_thung": false,
-      "is_thung_chan": false,
-      "is_thung_le": false,
-      "is_sanh": false,
-      "is_sanh_chuan": false,
       "best_hand": "SAM_CO",
-      "hand_title_vi": "Sám Cô (Bộ 3 số 7)",
-      "counts": { "7": 3, "8": 1, "9": 1 }
+      "hand_title_vi": "Sám Cô (Bộ 3 số 7)"
     },
     "payout": {
       "total_bet": 90.0,
       "total_won": 199.5,
       "net_profit": 109.5,
       "winning_items": [
-        {
-          "bet_type": "BASE_SPIN",
-          "wager": 10.0,
-          "multiplier": 2.2,
-          "win_amount": 22.0,
-          "reason_vi": "Ăn tổ hợp Base Game: Sám Cô (x2.2)"
-        },
-        {
-          "bet_type": "TAI",
-          "wager": 50.0,
-          "multiplier": 2.05,
-          "win_amount": 102.5,
-          "reason_vi": "Tổng 38 > 25 (TÀI)"
-        },
-        {
-          "bet_type": "SO_7",
-          "wager": 10.0,
-          "multiplier": 7.5,
-          "win_amount": 75.0,
-          "reason_vi": "Số 7 xuất hiện 3 lần"
-        }
+        { "bet_type": "BASE_SPIN", "wager": 10.0, "multiplier": 2.2, "win_amount": 22.0 },
+        { "bet_type": "TAI", "wager": 50.0, "multiplier": 2.05, "win_amount": 102.5 },
+        { "bet_type": "SO_7", "wager": 10.0, "multiplier": 7.5, "win_amount": 75.0 }
       ]
     },
     "session": {
-      "session_id": "num-cf-a89f21d",
       "balance": 10109.5,
       "total_wagered": 90.0,
       "total_won": 199.5,
@@ -1680,6 +1718,35 @@ Content-Type: application/json
     }
   }
 }</code></pre>
+            </div>
+            <div id="codeTab-lotto-req" class="code-tab-pane">
+              <pre><code id="codeText-lotto-req">// 3. Đặt cược Xổ Số 5D (Ví dụ: Đề Đuôi 77 + Cược Tài + 3 Càng 777)
+POST /api/lotto/bet HTTP/1.1
+Host: lucky-numbers-777.pages.dev
+Content-Type: application/json
+
+{
+  "mode": "30s",
+  "bets": [
+    { "type": "DE_DUOI", "numbers": ["77"], "amount": 10.0 },
+    { "type": "TAI", "numbers": ["TAI"], "amount": 50.0 },
+    { "type": "BA_CANG", "numbers": ["777"], "amount": 5.0 }
+  ]
+}
+
+// Server phản hồi xác nhận đơn cược và mã kỳ quay
+HTTP/1.1 200 OK
+{
+  "status": "success",
+  "data": {
+    "order_id": "LT-30S-171204-9841",
+    "total_wager": 65.0,
+    "new_balance": 10044.5,
+    "cutoff_seconds": 2,
+    "draw_id": "20261003-082"
+  }
+}</code></pre>
+            </div>
           </div>
         </div>
 
@@ -1687,7 +1754,7 @@ Content-Type: application/json
         <div class="swagger-embed-banner">
           <div class="seb-content">
             <span class="seb-icon">⚡</span>
-            <div>
+            <div class="seb-text">
               <h4>TRẢI NGHIỆM SWAGGER UI TRỰC TIẾP TRÊN TRÌNH DUYỆT</h4>
               <p>Bạn có thể thử nghiệm gửi request trực tiếp (Try it out) tới toàn bộ API của Lucky Numbers 777 ngay bây giờ.</p>
             </div>

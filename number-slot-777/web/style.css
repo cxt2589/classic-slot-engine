@@ -1878,13 +1878,17 @@ body.is-telegram-app .brand-text .subtext {
 }
 
 /* ========================================================
-   TAB ARCHITECTURE & API STYLES
+   TAB ARCHITECTURE & API STYLES (RESPONSIVE & MOBILE-OPTIMIZED)
    ======================================================== */
 .arch-panel {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  padding: 10px 0 30px;
+  gap: 24px;
+  padding: 10px 0 36px;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  box-sizing: border-box;
 }
 
 .arch-header-banner {
@@ -1898,21 +1902,32 @@ body.is-telegram-app .brand-text .subtext {
   border-radius: 12px;
   padding: 20px 24px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  box-sizing: border-box;
 }
 
-.arch-header-banner h2 {
+.ahb-text {
+  flex: 1 1 500px;
+}
+
+.ahb-text h2 {
   font-family: var(--font-display);
   font-size: 1.25rem;
   color: var(--gold-primary);
-  margin-bottom: 6px;
+  margin: 0 0 6px 0;
   letter-spacing: 0.5px;
+  line-height: 1.35;
 }
 
-.arch-header-banner p {
+.ahb-text p {
   font-size: 0.82rem;
   color: #a0aec0;
   line-height: 1.5;
-  max-width: 780px;
+  margin: 0;
+}
+
+.arch-header-actions {
+  display: flex;
+  align-items: center;
 }
 
 .swagger-hero-btn {
@@ -1921,47 +1936,80 @@ body.is-telegram-app .brand-text .subtext {
   text-decoration: none;
   font-weight: 900;
   font-family: var(--font-display);
-  padding: 10px 20px;
+  padding: 11px 22px;
   border-radius: 8px;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   letter-spacing: 0.5px;
   box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
-  transition: all 0.2s;
+  transition: all 0.2s ease;
   white-space: nowrap;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
 }
 
 .swagger-hero-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 0 25px rgba(255, 215, 0, 0.7);
+  color: #000;
 }
 
+/* 6-Card Architecture Grid */
 .arch-cards-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
+  gap: 18px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .arch-card {
   background: #0d1220;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 20px;
-  position: relative;
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.card-num {
-  position: absolute;
-  top: 14px;
-  right: 18px;
+.arch-card:hover {
+  border-color: rgba(255, 215, 0, 0.3);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  transform: translateY(-2px);
+}
+
+.arch-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.arch-card-header .card-num {
   font-family: var(--font-display);
-  font-size: 1.6rem;
+  font-size: 1.05rem;
   font-weight: 900;
-  color: rgba(255, 255, 255, 0.07);
+  color: var(--gold-primary);
+  background: rgba(255, 215, 0, 0.1);
+  border: 1px solid rgba(255, 215, 0, 0.25);
+  padding: 2px 10px;
+  border-radius: 20px;
+  letter-spacing: 0.5px;
+}
+
+.arch-card-header .card-badge {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  color: #00e5ff;
+  background: rgba(0, 229, 255, 0.1);
+  border: 1px solid rgba(0, 229, 255, 0.25);
+  padding: 3px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
 }
 
 .arch-card h3 {
@@ -1969,22 +2017,36 @@ body.is-telegram-app .brand-text .subtext {
   font-size: 0.95rem;
   font-weight: 800;
   color: #ffffff;
-  margin-bottom: 10px;
-  letter-spacing: 0.5px;
+  margin: 0 0 10px 0;
+  letter-spacing: 0.3px;
+  line-height: 1.4;
 }
 
 .arch-card p {
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   color: #a0aec0;
-  line-height: 1.5;
-  margin-bottom: 12px;
+  line-height: 1.55;
+  margin: 0 0 12px 0;
+}
+
+.arch-card p strong {
+  color: #e2e8f0;
 }
 
 .arch-card ul {
   font-size: 0.78rem;
   color: #cbd5e0;
-  margin-left: 18px;
-  line-height: 1.6;
+  margin: 0 0 0 18px;
+  padding: 0;
+  line-height: 1.65;
+}
+
+.arch-card ul li {
+  margin-bottom: 6px;
+}
+
+.arch-card ul li strong {
+  color: #edf2f7;
 }
 
 .arch-card code {
@@ -1992,8 +2054,9 @@ body.is-telegram-app .brand-text .subtext {
   background: rgba(0, 229, 255, 0.1);
   border: 1px solid rgba(0, 229, 255, 0.2);
   padding: 1px 5px;
-  border-radius: 3px;
+  border-radius: 4px;
   font-size: 0.75rem;
+  word-break: break-word;
 }
 
 /* Endpoints Table Card */
@@ -2001,21 +2064,32 @@ body.is-telegram-app .brand-text .subtext {
   background: #0d1220;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
-  padding: 20px;
+  padding: 22px;
+  box-sizing: border-box;
+  width: 100%;
 }
 
 .card-top-row {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 14px;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
 }
 
-.card-top-row h3 {
+.ctr-title h3 {
   font-family: var(--font-display);
-  font-size: 0.95rem;
+  font-size: 1rem;
   font-weight: 800;
   color: var(--gold-primary);
+  margin: 0 0 4px 0;
+  letter-spacing: 0.5px;
+}
+
+.ctr-title .ctr-sub {
+  font-size: 0.78rem;
+  color: #718096;
   margin: 0;
 }
 
@@ -2027,6 +2101,13 @@ body.is-telegram-app .brand-text .subtext {
   font-weight: 800;
   padding: 3px 8px;
   border-radius: 4px;
+  white-space: nowrap;
+}
+
+.table-scroll-wrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .api-endpoints-table {
@@ -2039,17 +2120,20 @@ body.is-telegram-app .brand-text .subtext {
 .api-endpoints-table th {
   background: #111728;
   color: #a0aec0;
-  padding: 10px 14px;
+  padding: 11px 14px;
   font-weight: 800;
   font-family: var(--font-display);
   font-size: 0.75rem;
   letter-spacing: 0.5px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  white-space: nowrap;
 }
 
 .api-endpoints-table td {
-  padding: 10px 14px;
+  padding: 12px 14px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  vertical-align: top;
+  line-height: 1.5;
 }
 
 .api-endpoints-table tr:hover td {
@@ -2061,9 +2145,11 @@ body.is-telegram-app .brand-text .subtext {
   font-family: var(--font-display);
   font-weight: 900;
   font-size: 0.7rem;
-  padding: 2px 8px;
+  padding: 3px 8px;
   border-radius: 4px;
   letter-spacing: 0.5px;
+  text-align: center;
+  min-width: 48px;
 }
 
 .http-badge.post {
@@ -2078,50 +2164,150 @@ body.is-telegram-app .brand-text .subtext {
   border: 1px solid #2196f3;
 }
 
+.ep-url {
+  color: #ffd54f;
+  font-weight: 700;
+  background: rgba(255, 213, 79, 0.1);
+  padding: 2px 7px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 213, 79, 0.25);
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+/* API Doc Box (Interactive Code Preview Tabs) */
 .api-doc-box {
   background: #090d16;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
   padding: 20px;
+  box-sizing: border-box;
+  width: 100%;
 }
 
 .doc-box-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 14px;
 }
 
-.doc-box-header h3 {
+.doc-box-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.doc-box-title h3 {
   font-family: var(--font-display);
   font-size: 0.95rem;
   color: #e2e8f0;
   margin: 0;
+  letter-spacing: 0.3px;
 }
 
-.doc-box-header code {
-  color: var(--gold-primary);
+.doc-box-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
-.code-preview {
+.doc-code-tabs {
+  display: inline-flex;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 3px;
+  gap: 3px;
+}
+
+.dct-tab {
+  background: transparent;
+  border: none;
+  color: #a0aec0;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  font-family: var(--font-main);
+  white-space: nowrap;
+}
+
+.dct-tab:hover {
+  color: #ffffff;
+}
+
+.dct-tab.active {
+  background: var(--gold-gradient);
+  color: #000;
+  font-weight: 800;
+  box-shadow: 0 2px 8px rgba(255, 215, 0, 0.3);
+}
+
+.btn-copy-code {
+  background: rgba(0, 229, 255, 0.12);
+  border: 1px solid rgba(0, 229, 255, 0.3);
+  color: #00e5ff;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-main);
+}
+
+.btn-copy-code:hover {
+  background: rgba(0, 229, 255, 0.25);
+  color: #ffffff;
+}
+
+.btn-copy-code.copied {
+  background: rgba(76, 175, 80, 0.25);
+  border-color: #4caf50;
+  color: #81c784;
+}
+
+.code-preview-container {
   background: #04060a;
   border-radius: 8px;
   padding: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  max-height: 480px;
 }
 
-.code-preview pre {
+.code-tab-pane {
+  display: none;
+}
+
+.code-tab-pane.active {
+  display: block;
+}
+
+.code-preview-container pre {
   margin: 0;
   font-family: 'Consolas', 'Courier New', monospace;
   font-size: 0.8rem;
   color: #64b5f6;
-  line-height: 1.5;
+  line-height: 1.55;
+  white-space: pre;
 }
 
+/* Embedded Swagger Banner */
 .swagger-embed-banner {
   background: linear-gradient(135deg, #131a2c 0%, #0a0d16 100%);
-  border: 1px solid rgba(255, 215, 0, 0.3);
+  border: 1px solid rgba(255, 215, 0, 0.35);
   border-radius: 12px;
   padding: 18px 24px;
   display: flex;
@@ -2129,19 +2315,22 @@ body.is-telegram-app .brand-text .subtext {
   align-items: center;
   flex-wrap: wrap;
   gap: 16px;
+  box-sizing: border-box;
 }
 
 .seb-content {
   display: flex;
   align-items: center;
   gap: 14px;
+  flex: 1 1 300px;
 }
 
 .seb-icon {
-  font-size: 1.8rem;
+  font-size: 2rem;
+  flex-shrink: 0;
 }
 
-.seb-content h4 {
+.seb-text h4 {
   font-family: var(--font-display);
   font-size: 0.95rem;
   font-weight: 900;
@@ -2150,10 +2339,11 @@ body.is-telegram-app .brand-text .subtext {
   letter-spacing: 0.5px;
 }
 
-.seb-content p {
+.seb-text p {
   font-size: 0.78rem;
   color: #a0aec0;
   margin: 0;
+  line-height: 1.45;
 }
 
 .seb-btn {
@@ -2162,18 +2352,276 @@ body.is-telegram-app .brand-text .subtext {
   text-decoration: none;
   font-weight: 900;
   font-family: var(--font-display);
-  padding: 10px 20px;
+  padding: 11px 22px;
   border-radius: 8px;
   font-size: 0.82rem;
   letter-spacing: 0.5px;
-  box-shadow: 0 0 12px rgba(255, 215, 0, 0.4);
-  transition: all 0.2s;
+  box-shadow: 0 0 14px rgba(255, 215, 0, 0.4);
+  transition: all 0.2s ease;
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .seb-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
+  box-shadow: 0 0 22px rgba(255, 215, 0, 0.65);
+  color: #000;
+}
+
+/* ========================================================
+   RESPONSIVE MEDIA QUERIES FOR ARCHITECTURE & API DOCS
+   ======================================================== */
+@media (max-width: 992px) {
+  .arch-cards-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+  }
+}
+
+@media (max-width: 768px) {
+  .arch-panel {
+    gap: 16px;
+    padding: 8px 0 28px;
+  }
+
+  .arch-header-banner {
+    padding: 16px;
+    flex-direction: column;
+    align-items: stretch;
+    text-align: left;
+    gap: 14px;
+  }
+
+  .ahb-text {
+    flex: 1 1 auto;
+  }
+
+  .ahb-text h2 {
+    font-size: 1.05rem;
+  }
+
+  .arch-header-actions {
+    width: 100%;
+  }
+
+  .swagger-hero-btn {
+    width: 100%;
+    text-align: center;
+    padding: 12px 16px;
+  }
+
+  /* 1-column cards on mobile */
+  .arch-cards-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .arch-card {
+    padding: 16px;
+  }
+
+  .arch-card h3 {
+    font-size: 0.92rem;
+  }
+
+  .arch-endpoints-card {
+    padding: 14px;
+  }
+
+  .card-top-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  /* MOBILE TRANSFORMATION: Table converts into modern stacked cards */
+  .table-scroll-wrap {
+    overflow-x: visible;
+  }
+
+  .api-endpoints-table {
+    display: block;
+    width: 100%;
+    border-collapse: separate;
+  }
+
+  .api-endpoints-table thead {
+    display: none;
+  }
+
+  .api-endpoints-table tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    width: 100%;
+  }
+
+  .api-endpoints-table tr {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: #090e1a;
+    border: 1px solid rgba(255, 215, 0, 0.22);
+    border-radius: 10px;
+    padding: 14px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+    box-sizing: border-box;
+    width: 100%;
+  }
+
+  .api-endpoints-table tr:hover td {
+    background: transparent;
+  }
+
+  .api-endpoints-table td {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    padding: 0;
+    border: none;
+    font-size: 0.78rem;
+    line-height: 1.45;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .api-endpoints-table td::before {
+    content: attr(data-label);
+    display: inline-block;
+    font-family: var(--font-display);
+    font-size: 0.65rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #718096;
+    margin-bottom: 2px;
+  }
+
+  .api-endpoints-table td[data-label="Phương Thức"] {
+    margin-bottom: -2px;
+  }
+
+  .api-endpoints-table td[data-label="Endpoint"] .ep-url {
+    display: inline-block;
+    font-size: 0.82rem;
+    padding: 4px 8px;
+    white-space: normal;
+    word-break: break-all;
+  }
+
+  .api-endpoints-table td[data-label="Payload Request"] code,
+  .api-endpoints-table td[data-label="Phản Hồi (Response)"] {
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    padding: 7px 10px;
+    width: 100%;
+    box-sizing: border-box;
+    font-size: 0.74rem;
+    color: #cbd5e0;
+    line-height: 1.45;
+    word-break: break-word;
+  }
+
+  /* API Doc Box on Mobile */
+  .api-doc-box {
+    padding: 14px;
+  }
+
+  .doc-box-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .doc-box-actions {
+    width: 100%;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .doc-code-tabs {
+    flex: 1;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .dct-tab {
+    flex: 1;
+    text-align: center;
+    padding: 6px 4px;
+    font-size: 0.7rem;
+  }
+
+  .btn-copy-code {
+    padding: 6px 10px;
+    font-size: 0.72rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .code-preview-container {
+    padding: 12px;
+    max-height: 380px;
+  }
+
+  .code-preview-container pre {
+    font-size: 0.74rem;
+  }
+
+  /* Swagger Embed Banner on Mobile */
+  .swagger-embed-banner {
+    padding: 16px;
+    flex-direction: column;
+    align-items: stretch;
+    text-align: left;
+    gap: 14px;
+  }
+
+  .seb-content {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .seb-btn {
+    width: 100%;
+    text-align: center;
+    padding: 12px 16px;
+  }
+}
+
+@media (max-width: 420px) {
+  .arch-card-header .card-num {
+    font-size: 0.95rem;
+    padding: 1px 8px;
+  }
+
+  .arch-card-header .card-badge {
+    font-size: 0.62rem;
+    padding: 2px 6px;
+  }
+
+  .doc-code-tabs {
+    gap: 2px;
+    padding: 2px;
+  }
+
+  .dct-tab {
+    font-size: 0.65rem;
+    padding: 5px 2px;
+  }
+
+  .btn-copy-code .btn-copy-text {
+    display: none;
+  }
+
+  .btn-copy-code {
+    padding: 6px 8px;
+  }
 }
 
 /* FOOTER */
